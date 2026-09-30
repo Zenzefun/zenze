@@ -1,0 +1,19 @@
+{
+  "name": "Zenze.fun",
+  "short_name": "Zenze",
+  "description": "Zenze.fun is a token launch page. $ZNZF is the protocol token.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FDF6E3",
+  "theme_color": "#D4A545",
+  "icons": [
+    {
+      "src": "/brand/capy-mark-64.png?v=20260924b",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
