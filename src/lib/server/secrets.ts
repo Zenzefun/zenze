@@ -63,6 +63,7 @@ export const AUTO_CONFIG_KEYS = [
   "x_daily_follows",
   "x_daily_reposts",
   "x_daily_comments",
+  "x_daily_originals",
   "x_auto_replies_on_our_posts",
   "x_auto_follows",
   "x_auto_quotes",

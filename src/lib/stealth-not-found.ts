@@ -4,7 +4,7 @@ const ROBOTS = "noindex, nofollow, noarchive, nosnippet, noimageindex";
 
 export function stealthNotFoundHead() {
   return pageHead({
-    description: "Zenze.fun",
+    description: "Zenzen",
     path: "/",
     index: false,
   });

@@ -1,12 +1,12 @@
 import { decodeEventLog, encodeEventTopics, parseAbiItem } from "viem";
-import { CHAINS, type ChainKey } from "@/lib/chains";
+import { CHAINS, DEFAULT_CREATOR_TAX_BPS, type ChainKey } from "@/lib/chains";
 import { getSql } from "@/lib/db";
 import { computeHealth } from "@/lib/health";
 import { displayTokenArt, isIpfsArt } from "@/lib/image-art";
 import { isHexAddress } from "@/lib/intent";
 import { FACTORY_LEGACY, isRetiredAddress } from "@/lib/onchain";
 import { liveProtocolConfig } from "@/lib/server/secrets";
-import { getLogs, readErc20, readImageURI } from "@/lib/rpc.server";
+import { getLogs, readCreatorTaxBps, readErc20, readHolderSharing, readImageURI } from "@/lib/rpc.server";
 import { cleanTokenName, isUnnamedTokenName } from "@/lib/token-name";
 
 const LAUNCHED = parseAbiItem(
@@ -80,16 +80,24 @@ async function syncChain(chain: ChainKey, factory?: string) {
     if (isUnnamedTokenName(name)) name = symbol;
     const id = `${symbol.toLowerCase()}-${token.slice(2, 8)}`;
     const { health, rug } = computeHealth({ realBase: 0, holders: 1, topShare: 1, volumeNative24h: 0 });
+    const [liveTax, liveSharing] = await Promise.all([
+      readCreatorTaxBps(chain, curve),
+      readHolderSharing(chain, curve),
+    ]);
+    const taxBps = liveTax == null ? DEFAULT_CREATOR_TAX_BPS : Math.max(0, Math.min(10_000, Math.round(liveTax)));
+    const sharing = liveSharing === true;
     await sql`
       insert into tokens (
         id, name, symbol, description, image_url, creator_wallet, chain, quote_asset,
         virtual_base, virtual_tokens, holders, health_score, rug_probability,
-        source, contract_address, curve_address, tx_hash, graduated
+        source, contract_address, curve_address, tx_hash, graduated,
+        creator_tax_bps, holder_sharing
       ) values (
         ${id}, ${name}, ${symbol}, ${`Launched on ${CHAINS[chain].name}.`},
         ${image}, ${creator}, ${chain}, 'eth',
         30, 1073000000, 1, ${health}, ${rug},
-        'launched', ${token}, ${curve}, ${log.transactionHash || null}, false
+        'launched', ${token}, ${curve}, ${log.transactionHash || null}, false,
+        ${taxBps}, ${sharing}
       )
       on conflict (id) do nothing
     `;

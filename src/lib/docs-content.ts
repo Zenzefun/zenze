@@ -50,13 +50,13 @@ function a(addr: string | undefined, chain: "robinhood" | "arc" = "robinhood") {
   return `[${addr}](${ex}/address/${addr})`;
 }
 
-export const DOCS_VERSION = "Zenze protocol · live contracts";
+export const DOCS_VERSION = "Zenzen protocol · live contracts";
 
 const overview: DocsDoc = {
   slug: "overview",
   title: "Overview",
   group: "Protocol",
-  description: "Buy $ZNZF earlier and you pay less than the next buyer. You can sell it back. The trade takes 2%. These pages are the exact rules behind that.",
+  description: "The rules for a launch, the fee, and the $ZNZF pool. These pages are the mechanism. The rest of the site does not restate them.",
   blocks: [
     {
       type: "p",
@@ -64,7 +64,7 @@ const overview: DocsDoc = {
     },
     {
       type: "p",
-      text: "Zenze never takes custody of a wallet. A new token starts on a curve. A Uniswap v4 pool is only created when that curve has a migrator and someone calls migrate(). The live $ZNZF curve has no migrator.",
+      text: "A new token starts on a curve. When that curve fills on Robinhood, the site moves the reserves into a Uniswap v4 pool and the swap on the token page uses that pool. The live $ZNZF curve does not move.",
     },
     {
       type: "p",
@@ -188,11 +188,11 @@ const graduation: DocsDoc = {
     },
     {
       type: "p",
-      text: "After graduation, the creator (once) sets a migrator. Anyone then calls migrate(). Remaining tokens and quote are approved into ZenzeV4Migrator, which initializes a Uniswap v4 pool (fee 0.30%, tick spacing 60, full-range ticks ±887220) on the Robinhood PoolManager and mints the position to the LP recipient.",
+      text: "After the curve fills, the site calls migrate(). Remaining tokens and quote go into a Uniswap v4 pool on Robinhood Chain, and the token page swaps there. The live $ZNZF curve has no migrator, so it stays on its own pool. Arc has no Uniswap v4 pool in this app.",
     },
     {
       type: "p",
-      text: `PoolManager on Robinhood Chain: ${a(UNISWAP_V4.robinhood.poolManager)}. Arc has no published PoolManager in this app. An Arc launch does not get a v4 pool from Zenze.`,
+      text: `PoolManager on Robinhood Chain: ${a(UNISWAP_V4.robinhood.poolManager)}. Arc has no published PoolManager in this app. An Arc launch does not get a v4 pool from Zenzen.`,
     },
   ],
 };
@@ -209,7 +209,7 @@ const pairs: DocsDoc = {
     },
     {
       type: "p",
-      text: "The pair is one asset. The swap widget is not limited to that one asset. If another live Zenze token uses the same quote, the widget routes sell A → quote → buy B. $ZNZF itself has an ETH curve, so a token paired with ETH can be bought with $ZNZF in two hops. There is no Uniswap hop for stock ↔ ETH inside Zenze — if the curve prices in GOOGL, you pay GOOGL, or a token that also prices in GOOGL.",
+      text: "The pair is one asset. The swap widget is not limited to that one asset. If another live Zenze token uses the same quote, the widget routes sell A → quote → buy B. A published token that has a Uniswap v4 ETH pool, such as USDG or a Robinhood stock, can also pay an ETH curve: it is sold for ETH first, and 2% of that ETH stays with Zenzen. On a token page the token itself cannot be replaced. Selling that token pays ETH only. $ZNZF stays on its curve.",
     },
     {
       type: "h2",
@@ -255,7 +255,7 @@ const snipe: DocsDoc = {
     },
     {
       type: "warn",
-      text: "This is not the Pons 5-second exponential 99% tax, and it is not 32 exemptions. Those numbers belong to another protocol. Zenze is 3 seconds, linear, 8 wallets.",
+      text: "This is not the Pons 5-second exponential 99% tax, and it is not 32 exemptions. Those numbers belong to another protocol. Zenzen is 3 seconds, linear, 8 wallets.",
     },
   ],
 };
@@ -276,7 +276,7 @@ const fees: DocsDoc = {
     },
     {
       type: "p",
-      text: `creatorTaxBps is set at launch, immutable, maximum ${MAX_CREATOR_TAX_BPS} (10% of the 2% fee). Default is ${DEFAULT_CREATOR_TAX_BPS}. Worked example at the default: a 1 ETH buy pays 0.02 ETH fee. Creator share = 0.02 × 10% = 0.002 ETH. Protocol (feeVault) receives 0.018 ETH. That is 0.20% and 1.80% of the trade, not a second tax on top of 2%.`,
+      text: `New launches charge ${TRADE_FEE_BPS / 100}% on every buy and sell (FEE_BPS = ${TRADE_FEE_BPS}). That percentage does not change. creatorTaxBps is the creator's slice of that fee, set once at launch. The form opens at ${DEFAULT_CREATOR_TAX_BPS / 100} and will not accept more than ${MAX_CREATOR_TAX_BPS / 100}. A value of ${DEFAULT_CREATOR_TAX_BPS / 100} is ${DEFAULT_CREATOR_TAX_BPS / 100}% of the fee, not ${DEFAULT_CREATOR_TAX_BPS / 100}% of the trade. At that default, a 1 ETH buy pays 0.02 ETH in fees. The creator keeps ${(0.02 * DEFAULT_CREATOR_TAX_BPS) / 10_000} ETH. The protocol keeps the rest. The live $ZNZF curve charges the same 2% and sets creatorTaxBps to 0.`,
     },
     {
       type: "p",
@@ -292,6 +292,14 @@ const fees: DocsDoc = {
         `Launch take defaults to $${LAUNCH_FEE_USD.toFixed(2)} USD, paid in native gas at the ETH/USD (or USDC) print at send time, plus network gas. factory.launchFee is the on-chain wei floor — current published factories set this to 0, so the USD take is what the wallet actually sends.`,
         `List take defaults to $${LISTING_FEE_USD.toFixed(0)} USD, paid to the fee vault. A referrer in the list link earns ${10}% of that take.`,
       ],
+    },
+    {
+      type: "h2",
+      text: "Uniswap swap on Zenzen",
+    },
+    {
+      type: "p",
+      text: `A listed token swapped from a Zenze page pays the same ${TRADE_FEE_BPS / 100}% in ETH to the fee vault. On a buy, that slice is sent before the rest is swapped. On a sell, that slice of the ETH received is sent to the vault and the rest goes to the wallet. The pool's own Uniswap fee is separate. A swap made directly on Uniswap does not pay Zenzen.`,
     },
     {
       type: "h2",
@@ -435,7 +443,7 @@ const safety: DocsDoc = {
     {
       type: "ul",
       items: [
-        "Zenze does not hold wallets or trading inventory. Factory, curve, token, vault, and the move contract are called by the user.",
+        "Zenzen does not hold wallets or trading inventory. Factory, curve, token, vault, and the move contract are called by the user.",
         "After migrate(), remaining curve inventory is in the v4 position. There is no unlock() on ZenzeV4Migrator.",
         "Tokens sent to a contract address by mistake are not recoverable from this app.",
         "A launch whose image was not IPFS-pinned is rejected by the app. On-chain, the factory does not store art — a token without art in the index is hidden or shown with an identicon, never the Zenze mark.",
@@ -571,11 +579,11 @@ const trading: DocsDoc = {
     },
     {
       type: "p",
-      text: "Prefer buyFor / sellFor. The app sends 1% slippage as minOut. For an ERC-20 quote, approve the curve first. For a sell, approve the launch token on the curve.",
+      text: "Prefer buyFor / sellFor. A token still on its curve sends 1% slippage as minOut and does not show a slippage control. A listed pool uses the slippage set in the widget. For an ERC-20 quote, approve the curve first. For a sell, approve the launch token on the curve.",
     },
     {
       type: "p",
-      text: "The token page swap widget lets either leg be the launch token, its quote, another published quote, or another live Zenze token on the same chain. A route exists only when bonding curves connect those nodes (shared quote, or $ZNZF ↔ ETH). There is no hidden DEX hop. If the widget says there is no route, pay in the pair.",
+      text: "A token still on its bonding curve uses a direct swap. Market, limit, and the slippage control appear only after that stage is finished and the token trades as a listed pool. The token on the page cannot be replaced, and selling it pays ETH only. There is no resting order book. If the widget says there is no route, that token has no curve and no Uniswap v4 ETH pool.",
     },
   ],
 };

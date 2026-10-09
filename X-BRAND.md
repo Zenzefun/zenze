@@ -10,10 +10,10 @@ Diperbarui 21 Sep 2026 dari akun live + [batas resmi X](https://help.x.com/en/ru
 
 | Field | Value |
 |---|---|
-| Display name | `Zenze.fun` |
+| Display name | `Zenzen` |
 | Handle | `@ZenzeFun` (jangan ganti) |
 | Location | `Robinhood Chain` |
-| Website | `https://zenze.fun` |
+| Website | `https://zenzen.fun` |
 | Birth date | kosong |
 | Identity | Organization |
 
@@ -33,7 +33,7 @@ Jangan taruh URL di bio (sudah ada di Website). Jangan `$ZENA`, missions, labor,
 
 | | Live @ZenzeFun | Kit ini |
 |---|---|---|
-| Name | `ZENZE` | `Zenze.fun` |
+| Name | `ZENZE` | `Zenzen` |
 | Bio | The chill launchpad for Robinhood Chain + Arc. ☕️ Fair launches, smooth curves, smart trades. $ZNZF | Bio mekanisme di atas (2% · 2 ETH) |
 | Last post | `$BABI` live, 4 likes / 4 replies / 31 views | — |
 | Replies | 4/4 promo bot (“DM me”, “follow me”, “pump it”) | Mesin **tidak** like / follow / RT / reply bot itu |
@@ -47,11 +47,13 @@ Ganti display name + bio. Pin post mekanisme. Sisanya biarkan pulse.
 Satu post mekanisme, bukan hype launch. Refresh kalau angka on-chain berubah.
 
 ```
-Robinhood Chain. Bonding curve. 2% fee. 2 ETH → Uniswap v4.
+Robinhood Chain. Bonding curve. 2% fee. Creator slice at most 10% of that fee.
 
-$ZNZF is the protocol token of Zenze.fun — 1,000,000,000 canonical, Arc bridged 1:1.
+New ETH pairs can lock into Uniswap v4 at 2 ETH. The $ZNZF curve does not.
 
-https://zenze.fun/znzf
+$ZNZF is the protocol token of Zenzen — 1,000,000,000 canonical, Arc bridged 1:1.
+
+https://zenzen.fun/znzf
 ```
 
 Post launch (`$TICKER` baru live) masuk timeline, bukan pin.
@@ -64,9 +66,9 @@ Capy, tenang, mekanisme dulu. Hype = kontras + angka yang benar. Bukan janji.
 
 **Bentuk original**
 
-1. Baris pertama = fakta atau mekanisme (`2% fee.`, `2 ETH to Uniswap v4.`, `$ZNZF 1B canonical.`).
+1. Baris pertama = fakta atau mekanisme (`2% fee.`, `creator slice is at most 10% of that fee.`, `$ZNZF 1B canonical.`).
 2. Satu kalimat kenapa itu penting.
-3. Satu URL (`https://zenze.fun/…`).
+3. Satu URL (`https://zenzen.fun/…`).
 4. `$ZNZF` sekali.
 5. Di bawah 240 karakter. Tidak thread kecuali desk minta.
 
@@ -158,22 +160,23 @@ Kalau `eth_call` live tidak setuju, chain yang menang. Jangan “bulatkan ke ata
 
 | Fact | Value |
 |---|---|
-| Site | https://zenze.fun |
-| Docs | https://zenze.fun/docs |
-| $ZNZF page | https://zenze.fun/znzf |
+| Site | https://zenzen.fun |
+| Docs | https://zenzen.fun/docs |
+| $ZNZF page | https://zenzen.fun/znzf |
 | Tagline | Launch smart. Trade smarter. |
 | Canonical chain | Robinhood Chain (4663), gas ETH |
 | Bridged chain | Arc (5042), gas USDC |
-| $ZNZF canonical | `0x65ee0ce656908544a1f29856ac9aee8563b5002c` (Robinhood). Curve belum live. Jangan sebut `0x4BB3…F4d6`. |
+| $ZNZF canonical | `0x65ee0ce656908544a1f29856ac9aee8563b5002c` (Robinhood). Jangan sebut `0x4BB3…F4d6`. |
 | $ZNZF Arc (bridged 1:1) | `0x65ee0ce656908544a1f29856ac9aee8563b5002c` on Arc. Jangan sebut `0x53eF…CBc6`. |
 | $ZNZF curve (Robinhood) | `0xda1650faaec372925c9211e6625ba5d9a4397d57` |
 | $ZNZF supply | 1,000,000,000, minted sekali di Robinhood |
-| New-launch curve fee | 2% (`FEE_BPS = 200`) |
-| Live $ZNZF curve fee | 2% (`FEE_BPS = 200`) |
-| ETH graduation | 2 ETH → Uniswap v4 di Robinhood Chain |
+| New-launch curve fee | 2% (`FEE_BPS = 200`). Creator slice max 10% of that fee (0.20% of the trade). Not a second tax. |
+| Live $ZNZF curve fee | 2% (`FEE_BPS = 200`), `creatorTaxBps = 0`. No creator claim. No holding rebate. |
+| New-launch ETH graduation | 2 ETH can migrate to Uniswap v4 on Robinhood. Not true of the live $ZNZF curve. |
+| Live $ZNZF curve | Buys stop after 2 ETH of real reserves. It does not migrate. |
 | USDG/USDC graduation | 10,000 |
 | $ZNZF-pair graduation | 1,000,000 |
-| Launch take | $0.50 + gas (desk bisa override) |
+| Launch take | $0.50 + gas (desk bisa override). Separate from the 2% trade fee. |
 | List take | $19 + gas (desk bisa override) |
 | Wallet | Reown AppKit only |
 
@@ -186,11 +189,11 @@ Alamat factory / vault / bridge ada di `/docs`, bukan di setiap tweet.
 **Mekanisme**
 
 ```
-2% on the curve. 2 ETH and it locks into Uniswap v4.
+2% on a new curve. The creator’s slice is at most 10% of that fee.
 
-That is the factory, not a promise.
+2 ETH on a new ETH pair can lock into Uniswap v4. The $ZNZF curve does not.
 
-$ZNZF https://zenze.fun/docs
+$ZNZF https://zenzen.fun/docs
 ```
 
 **$ZNZF**
@@ -199,7 +202,7 @@ $ZNZF https://zenze.fun/docs
 $ZNZF is 1,000,000,000 on Robinhood Chain.
 Arc is bridged 1:1 — nothing extra is minted.
 
-https://zenze.fun/znzf
+https://zenzen.fun/znzf
 ```
 
 **Launch** (hanya setelah row token ada)
@@ -207,17 +210,17 @@ https://zenze.fun/znzf
 ```
 $TICKER is live on Zenze, paired with ETH.
 
-2% curve fee. 2 ETH to Uniswap v4. $ZNZF
+2% curve fee. Creator slice at most 10% of that fee. $ZNZF
 
-https://zenze.fun/token/0x…
+https://zenzen.fun/token/0x…
 ```
 
 **Volume 0 (jujur)**
 
 ```
-The $ZNZF curve is on-chain. Volume today is 0 — the fee is still 1% on that curve.
+The $ZNZF curve is on-chain. Volume today is 0 — the fee is still 2% on that curve. There is no creator share on it.
 
-https://zenze.fun/znzf
+https://zenzen.fun/znzf
 ```
 
 ---
@@ -240,7 +243,7 @@ Pause / cadence / progress bar 35/50/50/50: Capy desk → Marketing → Autonomo
 Di x.com (login sebagai @ZenzeFun):
 
 1. Display name `Zenze.fun` (sekarang masih `ZENZE`).
-2. Paste bio mekanisme, location `Robinhood Chain`, website `https://zenze.fun`.
+2. Paste bio mekanisme, location `Robinhood Chain`, website `https://zenzen.fun`.
 3. Upload avatar + header kalau masih protokol lain.
 4. Pin post mekanisme.
 5. Pastikan switch Autonomous on di desk.

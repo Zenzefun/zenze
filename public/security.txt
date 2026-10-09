@@ -1,6 +1,6 @@
-Contact: https://zenze.fun/legal
+Contact: https://zenzen.fun/legal
 Contact: https://x.com/ZenzeFun
 Expires: 2027-09-24T00:00:00.000Z
 Preferred-Languages: en
-Canonical: https://zenze.fun/.well-known/security.txt
-Policy: https://zenze.fun/legal
+Canonical: https://zenzen.fun/.well-known/security.txt
+Policy: https://zenzen.fun/legal

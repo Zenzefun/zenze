@@ -1,6 +1,8 @@
 import { getSql } from "@/lib/db";
 import { configValue } from "@/lib/server/secrets";
+import { DESK_DEFAULTS } from "@/lib/desk-limits";
 import { searchTweets, type XMention } from "@/lib/server/twitterapis";
+import { jakartaDayStart } from "@/lib/server/telegram-posts";
 
 export type EngageKind = "like" | "follow" | "repost" | "comment";
 
@@ -12,10 +14,10 @@ export type EngageCounts = {
 };
 
 export const DAILY_CAPS: EngageCounts = {
-  like: 8,
-  follow: 24,
-  repost: 6,
-  comment: 12,
+  like: DESK_DEFAULTS.like,
+  follow: DESK_DEFAULTS.follow,
+  repost: DESK_DEFAULTS.repost,
+  comment: DESK_DEFAULTS.comment,
 };
 
 /** Promo bots on the mention river: DM pitches, collab offers, paid boosts, empty hype. */
@@ -57,9 +59,10 @@ export async function countsToday(): Promise<EngageCounts> {
   const empty: EngageCounts = { like: 0, follow: 0, repost: 0, comment: 0 };
   try {
     const sql = await getSql();
+    const dayStart = jakartaDayStart(new Date());
     const rows = await sql<{ kind: string; n: number }>`
       select kind, count(*)::int as n from marketing_actions
-       where status = 'ok' and created_at > date_trunc('day', now())
+       where status = 'ok' and created_at >= ${dayStart}
        group by kind
     `;
     const out = { ...empty };

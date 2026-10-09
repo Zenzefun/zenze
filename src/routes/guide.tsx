@@ -41,7 +41,7 @@ function Guide() {
             <Link to="/list" className="underline">
               list
             </Link>{" "}
-            a token that already exists. Capy reads the contract on-chain. Listing payment is collected on-chain. Share a list
+            a token that already exists. The page reads the contract. You pay the listing take in that same transaction. Share a list
             link with your wallet in the <code className="text-foreground">ref</code> field — you earn a cut of that payment.
           </li>
           <li>Buy and sell launched pools on the curve against ETH, USDG, USDC, $ZNZF, or Robinhood stock tokens. Listed tokens open on the chain explorer.</li>
@@ -72,28 +72,36 @@ function Guide() {
           <Link to="/fund" className="underline">
             Add USDC
           </Link>{" "}
-          buys it into the wallet you connected. It stays in that wallet. It is not a payment to Zenze.
+          buys it into the wallet you connected. It stays in that wallet. It is not a payment to Zenzen.
         </p>
 
         <h2 className="mt-10 text-2xl font-semibold">5. Fees</h2>
-        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
-          <li>Listing payment on every external contract indexed here.</li>
-          <li>Referral cut to whoever shared the list link.</li>
-          <li>A new factory curve charges 2%. The creator’s slice is at most 10% of that fee. The rest goes to the protocol vault. The live $ZNZF curve sends the whole 2% to the vault. There is no creator claim on that curve.</li>
-          <li>The live $ZNZF curve stops new buys after 2 ETH of real reserves. It does not send liquidity to Uniswap.</li>
-          <li>A sweep can move 80% of the ETH in the fee vault into buyback. 20% stays in the vault. The burn happens only when that transaction is sent.</li>
-        </ul>
-
-        <h2 className="mt-10 text-2xl font-semibold">6. Capy AI and X</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Open Capy AI for an on-demand read of a pool. Share buttons open X with $ZNZF in the copy. Follow{" "}
+          What a trade pays, who receives it, and what happens in the first seconds of a launch are in the{" "}
+          <Link to="/docs" className="underline">
+            docs
+          </Link>
+          . This page does not restate them.
+        </p>
+
+        <h2 className="mt-10 text-2xl font-semibold">6. Capy AI</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          <Link to="/capyai" className="underline">
+            Capy AI
+          </Link>{" "}
+          reads a pool when you ask. It is not the account that posts. You open it, you pick a pool, you get the numbers in words.
+        </p>
+
+        <h2 className="mt-10 text-2xl font-semibold">7. On X</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Share buttons open X with the token in the copy. Follow{" "}
           <a className="text-foreground underline" href="https://x.com/ZenzeFun" target="_blank" rel="noopener noreferrer">
             @ZenzeFun
           </a>
           .
         </p>
 
-        <h2 className="mt-10 text-2xl font-semibold">7. Networks</h2>
+        <h2 className="mt-10 text-2xl font-semibold">8. Networks</h2>
         <div className="mt-3 overflow-x-auto text-sm">
           <table className="w-full text-left">
             <thead className="text-xs text-muted-foreground">
@@ -118,14 +126,14 @@ function Guide() {
           </table>
         </div>
 
-        <h2 className="mt-10 text-2xl font-semibold">7. Trading pairs</h2>
+        <h2 className="mt-10 text-2xl font-semibold">9. Trading pairs</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Launch picks a quote from a dropdown, same shape as the chain switcher. Each row uses the asset’s listed mark —
           ETH, USDG, USDC, $ZNZF, PONS, and Robinhood stock tokens (NVDA, AAPL, TSLA, SPY, and the rest). Search the
           ticker. Arc quotes are USDC and $ZNZF.
         </p>
 
-        <h2 className="mt-10 text-2xl font-semibold">8. Add $ZNZF to a wallet</h2>
+        <h2 className="mt-10 text-2xl font-semibold">10. Add $ZNZF to a wallet</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
           <li>
             Open the{" "}
@@ -143,7 +151,7 @@ function Guide() {
           </li>
         </ol>
 
-        <h2 className="mt-10 text-2xl font-semibold">9. Token images</h2>
+        <h2 className="mt-10 text-2xl font-semibold">11. Token images</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Launch and list crop art to a 512×512 square. PNG, JPG, or WebP. Uploaded images pin to IPFS so the pool page
           stays light.

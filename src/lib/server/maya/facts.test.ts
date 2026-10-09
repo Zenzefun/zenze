@@ -18,7 +18,7 @@ describe("plannerFacts", () => {
     themeName: "Distributor day",
     themeIntent: "Give $ZNZF holders something true they can quote.",
     themeJob: "A6",
-    themeUrl: "https://zenze.fun/znzf",
+    themeUrl: "https://zenzen.fun/znzf",
   };
 
   it("does not hand Maya a pasteable ETH/USD or dust volume print", () => {
@@ -26,10 +26,13 @@ describe("plannerFacts", () => {
     assert.equal(/ETH\/USD\s*:/i.test(text), false);
     assert.equal(/\beth\s+\d{3,}/i.test(text.replace(/DEAD MILL[\s\S]*?(?:\n|$)/g, "")), false);
     assert.match(text, /quiet \(do not paste the raw number\)/);
-    assert.match(text, /Preferred URL this hour: https:\/\/zenze\.fun\/znzf/);
+    assert.match(text, /End an original with one link/);
+    assert.match(text, /https:\/\/zenzen\.fun\/znzf/);
+    assert.equal(/zenze\.fun/i.test(text.replace(/DEAD MILL[\s\S]*?(?:\n|$)/g, "")), false);
     assert.match(text, /points share it/);
     assert.match(text, /Not a second coin/);
-    assert.match(text, /the lock is the vote/i);
+    assert.match(text, /Weekly rival tape/);
+    assert.match(text, /Never paste a rival number/);
   });
 
   it("labels mill last-posts as dead so they are not copied", () => {

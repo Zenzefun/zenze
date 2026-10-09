@@ -190,11 +190,11 @@ export function quoteOf(key: string | null | undefined, chain?: ChainKey): Quote
   return BY_KEY.get(defaultQuote(chain ?? "robinhood"))!;
 }
 
-export function pairLabel(symbol: string, quote: QuoteAsset | QuoteKey) {
+export function pairLabel(symbol: string, quote: QuoteAsset | QuoteKey, sep: "/" | " " = "/") {
   const q = typeof quote === "string" ? quoteOf(quote) : quote;
   const ticker = (symbol || "TOKEN").replace(/^\$+/, "").toUpperCase();
   const quoteSym = q.pair.replace(/^\$+/, "");
-  return `${ticker}/${quoteSym}`;
+  return `${ticker}${sep}${quoteSym}`;
 }
 
 export function isQuoteKey(value: string): boolean {

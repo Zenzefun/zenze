@@ -2,8 +2,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { claimCreatorFeesCalldata } from "@/lib/contracts";
-import { formatAddress, formatFixed } from "@/lib/format";
+import { formatFixed } from "@/lib/format";
 import { isHexAddress } from "@/lib/intent";
+import { isProtocolToken } from "@/lib/pool";
 import { creatorFeeSnapshot, prepareWalletTx, type EnrichedToken } from "@/lib/server/market";
 import { publicWalletError, txGas, useWallet } from "@/lib/wallet";
 
@@ -24,8 +25,6 @@ export function CreatorFees({ token }: { token: EnrichedToken }) {
   const payTo = (snap.data?.creator || token.creator_wallet || "").toLowerCase();
   const creatorKnown = isHexAddress(payTo) && !/^0x0{40}$/.test(payTo);
   const isCreator = Boolean(wallet.address) && creatorKnown && wallet.address?.toLowerCase() === payTo;
-  const ticker = (snap.data?.symbol || token.symbol || "").replace(/^\$/, "").toUpperCase();
-  const shortPay = creatorKnown ? formatAddress(payTo) : "";
   const hasCurve = Boolean(curve && isHexAddress(curve));
 
   const claim = useMutation({
@@ -54,8 +53,9 @@ export function CreatorFees({ token }: { token: EnrichedToken }) {
     onError: (err) => toast.error(publicWalletError(err)),
   });
 
-  const protocol = snap.data?.protocol === true;
-  const showClaim = hasCurve && claimable && !protocol;
+  const protocol = isProtocolToken(token) || snap.data?.protocol === true;
+  const sharedWithHolders = snap.data?.holderSharing === true && !protocol;
+  const showClaim = hasCurve && claimable && !protocol && !sharedWithHolders;
   const label = claim.isPending
     ? "Claiming…"
     : claimableAmt <= 0
@@ -64,38 +64,25 @@ export function CreatorFees({ token }: { token: EnrichedToken }) {
         ? "Connect wallet to claim"
         : "Claim fees";
 
+  const note = protocol
+    ? "No creator fee. The 2% trade fee stays with Zenzen."
+    : sharedWithHolders
+      ? "The creator's part of the 2% fee is shared with holders."
+      : !hasCurve
+        ? "No fees yet."
+        : snap.data?.claimable === false
+          ? "Paid to the creator on each trade."
+          : sweeps === 0 && claimableAmt <= 0
+            ? "No creator fee earned yet."
+            : "Part of the 2% trade fee. Not an extra charge.";
+
   return (
     <div className="stone-card rounded-xl p-4">
       <p className="text-sm font-medium">Creator fees</p>
       <p className="mt-1 font-display text-2xl tabular-nums">
-        {formatFixed(earned, 6)} {unit}
+        {protocol ? "None" : sharedWithHolders ? "Holders" : `${formatFixed(earned, 6)} ${unit}`}
       </p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {protocol
-          ? "The 2% on this curve goes to the fee vault. There is no creator claim. A sweep can send 80% of the vault ETH to buyback. 20% stays in the vault."
-          : !hasCurve
-          ? `No bonding curve is live for $${ticker || "token"} yet.`
-          : sweeps === 0 && claimableAmt <= 0
-            ? `No fees earned on this $${ticker || "token"} curve yet.`
-            : `Earned on this $${ticker || "token"} curve from ${sweeps} trade${sweeps === 1 ? "" : "s"}.`}
-      </p>
-      <p className="mt-4 font-display text-xl tabular-nums">
-        {formatFixed(claimableAmt, 6)} {unit}
-      </p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {protocol
-          ? "Nothing on this curve is claimable by a creator."
-          : showClaim
-          ? shortPay
-            ? `Claimable now on this curve · paid to ${shortPay}`
-            : "Claimable now on this curve."
-          : "Nothing is claimable until the curve is live."}
-      </p>
-      {hasCurve && snap.data?.claimable === false && !snap.data?.holderSharing && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          This curve pays the creator share into that wallet as each swap confirms.
-        </p>
-      )}
+      <p className="mt-1 text-sm text-muted-foreground">{note}</p>
       {showClaim && (
         <Button
           className="mt-3 w-full"

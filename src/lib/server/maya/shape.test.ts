@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { hasTruncatedUrl, isMillDump, neutralizeBareDomain, humanSpacing, shapePost, stripTruncatedUrl, tweetText } from "./shape.ts";
+import { hasTruncatedUrl, isMillDump, neutralizeBareDomain, humanSpacing, doorUrl, replyDoor, shapePost, stripTruncatedUrl, tweetText } from "./shape.ts";
 
 describe("shapePost", () => {
   it("strips zenze.fun so X does not hide the post", () => {
@@ -9,7 +9,7 @@ describe("shapePost", () => {
     );
     assert.match(out, /fair launch/);
     assert.equal(/zenze\.fun/i.test(out), false);
-    assert.equal(/https?:\/\//i.test(out), false);
+    assert.match(out, /https:\/\/zenzen\.fun\/docs/);
     assert.ok(out.length <= 240);
   });
 
@@ -36,31 +36,60 @@ describe("shapePost", () => {
     const body =
       "$ZNZF does four things, and one you can quote: governance weight. 1,000,000,000 canonical on Robinhood Chain, bridged 1:1 to Arc. Staking weight and fee-rebate design follow; buyback-and-burn only when operators actually run it.";
     const out = shapePost(`${body}\n\nhttps://zenze.fun/znzf`);
-    assert.equal(/https?:\/\//i.test(out), false);
+    assert.match(out, /https:\/\/zenzen\.fun\/znzf/);
+    assert.equal(/zenze\.fun/i.test(out), false);
     assert.equal(hasTruncatedUrl(out), false);
     assert.ok(out.length <= 240);
   });
 
-  it("writes one paragraph instead of a stacked template", () => {
+  it("keeps sentences the model already separated", () => {
     const out = shapePost("Buy earlier.\n\nYou pay less.\n\nYou can sell back into the same pool.");
-    assert.equal(out, "Buy earlier. You pay less. You can sell back into the same pool.");
+    assert.equal(out, "Buy earlier.\n\nYou pay less.\n\nYou can sell back into the same pool.");
   });
 
-  it("turns an em dash into a comma and fixes missing spaces", () => {
-    assert.equal(humanSpacing("Arc is 1:1 — not a second mint.\nThe trade takes 2%."), "Arc is 1:1, not a second mint. The trade takes 2%.");
+  it("does not restack a paragraph into a four-line slogan", () => {
+    const out = shapePost("Your token can have a pool today. You name it. You pick the pair. Launch it.");
+    assert.equal(out, "Your token can have a pool today. You name it. You pick the pair. Launch it.");
+    assert.equal(out.includes("\n\n"), false);
+  });
+
+  it("turns an em dash into a comma and keeps a blank line between sentences", () => {
+    assert.equal(
+      humanSpacing("Arc is 1:1 — not a second mint.\nThe trade takes 2%."),
+      "Arc is 1:1, not a second mint.\n\nThe trade takes 2%.",
+    );
     assert.equal(humanSpacing("Done.Next buyer pays more."), "Done. Next buyer pays more.");
     assert.equal(humanSpacing("Supply is 1,000,000,000. $ ZNZF stays that."), "Supply is 1,000,000,000. $ZNZF stays that.");
   });
 
-  it("keeps Linktree on its own line under a normal sentence", () => {
+  it("keeps one zenzen.fun link and drops the rest", () => {
     const out = shapePost("Where? https://x.com/foo/status/1 https://zenze.fun/launch https://linktr.ee/zenzefun", "reply");
     const urls = out.match(/https:\/\/[^\s]+/g) ?? [];
-    assert.deepEqual(urls, ["https://linktr.ee/zenzefun"]);
+    assert.deepEqual(urls, ["https://zenzen.fun/launch"]);
   });
 
-  it("drops every URL from an original, including Linktree", () => {
+  it("never leaves /points in a post", () => {
+    const out = shapePost("See where you stand.\nhttps://zenze.fun/points");
+    assert.equal(out.includes("/points"), false);
+    assert.equal(out.includes("zenze.fun"), false);
+  });
+
+  it("keeps the new domain on an original and drops Linktree", () => {
     const out = shapePost("A lock is the product.\nhttps://linktr.ee/zenzefun");
-    assert.equal(/https?:\/\//i.test(out), false);
+    assert.match(out, /https:\/\/zenzen\.fun$/);
+    assert.equal(/linktr\.ee/i.test(out), false);
+  });
+
+  it("uses one door", () => {
+    assert.equal(doorUrl(false), "https://zenzen.fun");
+    assert.equal(doorUrl(true), "https://zenzen.fun");
+    const reply = shapePost("Where?\nhttps://linktr.ee/zenzefun", "reply");
+    assert.equal(replyDoor(reply).includes("https://zenzen.fun"), true);
+    assert.equal(/linktr\.ee/i.test(replyDoor(reply)), false);
+    assert.equal(replyDoor("Where? https://zenze.fun/airdrop"), "Where? https://zenzen.fun/airdrop");
+    assert.match(shapePost("Come through.\nhttps://zenze.fun"), /https:\/\/zenzen\.fun/);
+    const both = shapePost("A lock is the product.\nhttps://linktr.ee/zenzefun\nhttps://zenze.fun/staking");
+    assert.equal(both.match(/https:\/\/\S+/g)?.join(" "), "https://zenzen.fun/staking");
   });
 });
 
@@ -69,16 +98,16 @@ describe("neutralizeBareDomain", () => {
     const out = neutralizeBareDomain("Read Zenze.fun before you sign. http://Zenze.fun/docs and https://www.zenze.fun/znzf");
     assert.equal(out.includes("Zenze.fun"), false);
     assert.equal(out.includes("http://"), false);
-    assert.match(out, /Read Zenze before/);
-    assert.match(out, /https:\/\/zenze\.fun\/docs/);
-    assert.match(out, /https:\/\/zenze\.fun\/znzf/);
+    assert.match(out, /Read Zenzen before/);
+    assert.match(out, /https:\/\/zenzen\.fun\/docs/);
+    assert.match(out, /https:\/\/zenzen\.fun\/znzf/);
   });
 
   it("shapePost rewrites a bare domain even when a real link is present", () => {
     const out = shapePost("The pool is on Zenze.fun.\nhttps://zenze.fun/znzf");
     assert.equal(out.includes("http://"), false);
     assert.equal(/zenze\.fun/i.test(out), false);
-    assert.match(out, /on Zenze\./);
+    assert.match(out, /on Zenzen\./);
   });
 });
 

@@ -25,6 +25,11 @@ async function autoOn() {
 }
 
 async function runPulseOnce(reason: "cron" | "desk" | "boot"): Promise<PulseResult> {
+  const gate = globalThis as typeof globalThis & { __zenzePulseAt?: number };
+  if (reason !== "desk" && gate.__zenzePulseAt && Date.now() - gate.__zenzePulseAt < 4 * 60 * 1000) {
+    return { ok: true, play: "skip", posted: false, skipped: "A pulse already ran this window." };
+  }
+  if (reason !== "desk") gate.__zenzePulseAt = Date.now();
   if (!(await autoOn()) && reason !== "desk") {
     return { ok: true, play: "skip", posted: false, skipped: "Autonomous posting is paused." };
   }
@@ -42,6 +47,14 @@ async function runPulseOnce(reason: "cron" | "desk" | "boot"): Promise<PulseResu
   }
   await persistPlan({ strategy: plan.strategy, bottleneck: plan.bottleneck, note: plan.note });
   const result = await act(plan, obs);
+  const originalDue = obs.originalsToday < obs.originalCap && obs.minutesSinceOriginal >= obs.cadenceMin;
+  const note =
+    originalDue && !result.posted
+      ? result.skipped || result.error || "Original was due and was not posted."
+      : plan.note;
+  if (note !== plan.note) {
+    await persistPlan({ strategy: plan.strategy, bottleneck: plan.bottleneck, note });
+  }
   return {
     ok: !result.error,
     play: result.play,
@@ -53,7 +66,7 @@ async function runPulseOnce(reason: "cron" | "desk" | "boot"): Promise<PulseResu
     error: result.error,
     queued: result.queued,
     bottleneck: plan.bottleneck,
-    note: plan.note,
+    note,
   };
 }
 

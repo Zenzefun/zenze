@@ -6,7 +6,7 @@ import { HomeButton } from "@/components/site/home-button";
 import { Button } from "@/components/ui/button";
 import { asNumber, formatCompact, formatEth, formatUsdMaybe } from "@/lib/format";
 import { tokenRouteId } from "@/lib/token-path";
-import { getWalletHoldings, listTokens, protocolStats } from "@/lib/server/market";
+import { getWalletHoldings, listTokens, protocolStats, walletSeat } from "@/lib/server/market";
 import { HolderFeeClaimButton } from "@/components/tokens/holder-fees";
 import { pageHead } from "@/lib/seo";
 import { nativeSymbol, networkLabel, useWallet } from "@/lib/wallet";
@@ -16,11 +16,36 @@ export const Route = createFileRoute("/portfolio")({
   head: () =>
     pageHead({
       title: "Portfolio",
-      description: "What you hold, and the tokens you launched.",
+      description: "What you hold, how long you have stayed, and the fees you can claim.",
       path: "/portfolio",
       index: false,
     }),
 });
+
+function Seat({ wallet }: { wallet: string }) {
+  const seat = useQuery({
+    queryKey: ["seat", wallet],
+    queryFn: () => walletSeat({ data: { wallet } }),
+  });
+  const row = seat.data;
+  return (
+    <div className="mt-6 rounded-xl border border-border bg-card px-4 py-4">
+      <p className="text-xs text-muted-foreground">Your seat</p>
+      {seat.isPending && <p className="mt-1 text-sm text-muted-foreground">Reading your history…</p>}
+      {row && (
+        <>
+          <p className="mt-1 font-display text-2xl font-semibold">{row.title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{row.line}</p>
+          <p className="mt-2 text-sm">
+            {row.paying > 0
+              ? `${row.paying} of your tokens pay holders. The claim is on that row.`
+              : "Fees land on a pool only when its creator turned sharing on."}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 
 function Portfolio() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats() });
@@ -44,7 +69,7 @@ function Portfolio() {
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
       <div className="mx-auto max-w-4xl px-4 py-10">
         <h1 className="text-3xl font-semibold">Your wallet</h1>
-        <p className="mt-2 text-muted-foreground">What you hold, and the tokens you launched.</p>
+        <p className="mt-2 text-muted-foreground">What you hold, how long you have stayed, and the fees waiting on pools that pay holders.</p>
         {!wallet.connected ? (
           <div className="mt-8 max-w-sm text-center">
             <SmartImage src="/brand/capy-sleep.webp" alt="" width={160} height={160} className="mx-auto w-40 rounded-xl" rounded="xl" />
@@ -62,6 +87,7 @@ function Portfolio() {
         ) : (
           <>
             <p className="mt-2 font-mono text-xs text-muted-foreground break-all">{wallet.address}</p>
+            <Seat wallet={wallet.address} />
             <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="stone-card rounded-xl p-4">
                 <dt className="text-xs text-muted-foreground">Network</dt>

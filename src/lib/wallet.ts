@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { encodeFunctionData, getAddress, parseAbi, toHex } from "viem";
-import { disconnectAppKit, isAppKitRegistered, onAppKitClosed, openAppKitModal } from "./appkit-bridge";
+import { disconnectAppKit, isAppKitRegistered, onAppKitClosed, openAppKitModalWhenReady } from "./appkit-bridge";
 import { CHAINS, chainById, type ChainInfo, type ChainKey } from "./chains";
 import { walletIntentMessage, type WalletAction } from "./intent";
 import { clearSession, readSession, sessionMessage, writeSession } from "./session";

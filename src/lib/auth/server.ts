@@ -94,7 +94,7 @@ export const authConfigured =
 const explicitBaseURL = env("BETTER_AUTH_URL");
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
-const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
+const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS, "zenzen.fun", "www.zenzen.fun", "zenze.fun", "www.zenze.fun"];
 // Local `npm run dev` (port 8080 contract). Browsers may send Origin as any of
 // these for the same server — trusting only `localhost` rejects `127.0.0.1` and
 // breaks email/password with "Invalid origin".
@@ -115,13 +115,15 @@ const baseURL = explicitBaseURL ?? {
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
+const SITE_ORIGINS = ["https://zenzen.fun", "https://www.zenzen.fun", "https://zenze.fun", "https://www.zenze.fun"];
 const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
+  ? [explicitBaseURL, ...SITE_ORIGINS, ...LOCAL_DEV_ORIGINS]
   : [
       // Host wildcards (matched against Origin's host)
       ...previewAllowedHosts,
       // Full-origin wildcards (matched against Origin)
       ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+      ...SITE_ORIGINS,
       ...LOCAL_DEV_ORIGINS,
     ];
 

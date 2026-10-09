@@ -11,7 +11,7 @@ import { useWallet } from "@/lib/wallet";
 const STEPS = [
   { n: "01", title: "Connect", body: "Tap Wallet. The list that opens is the only way in. Pick the wallet you already use." },
   { n: "02", title: "Buy USDC", body: "The purchase is in dollars. USDC arrives on Arc, in the wallet you just connected." },
-  { n: "03", title: "Spend it there", body: "That USDC pays Arc gas. It can finish a bridge. It is not sent to Zenze." },
+  { n: "03", title: "Spend it there", body: "That USDC pays Arc gas. It can finish a bridge. It is not sent to Zenzen." },
 ];
 
 export const Route = createFileRoute("/fund")({
@@ -81,7 +81,7 @@ function FundPage() {
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-stone">Arc</p>
         <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight md:text-5xl">Add USDC</h1>
         <p className="mt-3 max-w-xl text-base text-muted-foreground">
-          Buy USDC on Arc into the wallet you connected. The coins stay there. Zenze never holds them and never asks for a seed phrase.
+          Buy USDC on Arc into the wallet you connected. The coins stay there.
         </p>
         <ol className="mt-8 grid gap-3 sm:grid-cols-3">
           {STEPS.map((step) => (

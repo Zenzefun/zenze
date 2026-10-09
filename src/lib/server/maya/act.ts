@@ -2,13 +2,14 @@ import { getSql } from "@/lib/db";
 import { alreadyActed, alreadyFollowed, markComment, recordAction } from "@/lib/server/x-engage";
 import { favoriteTweet, followUser, retweetTweet } from "@/lib/server/twitterapis";
 import { publishTweet } from "@/lib/server/x";
-import { DAILY_CAPS } from "./policy";
 import { scoreDraft } from "./score";
 import { freezeGraph, touchContact } from "./learn";
-import { hasTruncatedUrl, isMillDump, shapePost } from "./shape";
+import { themeFor, urlForTheme } from "./calendar";
+import { hasTruncatedUrl, isMillDump, replyDoor, shapePost, ensureDoor, closePulse } from "./shape";
 import type { MayaItem } from "./plan";
 import type { ObservePack } from "./observe";
-import { mentionIsQuestion } from "./observe";
+import { attachWaitingReply, mentionIsQuestion } from "./observe";
+import { DAILY_CAPS } from "./policy";
 
 export type PulsePlay = "launch" | "znzf" | "fact" | "reply" | "quote" | "engage" | "skip";
 
@@ -192,10 +193,16 @@ function writingKind(action: MayaItem["action"]): "original" | "reply" | "quote"
   return null;
 }
 
-function shapeItem(item: MayaItem): MayaItem {
+function shapeItem(item: MayaItem, ownDomain = false): MayaItem {
   const kind = writingKind(item.action);
   if (!kind) return item;
-  return { ...item, draft: shapePost(item.draft, kind) };
+  const draft =
+    kind === "original"
+      ? ensureDoor(item.draft, urlForTheme(themeFor()), kind)
+      : kind === "reply"
+        ? replyDoor(shapePost(item.draft, kind), ownDomain)
+        : shapePost(item.draft, kind);
+  return { ...item, draft };
 }
 
 function canExecute(item: MayaItem, obs: ObservePack, originalDue: boolean): string | null {
@@ -205,12 +212,13 @@ function canExecute(item: MayaItem, obs: ObservePack, originalDue: boolean): str
   if (item.action === "like") {
     if (!item.post_id) return "Like needs a post id.";
     if (!item.reason) return "Like needs a reason.";
-    if (obs.done.like >= Math.min(obs.caps.like, DAILY_CAPS.like)) return "Like cap reached.";
+    if (obs.done.like >= obs.caps.like) return "Like cap reached.";
     return null;
   }
   if (item.action === "follow") {
     if (!obs.autoFollows) return "Follows paused.";
-    if (obs.done.follow >= Math.min(obs.caps.follow, DAILY_CAPS.follow)) return "Follow cap reached.";
+    if (obs.done.follow >= obs.caps.follow) return "Follow cap reached.";
+    if (obs.followsThisHour >= DAILY_CAPS.followPerHour) return "Follow pace reached.";
     if (!item.handle || item.score_hint < 4) return "Follow needs a named 4–5 account.";
     if (!item.why_this_account) return "Follow card incomplete.";
     return null;
@@ -222,18 +230,18 @@ function canExecute(item: MayaItem, obs: ObservePack, originalDue: boolean): str
   }
   if (item.action === "repost") {
     if (!item.post_id) return "Repost needs a post id.";
-    if (obs.done.repost >= Math.min(obs.caps.repost, DAILY_CAPS.repost)) return "Repost cap reached.";
+    if (obs.done.repost >= obs.caps.repost) return "Repost cap reached.";
     return null;
   }
   if (item.action === "original") {
-    if (!originalDue && !obs.newestLaunch) return "Original cadence not due.";
-    if (obs.originalsToday >= DAILY_CAPS.original) return "Daily original cap reached.";
+    if (!originalDue) return "Original cadence not due.";
+    if (obs.originalsToday >= obs.originalCap) return "Daily original cap reached.";
     if (!item.draft) return "Empty original.";
     if (isMillDump(item.draft) || hasTruncatedUrl(item.draft)) return "Mill dump — not a shaped post.";
     return null;
   }
   if (item.action === "reply") {
-    if (obs.done.comment >= Math.min(obs.caps.comment, DAILY_CAPS.comment)) return "Comment cap reached.";
+    if (obs.done.comment >= obs.caps.comment) return "Comment cap reached.";
     if (!obs.autoReplies) return "Replies paused.";
     if (!item.draft) return "Empty reply.";
     if (!item.post_id) return "Reply needs the post it answers. A loose reply becomes a hidden original.";
@@ -253,6 +261,7 @@ async function publishOriginal(item: MayaItem, obs: ObservePack, play: PulsePlay
     audience: item.audience,
     mentionedUs: mentionedUs(item, obs),
     isOurPost: isOurThreadReply(item, obs),
+    ownDomain: obs.ownDomain,
   });
   if (!scored.ok) {
     return { play, posted: false, error: `Draft failed score (${scored.score}): ${scored.reasons.join("; ")}`, queued: 0 };
@@ -284,15 +293,12 @@ async function publishOriginal(item: MayaItem, obs: ObservePack, play: PulsePlay
     });
   }
   if (posted.ok && replyTo) await markComment(replyTo, item.handle);
-  if (posted.ok && item.action === "original" && posted.id) {
-    await publishTweet("The page is here.\nhttps://linktr.ee/zenzefun", posted.id).catch(() => null);
-  }
   if (posted.ok) return { play, posted: true, text: item.draft, id, xPostId: posted.id, queued: 0 };
   return { play, posted: false, text: item.draft, id, error: posted.error, queued: 0 };
 }
 
 export async function executeItem(item: MayaItem, obs: ObservePack): Promise<ActResult> {
-  const shaped = shapeItem(item);
+  const shaped = shapeItem(item, obs.ownDomain);
   if (shaped.action === "like" && shaped.post_id) {
     if (await alreadyActed("like", shaped.post_id)) {
       return { play: "engage", posted: false, skipped: "Already liked.", queued: 0 };
@@ -349,12 +355,16 @@ function preferLaunchDraft(obs: ObservePack, items: MayaItem[]): MayaItem[] {
 }
 
 export async function act(plan: { items: MayaItem[] }, obs: ObservePack): Promise<ActResult> {
-  const originalDue = obs.originalsToday < DAILY_CAPS.original && obs.minutesSinceOriginal >= obs.cadenceMin;
-  const items = preferLaunchDraft(obs, plan.items.map(shapeItem));
+  const originalDue = obs.originalsToday < obs.originalCap && obs.minutesSinceOriginal >= obs.cadenceMin;
+  const items = preferLaunchDraft(
+    obs,
+    plan.items.map((item) => shapeItem(attachWaitingReply(item, obs.mentions, obs.handle), obs.ownDomain)),
+  );
   let wrote = false;
   let followed = false;
   let liked = false;
   let executed: ActResult | null = null;
+  let refused = "";
 
   for (const item of items) {
     const writing = Boolean(writingKind(item.action));
@@ -368,12 +378,19 @@ export async function act(plan: { items: MayaItem[] }, obs: ObservePack): Promis
         audience: item.audience,
         mentionedUs: mentionedUs(item, obs),
         isOurPost: isOurThreadReply(item, obs),
+        ownDomain: obs.ownDomain,
       });
-      if (!scored.ok) continue;
+      if (!scored.ok) {
+        refused = `${item.action}: ${scored.reasons.join("; ")}`;
+        continue;
+      }
     }
     if (item.action === "reply" && item.post_id && (await alreadyActed("comment", item.post_id))) continue;
-    const block = canExecute(item, obs, originalDue || Boolean(obs.newestLaunch));
-    if (block) continue;
+    const block = canExecute(item, obs, originalDue);
+    if (block) {
+      if (item.action === "reply" || item.action === "original") refused = block;
+      continue;
+    }
 
     if (item.action === "follow") {
       if (followed) continue;
@@ -396,23 +413,29 @@ export async function act(plan: { items: MayaItem[] }, obs: ObservePack): Promis
     }
   }
 
-  if (executed) return { ...executed, queued: 0 };
-
   const q = obs.mentions.find((p) => mentionIsQuestion(p, obs.handle));
-  if (q && obs.autoReplies && obs.done.comment < obs.caps.comment && !(await alreadyActed("comment", q.id))) {
+  if (q && !wrote && obs.autoReplies && obs.done.comment < obs.caps.comment && !(await alreadyActed("comment", q.id))) {
     return {
       play: "skip",
       posted: false,
-      skipped: "Inbound question this window — Maya did not draft a reply. No mill fallback.",
+      error: refused || "The reply was not usable.",
+      skipped: refused ? `The reply was written and refused: ${refused}` : "The waiting person did not get a reply.",
       queued: 0,
     };
   }
+
+  const closed = closePulse({ originalDue, wrote, refused, executed });
+  if (closed && "kept" in closed && executed) return { ...executed, queued: 0 };
+  if (closed && "play" in closed) return closed;
+  if (executed) return { ...executed, queued: 0 };
 
   return {
     play: "skip",
     posted: false,
     skipped: originalDue
-      ? "Planner produced nothing executable. No mill fallback."
+      ? refused
+        ? `Nothing posted. ${refused}`
+        : "Planner produced nothing executable. No mill fallback."
       : `Next original in ${Math.ceil(Math.max(0, obs.cadenceMin - obs.minutesSinceOriginal))}m.`,
     queued: 0,
   };

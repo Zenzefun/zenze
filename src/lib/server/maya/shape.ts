@@ -6,12 +6,26 @@ export const MAX_ORIGINAL = 240;
 export const MAX_REPLY = 270;
 export const MAX_TWEET = 280;
 
-const COMPLETE_LINKTR = /^https:\/\/linktr\.ee\/zenzefun$/i;
 const COMPLETE_X = /^https:\/\/(?:www\.)?x\.com\/\S+$/i;
+const COMPLETE_SITE = /^https:\/\/zenzen\.fun(?:\/\S*)?$/i;
 
-/** One paragraph a person would type. Blank lines and em dashes read as a template. */
+export const OWN_DOOR = "https://zenzen.fun";
+
+/** One door. The old domain and Linktree are not a second system. */
+export function doorUrl(_ownDomain = true) {
+  return OWN_DOOR;
+}
+
+/** Rewrite a retired door onto zenzen.fun. A path on the old domain is kept. */
+export function replyDoor(text: string, _ownDomain = true) {
+  return text
+    .replace(/https?:\/\/linktr\.ee\/zenzefun\b/gi, OWN_DOOR)
+    .replace(/https?:\/\/(?:www\.)?zenze\.fun/gi, OWN_DOOR);
+}
+
+/** Keep the line breaks the model wrote. Do not split one paragraph into a slogan. */
 export function humanSpacing(raw: string): string {
-  let t = raw
+  const t = raw
     .replace(/[\u00a0\u202f\u2009]/g, " ")
     .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
     .replace(/\*\*|__|`/g, "")
@@ -21,36 +35,21 @@ export function humanSpacing(raw: string): string {
 
   const lines = t
     .split(/\n+/)
-    .map((line) => line.trim())
+    .map((line) =>
+      line
+        .trim()
+        .replace(/[ \t]{2,}/g, " ")
+        .replace(/\s+([,.;!?])/g, "$1")
+        .replace(/([,;])(?=[A-Za-z$])/g, "$1 ")
+        .replace(/([.!?])(?=[A-Za-z$])/g, "$1 ")
+        .replace(/\$\s+/g, "$")
+        .replace(/,\s*,+/g, ",")
+        .replace(/,\s*\./g, ".")
+        .trim(),
+    )
     .filter((line) => line && line !== ",");
-  const parts: string[] = [];
-  let buf: string[] = [];
-  const flush = () => {
-    if (!buf.length) return;
-    parts.push(buf.join(" "));
-    buf = [];
-  };
-  for (const line of lines) {
-    if (/^https:\/\//i.test(line)) {
-      flush();
-      parts.push(line);
-    } else {
-      buf.push(line);
-    }
-  }
-  flush();
 
-  return parts
-    .join("\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\s+([,.;!?])/g, "$1")
-    .replace(/([,;])(?=[A-Za-z$])/g, "$1 ")
-    .replace(/([.!?])(?=[A-Za-z$])/g, "$1 ")
-    .replace(/\$\s+/g, "$")
-    .replace(/,\s*,+/g, ",")
-    .replace(/,\s*\./g, ".")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
+  return lines.join("\n\n").trim();
 }
 
 export function tidyWhitespace(raw: string): string {
@@ -66,11 +65,12 @@ export function tidyWhitespace(raw: string): string {
 }
 
 export function isCompleteUrl(u: string): boolean {
-  return COMPLETE_LINKTR.test(u.trim()) || COMPLETE_X.test(u.trim());
+  const t = u.trim().replace(/[),.;!?]+$/g, "");
+  return COMPLETE_SITE.test(t) || COMPLETE_X.test(t);
 }
 
 export function hasCompleteZenzeUrl(text: string): boolean {
-  return /https:\/\/zenze\.fun(?:\/[^\s]+)?/i.test(text) && !hasTruncatedUrl(text);
+  return /https:\/\/zenzen\.fun(?:\/[^\s]+)?/i.test(text) && !hasTruncatedUrl(text);
 }
 
 export function hasTruncatedUrl(text: string): boolean {
@@ -105,11 +105,16 @@ export function isMillDump(text: string): boolean {
   return false;
 }
 
-/** X hides zenze.fun. Originals carry no URL. A reply may keep only the Linktree door. */
+/** One zenzen.fun link. A reply with no site link may keep one x.com link. */
 function pickUrl(text: string, kind: "original" | "reply" | "quote"): string | null {
+  const urls = text.match(/https:\/\/[^\s)]+/gi) ?? [];
+  const clean = (u: string) => u.replace(/[),.;!?]+$/g, "");
+  const site = urls.map(clean).filter((u) => COMPLETE_SITE.test(u));
+  const withPath = site.find((u) => /^https:\/\/zenzen\.fun\/\S/i.test(u));
+  if (withPath) return withPath;
+  if (site[0]) return site[0];
   if (kind !== "reply") return null;
-  const urls = text.match(/https:\/\/[^\s]+/gi) ?? [];
-  return urls.find((u) => COMPLETE_LINKTR.test(u.trim())) ?? null;
+  return urls.map(clean).find((u) => COMPLETE_X.test(u)) ?? null;
 }
 
 function cutAtBoundary(text: string, max: number): string {
@@ -122,8 +127,47 @@ function cutAtBoundary(text: string, max: number): string {
   return cut.slice(0, at).trim();
 }
 
+export function pulseArmed(httpOk: boolean, body: { pulse?: { running?: boolean } } | null) {
+  return httpOk && body?.pulse?.running === true;
+}
+
+export function launchNeedles(symbol: string, contractAddress: string | null | undefined) {
+  const out: string[] = [];
+  const sym = symbol.trim().replace(/^\$/, "");
+  if (sym) out.push(`$${sym}`);
+  const addr = (contractAddress || "").trim();
+  if (addr) out.push(addr);
+  return out;
+}
+
+export function closePulse(input: {
+  originalDue: boolean;
+  wrote: boolean;
+  refused: string;
+  executed: { skipped?: string; error?: string } | null;
+}): { play: "skip"; posted: false; skipped: string; error: string; queued: number } | { kept: true } | null {
+  if (input.executed && input.wrote) return { kept: true };
+  if (input.originalDue && !input.wrote) {
+    const why = input.refused || "Original was due and was not written.";
+    const engage = input.executed?.skipped || input.executed?.error || "";
+    const line = engage ? `${why} ${engage}` : why;
+    return { play: "skip", posted: false, skipped: line, error: line, queued: 0 };
+  }
+  return null;
+}
+
+export function ensureDoor(raw: string, url: string, kind: "original" | "reply" | "quote" = "original") {
+  const shaped = shapePost(raw, kind);
+  if (kind !== "original") return shaped;
+  if (/https:\/\/zenzen\.fun(?:\/|\b)/i.test(shaped)) return shaped;
+  return `${shaped}\n\n${url}`.trim();
+}
+
 export function shapePost(raw: string, kind: "original" | "reply" | "quote" = "original"): string {
-  let t = neutralizeBareDomain(stripTruncatedUrl(tidyWhitespace(raw)));
+  const rewritten = neutralizeBareDomain(
+    tidyWhitespace(raw).replace(/https?:\/\/linktr\.ee\/zenzefun\b/gi, OWN_DOOR),
+  );
+  const t = stripTruncatedUrl(rewritten);
   const keep = pickUrl(t, kind);
   const body = humanSpacing(
     stripTruncatedUrl(

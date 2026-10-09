@@ -65,7 +65,7 @@ export function writeOperatorSession(session: OperatorSession) {
       // try the next store
     }
   }
-  if (!saved) throw new Error("Cannot store the desk session. Allow site data for zenze.fun and try again.");
+  if (!saved) throw new Error("Cannot store the desk session. Allow site data for zenzen.fun and try again.");
 }
 
 export function clearOperatorSession() {

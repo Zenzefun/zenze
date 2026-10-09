@@ -1,12 +1,13 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { formatUnits } from "viem";
-import { pointTotal, publicRules, rulesFromDesk, shareWei, spinFromRoll, UNIT, defaultDropRules, type DropRules } from "@/lib/airdrop-rules";
+import { pointTotal, publicRules, rulesFromDesk, shareWei, spinFromRoll, UNIT, defaultDropRules, maxPoints, type DropRules } from "@/lib/airdrop-rules";
 import { getSql } from "@/lib/db";
 import { isHexAddress } from "@/lib/intent";
 import { publishedConfig } from "@/lib/onchain";
 import { operatorMiddleware } from "@/lib/operator-middleware";
 import { configValue, invalidateDeskConfig, loadDeskConfig } from "@/lib/server/secrets";
+import { COMMUNITY_GROUP, COMMUNITY_GROUP_URL, publicRoomUrl } from "@/lib/server/telegram";
 
 const X = "https://x.com/ZenzeFun";
 
@@ -70,24 +71,35 @@ async function botName() {
   }
 }
 
-async function inRoom(userId: string) {
-  const { token, chat } = await telegramAuth();
-  if (!token || !chat || !userId) return false;
+async function memberOf(token: string, chat: string, userId: string): Promise<boolean | null> {
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/getChatMember`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ chat_id: chat, user_id: Number(userId) }),
     });
-    const json = (await res.json()) as { ok?: boolean; result?: { status?: string } };
+    const json = (await res.json()) as { ok?: boolean; description?: string; result?: { status?: string } };
+    if (!json.ok) {
+      if (/not a member|kicked|chat not found|bot was/i.test(json.description ?? "")) return null;
+      return false;
+    }
     const status = json.result?.status ?? "";
-    return json.ok === true && ["creator", "administrator", "member", "restricted"].includes(status);
+    return ["creator", "administrator", "member", "restricted"].includes(status);
   } catch {
-    return false;
+    return null;
   }
 }
 
-async function actions(wallet: string) {
+async function inRoom(userId: string) {
+  const { token, chat } = await telegramAuth();
+  if (!token || !userId) return false;
+  const group = await memberOf(token, `@${COMMUNITY_GROUP}`, userId);
+  if (group !== null) return group;
+  if (!chat) return false;
+  return (await memberOf(token, chat, userId)) === true;
+}
+
+async function actions(wallet: string, minTokens = 10_000) {
   const sql = await db();
   const launched = await sql<{ id: string }>`
     select id from tokens
@@ -113,10 +125,11 @@ async function actions(wallet: string) {
   let referrals = 0;
   try {
     const rows = await sql<{ n: number }>`
-      select count(distinct lower(tr.wallet))::int as n
+      select count(distinct lower(e.wallet))::int as n
       from referral_codes c
       join referral_events e on e.code = c.code and lower(e.wallet) <> lower(c.wallet)
       join trades tr on lower(tr.wallet) = lower(e.wallet) and tr.side = 'buy' and tr.token_id = 'znzf'
+      join holdings h on lower(h.wallet) = lower(e.wallet) and h.token_id = 'znzf' and h.amount >= ${minTokens}
       where lower(c.wallet) = ${wallet}
     `;
     referrals = rows[0]?.n ?? 0;
@@ -208,7 +221,7 @@ function storedSpinPoints(raw: string | null | undefined) {
 }
 
 async function quote(wallet: string, row: WalletRow | undefined, rules: DropRules) {
-  const did = await actions(wallet);
+  const did = await actions(wallet, Number(rules.minHold / UNIT));
   const spun = storedSpinPoints(row?.spin_wei);
   let held = 0n;
   try {
@@ -320,10 +333,9 @@ export async function recordTelegramStart(text: string, telegramUserId: string) 
 
 async function roomLinks() {
   const bot = await botName();
-  const chat = (await configValue("telegram_chat_id"))?.trim() ?? "";
-  const room = chat.startsWith("@") ? `https://t.me/${chat.slice(1)}` : "";
+  const room = await publicRoomUrl();
   const handle = ((await configValue("x_handle")) ?? "ZenzeFun").replace(/^@/, "");
-  return { bot, room, xReady: true, handle };
+  return { bot, room, group: COMMUNITY_GROUP_URL, xReady: true, handle };
 }
 
 export const airdropStatus = createServerFn({ method: "POST" })
@@ -356,7 +368,9 @@ export const airdropStatus = createServerFn({ method: "POST" })
       claimWei: "0",
       bot: links.bot ? `https://t.me/${links.bot}` : "",
       room: links.room,
+      group: links.group,
       x: X,
+      followUrl: `https://x.com/intent/follow?screen_name=${encodeURIComponent(links.handle)}`,
       xReady: links.xReady,
       claimsOpen: window.open && pool.deployed && !pool.paused,
       claimsAt: window.at,
@@ -365,10 +379,20 @@ export const airdropStatus = createServerFn({ method: "POST" })
       poolFunded: znzfText(funded),
       rules: shown,
       board: [] as { wallet: string; points: number; claim: string }[],
+      totalPoints: 0,
+      eligibleCount: 0,
+      preview: "0",
+      sharePct: 0,
+      maxPoints: maxPoints(rules),
     };
     if (window.open && pool.deployed && !pool.paused) await ensureShares();
-    const board = await leaderboard(rules, window.open);
-    if (!isHexAddress(wallet)) return { ...empty, board };
+    const census = await leaderboard(rules, window.open);
+    const split = {
+      board: census.board,
+      totalPoints: census.totalPoints,
+      eligibleCount: census.eligible,
+    };
+    if (!isHexAddress(wallet)) return { ...empty, ...split };
     const sql = await db();
     await sql`insert into airdrop_wallets (wallet) values (${wallet}) on conflict (wallet) do nothing`;
     const rows = await sql<WalletRow>`
@@ -387,8 +411,15 @@ export const airdropStatus = createServerFn({ method: "POST" })
     const q = await quote(wallet, live, rules);
     const start = links.bot ? `https://t.me/${links.bot}?start=join_${wallet}` : "";
     const share = window.open ? await shareOf(wallet) : 0n;
+    const mine = q.eligible ? q.points : 0;
+    const already = census.seen.includes(wallet);
+    const countedTotal = q.eligible && !already ? census.totalPoints + mine : census.totalPoints;
+    const preview = shareWei(BigInt(mine), BigInt(countedTotal), pool.balance);
+    const sharePct = countedTotal > 0 && mine > 0 ? Math.round((mine / countedTotal) * 1000) / 10 : 0;
     return {
       ...empty,
+      ...split,
+      totalPoints: countedTotal,
       bought: q.bought,
       telegramOk,
       xFollow: Boolean(row?.x_follow_ok),
@@ -404,34 +435,51 @@ export const airdropStatus = createServerFn({ method: "POST" })
       held: znzfText(q.held),
       claim: znzfText(share),
       claimWei: share.toString(),
+      preview: znzfText(window.open ? share : preview),
+      sharePct,
       bot: start,
-      board,
+      board: split.board,
     };
   });
 
 async function leaderboard(rules: DropRules, open: boolean) {
-  const sql = await db();
-  const rows = await sql<WalletRow>`
-    select wallet, x_handle, telegram_user_id, telegram_ok, x_follow_ok, spin_wei::text
-    from airdrop_wallets
-    order by created_at desc
-    limit 40
-  `;
-  const ranked = (
-    await Promise.all(
-      rows.map(async (row) => {
-        const q = await quote(row.wallet, row, rules);
-        if (q.points <= 0) return null;
-        const share = open ? await shareOf(row.wallet) : 0n;
-        return { wallet: row.wallet, points: q.points, claim: znzfText(share), n: q.points };
-      }),
-    )
-  ).filter((row): row is { wallet: string; points: number; claim: string; n: number } => row != null);
-  return ranked
-    .sort((a, b) => b.n - a.n)
-    .slice(0, 20)
-    .map(({ wallet, points, claim }) => ({ wallet, points, claim }));
+  const now = Date.now();
+  if (boardMemo && boardMemo.open === open && now - boardMemo.at < 15_000) return boardMemo.value;
+  if (boardFlight) return boardFlight;
+  boardFlight = (async () => {
+    const sql = await db();
+    const rows = await sql<WalletRow>`
+      select wallet, x_handle, telegram_user_id, telegram_ok, x_follow_ok, spin_wei::text
+      from airdrop_wallets
+      order by created_at desc
+      limit 200
+    `;
+    const ranked = (
+      await Promise.all(
+        rows.map(async (row) => {
+          const q = await quote(row.wallet, row, rules);
+          if (!q.eligible) return null;
+          const share = open ? await shareOf(row.wallet) : 0n;
+          return { wallet: row.wallet, points: q.points, claim: znzfText(share) };
+        }),
+      )
+    ).filter((row): row is { wallet: string; points: number; claim: string } => row != null);
+    ranked.sort((a, b) => b.points - a.points);
+    const value = {
+      totalPoints: ranked.reduce((sum, row) => sum + row.points, 0),
+      eligible: ranked.length,
+      seen: ranked.map((row) => row.wallet),
+      board: ranked.slice(0, 20),
+    };
+    boardMemo = { at: Date.now(), open, value };
+    return value;
+  })().finally(() => {
+    boardFlight = null;
+  });
+  return boardFlight;
 }
+let boardMemo: { at: number; open: boolean; value: { totalPoints: number; eligible: number; seen: string[]; board: { wallet: string; points: number; claim: string }[] } } | null = null;
+let boardFlight: Promise<{ totalPoints: number; eligible: number; seen: string[]; board: { wallet: string; points: number; claim: string }[] }> | null = null;
 
 async function xCodeFor(wallet: string) {
   const sql = await db();
@@ -470,7 +518,7 @@ async function readPublicPost(id: string) {
     const handle = json.user?.screen_name ?? "";
     if (text && handle) return { text, handle };
   }
-  const embed = await fetch(`https://publish.twitter.com/oembed?omit_script=true&url=${encodeURIComponent(`https://x.com/i/status/${id}`)}`, {
+  const embed = await fetch(`https://publish.x.com/oembed?omit_script=true&url=${encodeURIComponent(`https://x.com/i/web/status/${id}`)}`, {
     headers: { accept: "application/json", "user-agent": "Zenze.fun/1.0" },
   }).catch(() => null);
   if (!embed?.ok) return null;
@@ -493,7 +541,7 @@ export const beginAirdropX = createServerFn({ method: "POST" })
       ok: true as const,
       code,
       followUrl: `https://x.com/intent/follow?screen_name=${encodeURIComponent(handle)}`,
-      postUrl: `https://x.com/intent/post?text=${encodeURIComponent(line)}`,
+      postUrl: `https://x.com/intent/tweet?text=${encodeURIComponent(line)}`,
     };
   });
 
@@ -540,8 +588,8 @@ export const spinAirdrop = createServerFn({ method: "POST" })
       const known = rules.spin.findIndex((slice) => slice.points === points);
       return { ok: true as const, points, index: known >= 0 ? known : 0, already: true };
     }
-    const did = await actions(wallet);
     const rules = await loadDropRules();
+    const did = await actions(wallet, Number(rules.minHold / UNIT));
     const secret = (await configValue("x_handle")) ?? "ZenzeFun";
     const roll = createHash("sha256").update(`${wallet}:${secret}:spin`).digest()[0] % 100;
     const slice = spinFromRoll(roll, rules.spin);
@@ -631,6 +679,7 @@ export const airdropDesk = createServerFn({ method: "GET" })
             return {
               wallet: row.wallet,
               bought: q.bought,
+              ready: q.eligible,
               x: Boolean(row.x_follow_ok),
               telegram: Boolean(row.telegram_ok),
               launched: q.launched,
@@ -645,6 +694,7 @@ export const airdropDesk = createServerFn({ method: "GET" })
         }),
       )
     ).filter((row): row is NonNullable<typeof row> => row != null);
+    wallets.sort((a, b) => b.points - a.points || Number(b.ready) - Number(a.ready));
     return {
       ok: true as const,
       pool: pool.deployed ? pool.drop ?? "" : "",

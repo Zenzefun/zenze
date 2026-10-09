@@ -10,7 +10,7 @@ import { SmartImage, TokenImage } from "@/components/media/smart-image";
 import { Button } from "@/components/ui/button";
 import { CHAINS, type ChainKey } from "@/lib/chains";
 import { bridgeLockCalldata, bridgeTransferId, erc20ApproveCalldata } from "@/lib/contracts";
-import { formatAmount } from "@/lib/format";
+import { floorDecimal, formatAmount } from "@/lib/format";
 import { isHexAddress } from "@/lib/intent";
 import { completeBridge, bridgeSnapshot } from "@/lib/server/bridge";
 import { protocolStats } from "@/lib/server/market";
@@ -46,6 +46,7 @@ function Bridge() {
   const [step, setStep] = useState<Step>("idle");
   const [lockTx, setLockTx] = useState<string | null>(null);
   const [mintTx, setMintTx] = useState<string | null>(null);
+  const [receiveChain, setReceiveChain] = useState<ChainKey | null>(null);
   const n = Number(amount) || 0;
   const to: ChainKey = from === "robinhood" ? "arc" : "robinhood";
   const live = Boolean(snap.data?.live);
@@ -60,7 +61,7 @@ function Bridge() {
 
   function fillPct(pct: number) {
     const cap = bal * (pct / 100);
-    setAmount(cap > 0 ? formatAmount(cap, 6) : "");
+    setAmount(cap > 0 ? floorDecimal(cap, 6) : "");
   }
 
   function flip() {
@@ -78,9 +79,11 @@ function Bridge() {
         setStep("complete");
         const done = await completeBridge({ data: { chain: savedFrom, txHash: saved } });
         if (!done.ok) throw new Error(done.error);
+        const landed: ChainKey = savedFrom === "robinhood" ? "arc" : "robinhood";
+        setReceiveChain(landed);
         setMintTx(done.mintTx);
         setStep("done");
-        return done;
+        return { ...done, landed };
       }
       if (!wallet.connected) await wallet.connect();
       if (!isHexAddress(token) || !isHexAddress(bridge)) throw new Error("This move is not open yet.");
@@ -114,12 +117,15 @@ function Bridge() {
       setStep("complete");
       const done = await completeBridge({ data: { chain: from, txHash: hash } });
       if (!done.ok) throw new Error(done.error);
+      const landed: ChainKey = to;
+      setReceiveChain(landed);
       setMintTx(done.mintTx);
       setStep("done");
-      return done;
+      return { ...done, landed };
     },
-    onSuccess: () => {
-      toast.success(`Received ${formatAmount(n || pending?.amount || 0, 4)} $ZNZF on ${CHAINS[to].name}.`);
+    onSuccess: (done) => {
+      const landed = done.landed;
+      toast.success(`Received ${formatAmount(n || pending?.amount || 0, 4)} $ZNZF on ${CHAINS[landed].name}.`);
       setLockTx(null);
       void snap.refetch();
     },
@@ -275,7 +281,7 @@ function Bridge() {
             {lockTx && (
               <p>
                 Sent{" "}
-                <a className="underline underline-offset-2" href={`${CHAINS[from].explorer}/tx/${lockTx}`} target="_blank" rel="noreferrer">
+                <a className="underline underline-offset-2" href={`${CHAINS[pending?.from ?? from].explorer}/tx/${lockTx}`} target="_blank" rel="noreferrer">
                   {lockTx.slice(0, 10)}…
                 </a>
               </p>
@@ -283,7 +289,7 @@ function Bridge() {
             {mintTx && (
               <p>
                 Received{" "}
-                <a className="underline underline-offset-2" href={`${CHAINS[to].explorer}/tx/${mintTx}`} target="_blank" rel="noreferrer">
+                <a className="underline underline-offset-2" href={`${CHAINS[receiveChain ?? pending?.to ?? to].explorer}/tx/${mintTx}`} target="_blank" rel="noreferrer">
                   {mintTx.slice(0, 10)}…
                 </a>
               </p>

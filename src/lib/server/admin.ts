@@ -9,7 +9,8 @@ import { roleOfWallet } from "@/lib/server/operator";
 import { chainRpc, fromWei, readNativeBalance, readTokenBalance } from "@/lib/rpc.server";
 import { loadDeskConfig, liveProtocolConfig, maskSecret, invalidateDeskConfig, isDeskConfigKey, isReownProjectId, isSecretConfigKey, PUBLIC_CONFIG_KEYS, CONTRACT_CONFIG_KEYS, FEE_CONFIG_KEYS, AUTO_CONFIG_KEYS, SECRET_CONFIG_KEYS } from "@/lib/server/secrets";
 import { publishTweet, xHandle, xIntentUrl } from "@/lib/server/x";
-import { fetchMentions, linkXSession, searchTweets, twitterapisConfigured, twitterapisPing, xCookiesReady, xSessionStatus } from "@/lib/server/twitterapis";
+import { isMillDump } from "@/lib/server/maya/shape";
+import { fetchMentions, linkXSession, searchTweets, twitterapisConfigured, twitterapisPing, xSessionStatus } from "@/lib/server/twitterapis";
 import { isRiverSpam } from "@/lib/server/x-engage";
 
 import type { AdminRole } from "@/lib/types";
@@ -154,11 +155,21 @@ export const publishQueuedPost = createServerFn({ method: "POST" })
   .validator((input: { id: number }) => input)
   .handler(async ({ data, context }) => {
     const sql = await getSql();
-    const rows = await sql<{ id: number; content: string }>`
-      select id, content from marketing_posts where id = ${data.id} limit 1
+    const rows = await sql<{ id: number; content: string; status: string }>`
+      select id, content, status from marketing_posts where id = ${data.id} limit 1
     `;
     const row = rows[0];
     if (!row) return { ok: false as const, error: "Draft not found." };
+    if (row.status === "posted") return { ok: false as const, error: "That one is already live." };
+    if (isMillDump(row.content)) return { ok: false as const, error: "That draft is a template. Write a new one." };
+    const recent = await sql<{ created_at: string }>`
+      select created_at from marketing_posts
+      where status = 'posted' and id <> ${data.id}
+      order by created_at desc limit 1
+    `;
+    if (recent[0] && Date.now() - new Date(recent[0].created_at).getTime() < 15 * 60 * 1000) {
+      return { ok: false as const, error: "The water is still. Wait 15 minutes between live posts." };
+    }
     const posted = await publishTweet(row.content);
     if (posted.ok) {
       await sql`
@@ -216,6 +227,13 @@ export const saveConfig = createServerFn({ method: "POST" })
         return { ok: false as const, error: "Daily quota must be a number between 0 and 80." };
       }
       value = String(Math.min(80, Math.max(0, Math.round(n))));
+    }
+    if (key === "x_daily_originals") {
+      const n = Number(value);
+      if (!Number.isFinite(n)) {
+        return { ok: false as const, error: "Posts a day must be a number between 0 and 12." };
+      }
+      value = String(Math.min(12, Math.max(0, Math.round(n))));
     }
     if (key === "launch_fee_usd" || key === "listing_fee_usd") {
       const n = Number(value);
@@ -316,11 +334,28 @@ export const listAdminTokens = createServerFn({ method: "GET" })
       source: string;
       contract_address: string;
       image_url: string;
+      website: string;
+      twitter: string;
+      telegram: string;
+      dex_pool: string;
+      promo_status: string;
+      promo_error: string;
     }>`
-      select id, name, symbol, chain, holders, health_score, graduated, created_at, volume_24h::text as volume_24h,
-             coalesce(source, 'launched') as source, coalesce(contract_address, '') as contract_address,
-             coalesce(image_url, '') as image_url
-      from tokens order by created_at desc
+      select t.id, t.name, t.symbol, t.chain, t.holders, t.health_score, t.graduated, t.created_at, t.volume_24h::text as volume_24h,
+             coalesce(t.source, 'launched') as source, coalesce(t.contract_address, '') as contract_address,
+             coalesce(t.image_url, '') as image_url,
+             coalesce(t.website, '') as website, coalesce(t.twitter, '') as twitter, coalesce(t.telegram, '') as telegram,
+             coalesce(t.dex_pool, '') as dex_pool,
+             coalesce(p.status, '') as promo_status,
+             coalesce(p.research, '') as promo_error
+      from tokens t
+      left join lateral (
+        select status, research from marketing_posts
+        where request = 'listing:' || t.id
+        order by created_at desc
+        limit 1
+      ) p on true
+      order by t.created_at desc
     `;
   });
 
@@ -517,13 +552,9 @@ export const xDesk = createServerFn({ method: "GET" })
   .middleware([operatorMiddleware])
   .handler(async () => {
     const handle = await xHandle();
-    let session = await xSessionStatus();
+    const session = await xSessionStatus();
     const apis = await twitterapisConfigured();
     const ping = apis ? await twitterapisPing() : { ok: false, error: "TwitterAPIs key is not set." };
-    if (apis && !session.ready && (await xCookiesReady())) {
-      const linked = await linkXSession();
-      if (linked.ok) session = await xSessionStatus();
-    }
     const { autonomousStatus } = await import("@/lib/server/autonomous-x");
     const { ensurePulseLoop, pulseLoopStatus } = await import("@/lib/server/x-pulse-loop");
     ensurePulseLoop();

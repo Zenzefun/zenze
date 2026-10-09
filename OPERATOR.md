@@ -107,7 +107,7 @@ Atau import `https://zenze.fun/tokenlist.json` di Rabby / Uniswap / Rainbow.
 
 ### Autonomous X (`/arise/marketing`)
 
-Default **on**. Capy riset fakta live (launch, volume, fee 2%, graduation 2 ETH, $ZNZF), belajar dari engagement post sendiri, lalu post sebagai @ZenzeFun.
+Default **on**. Capy riset fakta live (launch, volume, fee 2% dengan bagian kreator paling banyak 10% dari fee itu pada launch baru, kurva $ZNZF tanpa bagian kreator dan tidak migrasi, pair ETH baru bisa graduate di 2 ETH), belajar dari engagement post sendiri, lalu post sebagai @ZenzeFun.
 
 Prioritas: launch baru → reply pertanyaan mention → river $ZNZF (likes ≥ 4, 35%) → pulse $ZNZF / fakta protokol. Cadence 45 menit, cap 8 original/hari. Filter: wajib `$ZNZF`, dilarang moon/100x/kunci/dapur. Loop in-process di production + cron PM2 20 menit. Preview `npm run dev` **tidak** auto-tweet.
 

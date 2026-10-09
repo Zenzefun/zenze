@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 function StealthHead() {
   useEffect(() => {
-    document.title = "Zenze.fun";
+    document.title = "Zenzen";
     const robots = document.querySelector('meta[name="robots"]');
     if (robots) {
       robots.setAttribute("content", "noindex,nofollow,noarchive,nosnippet,noimageindex");
@@ -42,7 +42,7 @@ export function PublicNotFound() {
           className="mt-3 text-sm leading-relaxed text-muted-foreground stagger-item"
           style={{ animationDelay: "160ms" }}
         >
-          That path is not on Zenze.fun. The river still runs — head home or pick a live pool.
+          That path is not on Zenzen. The river still runs — head home or pick a live pool.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3 stagger-item" style={{ animationDelay: "240ms" }}>
           <HomeButton />

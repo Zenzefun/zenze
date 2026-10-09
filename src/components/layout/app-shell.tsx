@@ -22,7 +22,7 @@ export function AppShell({ children, znzfPrice }: { children: ReactNode; znzfPri
   return (
     <div className="flex min-h-dvh min-w-0 flex-col overflow-x-hidden steam-veil">
       <Header znzfPrice={znzfPrice} />
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="page-swap min-w-0 flex-1">{children}</main>
       <Footer />
     </div>
   );

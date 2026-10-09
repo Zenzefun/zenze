@@ -37,10 +37,10 @@ const LIVE = [
 const SECRET_FIELDS = [
   ["pinata_jwt", "Pinata JWT", "Pins launch art to public IPFS."],
   ["dune_api_key", "Dune API key", "Powers Analytics."],
-  ["deepseek_api_key", "DeepSeek API key", "Capy AI — DeepSeek V4.1 Flash (deepseek-flash)."],
-  ["xai_api_key", "xAI API key", "Capy AI fallback (Grok)."],
+  ["deepseek_api_key", "DeepSeek API key", "Used only on this desk. Visitors never see the drafts."],
+  ["xai_api_key", "xAI API key", "Backup if DeepSeek is down. Desk only."],
   ["twitterapis_key", "TwitterAPIs key", "Posts and reads as @ZenzeFun via twitterapis.com."],
-  ["x_auth_token", "X auth_token cookie", "From x.com → Application → Cookies. Lets Capy publish."],
+  ["x_auth_token", "X auth_token cookie", "From x.com → Application → Cookies. Lets the desk publish."],
   ["x_ct0", "X ct0 cookie", "CSRF cookie paired with auth_token."],
   ["x_bearer_token", "X bearer token", "Optional official API fallback."],
   ["x_api_key", "X API key", "Optional X consumer key."],
@@ -111,7 +111,7 @@ function AdminSettings() {
             id="maintenance_message"
             rows={3}
             className="min-h-20"
-            placeholder="Capy is soaking. Zenze.fun will open again when the water settles."
+            placeholder="Capy is soaking. Zenzen will open again when the water settles."
             value={draft.maintenance_message ?? cfg.maintenance_message ?? ""}
             onChange={(e) => setKey("maintenance_message", e.target.value)}
           />
@@ -396,7 +396,7 @@ function PublishZnzfCurve({
     <div className="space-y-3 rounded-2xl border border-border bg-card p-5 md:p-6">
       <p className="font-medium">$ZNZF pool</p>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        This pool is already on Robinhood. Buying earlier costs less than the next buyer. The trade takes 2%. Buys stop after 2 ETH. It does not move to Uniswap. Arc has no second pool.
+        This pool is already on Robinhood. It does not move to Uniswap. Arc has no second pool. The fee rules are in the docs.
       </p>
       {liveCurve ? (
         <p className="break-all font-mono text-xs text-muted-foreground">Live pool {liveCurve}</p>
@@ -456,7 +456,7 @@ function PublishLaunchFactory({
     <div className="space-y-3 rounded-2xl border border-border bg-card p-5 md:p-6">
       <p className="font-medium">Launch factory</p>
       <p className="text-xs text-muted-foreground">
-        New factory bytecode: holder fee sharing, creator tax (up to 10% of the 2% swap fee), and 3s snipe exemptions. Launch take is the USD quote above plus network gas.
+        New factory bytecode: holder fee sharing, a creator slice that starts at 2% of the 2% swap fee and stops at 10% of it, and 3s buy-tax exemptions. Launch take is the USD quote above plus network gas.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {(["robinhood", "arc"] as const).map((chain) => {

@@ -131,7 +131,10 @@ export function pointTotal(
   );
 }
 
-/** Floor split. Dust smaller than one point-share stays in the pool. */
+export function maxPoints(rules: DropRules = defaultDropRules()) {
+  const spin = rules.spin.reduce((max, slice) => (slice.points > max ? slice.points : max), 0);
+  return rules.buy + rules.telegram + rules.x + rules.launch + rules.seen + rules.referral * rules.referralMax + spin;
+}
 export function shareWei(points: bigint, totalPoints: bigint, pool: bigint) {
   if (points <= 0n || totalPoints <= 0n || pool <= 0n) return 0n;
   if (points > totalPoints) return pool;

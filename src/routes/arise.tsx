@@ -24,7 +24,7 @@ export const Route = createFileRoute("/arise")({
   head: () =>
     pageHead({
       title: undefined,
-      description: "Zenze.fun",
+      description: "Zenzen",
       path: "/",
       index: false,
     }),

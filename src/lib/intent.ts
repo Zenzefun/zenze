@@ -12,7 +12,7 @@ export function walletIntentMessage(input: {
   amount?: string;
 }): string {
   return [
-    "Zenze.fun",
+    "Zenzen",
     `Action: ${input.action}`,
     `Wallet: ${input.wallet.toLowerCase()}`,
     input.tokenId ? `Token: ${input.tokenId}` : null,

@@ -17,7 +17,7 @@ export function parseFeeUsd(raw: string | undefined | null, fallback: number): n
   return n;
 }
 
-/** Basis points knocked off the 2% curve fee from $ZNZF held in the Zenze bag. */
+/** Not applied on any curve. A holding rebate is not live — do not subtract this from the 2% fee. */
 export function holderFeeDiscountBps(znzfHeld: number): number {
   if (!Number.isFinite(znzfHeld) || znzfHeld < 10_000) return 0;
   if (znzfHeld >= 1_000_000) return 50;

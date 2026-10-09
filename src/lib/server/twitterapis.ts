@@ -1,5 +1,6 @@
 import { configValue } from "@/lib/server/secrets";
 import { tweetText } from "@/lib/server/maya/shape";
+import { createTweetBody, readError, readWrite } from "@/lib/server/twitterapis-shape";
 
 const BASE = "https://api.twitterapis.com";
 
@@ -36,6 +37,19 @@ export type XUser = {
 type CallOk = { ok: true; json: unknown; text: string };
 type CallErr = { ok: false; status: number; error: string };
 type WriteResult = { ok: true } | { ok: false; error: string; status?: number };
+
+const readCache = new Map<string, { at: number; value: CallOk }>();
+const READ_TTL_MS = 4 * 60 * 1000;
+
+function cachedRead(key: string): CallOk | null {
+  const hit = readCache.get(key);
+  if (!hit || Date.now() - hit.at > READ_TTL_MS) return null;
+  return hit.value;
+}
+
+export function clearTwitterReadCache() {
+  readCache.clear();
+}
 
 async function apiKey() {
   return (await configValue("twitterapis_key"))?.trim();
@@ -78,6 +92,11 @@ async function call(
     if (v === undefined || v === "") continue;
     url.searchParams.set(k, String(v));
   }
+  const cacheKey = method === "GET" ? url.toString() : "";
+  if (cacheKey) {
+    const hit = cachedRead(cacheKey);
+    if (hit) return hit;
+  }
   const h = headers(key, opts.creds ?? null);
   if (opts.json) h["content-type"] = "application/json";
   try {
@@ -88,7 +107,7 @@ async function call(
     });
     const text = await res.text();
     if (!res.ok) {
-      return { ok: false, status: res.status, error: text.slice(0, 240) || `TwitterAPIs ${res.status}` };
+      return { ok: false, status: res.status, error: readError(res.status, text) };
     }
     let json: unknown = text;
     try {
@@ -96,7 +115,9 @@ async function call(
     } catch {
       json = { raw: text };
     }
-    return { ok: true, json, text };
+    const ok: CallOk = { ok: true, json, text };
+    if (cacheKey) readCache.set(cacheKey, { at: Date.now(), value: ok });
+    return ok;
   } catch (err) {
     return { ok: false, status: 0, error: err instanceof Error ? err.message : "Could not reach TwitterAPIs." };
   }
@@ -126,13 +147,8 @@ export async function xCookiesReady() {
 }
 
 export async function twitterapisPing(): Promise<{ ok: boolean; error?: string }> {
-  const res = await call("/twitter/tweet/advanced_search", {
-    query: { query: "from:ZenzeFun", product: "Latest", count: 1 },
-  });
-  if (res.ok) return { ok: true };
   const me = await call("/account/me");
-  if (me.ok) return { ok: true };
-  return { ok: false, error: res.error };
+  return me.ok ? { ok: true } : { ok: false, error: me.error };
 }
 
 function statusFromJson(raw: unknown, hasCookies: boolean): XSessionStatus {
@@ -170,9 +186,9 @@ export async function linkXSession(): Promise<{ ok: true; username: string | nul
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
   };
   const res = await call("/twitter/customer/session", { method: "POST", json: body });
-  const used = res.ok ? res : await call("/twitter/account/session/register", { method: "POST", json: body });
-  if (!used.ok) return { ok: false, error: used.error };
-  const json = asRecord(used.json);
+  if (!res.ok) return { ok: false, error: res.error };
+  clearTwitterReadCache();
+  const json = asRecord(res.json);
   const username =
     pickString(json, ["username", "screen_name", "handle"]) ?? pickString(asRecord(json?.data), ["username", "screen_name"]);
   return { ok: true, username };
@@ -186,8 +202,6 @@ export async function xSessionStatus(): Promise<XSessionStatus> {
   }
   const res = await call("/twitter/customer/session/status");
   if (!res.ok) {
-    const alt = await call("/twitter/account/session/status");
-    if (alt.ok) return statusFromJson(alt.json, hasCookies);
     return {
       ready: hasCookies,
       registered: false,
@@ -199,12 +213,6 @@ export async function xSessionStatus(): Promise<XSessionStatus> {
   return statusFromJson(res.json, hasCookies);
 }
 
-function tweetIdFrom(json: unknown): string {
-  const rec = asRecord(json) ?? {};
-  const data = asRecord(rec.data) ?? rec;
-  return pickString(data, ["tweet_id", "id", "rest_id"]) ?? pickString(rec, ["tweet_id", "id"]) ?? "";
-}
-
 export async function createTweetViaApis(
   text: string,
   replyTo?: string,
@@ -213,73 +221,52 @@ export async function createTweetViaApis(
   const trimmed = tweetText(text);
   if (!trimmed) return { ok: false, error: "Nothing to post." };
   const creds = await cookies();
-  const linked = await xSessionStatus();
-  if (!linked.ready && creds) {
-    await linkXSession();
-  }
-  const query: Record<string, string | number | undefined> = { text: trimmed };
-  const json: Record<string, unknown> = { text: trimmed };
-  if (replyTo) {
-    query.reply_to_tweet_id = replyTo;
-    query.in_reply_to_status_id = replyTo;
-    json.reply_to_tweet_id = replyTo;
-  }
-  if (quoteTo) {
-    query.quote_tweet_id = quoteTo;
-    query.attachment_url = `https://x.com/i/web/status/${quoteTo}`;
-    json.quote_tweet_id = quoteTo;
-    json.attachment_url = `https://x.com/i/web/status/${quoteTo}`;
-  }
-  const res = await call("/twitter/tweet/create", {
-    method: "POST",
-    query,
-    json: replyTo || quoteTo ? json : undefined,
-    creds,
-  });
+  const body = createTweetBody(trimmed, replyTo, quoteTo);
+  const res = await call("/twitter/tweet/create", { method: "POST", json: body, creds });
   if (!res.ok) {
     if (res.status === 409 && creds) {
       const again = await linkXSession();
       if (again.ok) {
-        const retry = await call("/twitter/tweet/create", { method: "POST", query, json, creds });
-        if (retry.ok) {
-          const id = tweetIdFrom(retry.json);
-          return { ok: true, id };
-        }
-        return { ok: false, error: retry.ok ? "No tweet id returned." : retry.error };
+        const retry = await call("/twitter/tweet/create", { method: "POST", json: body, creds });
+        if (!retry.ok) return { ok: false, error: retry.error };
+        const parsed = readWrite(retry.json);
+        return parsed.ok ? parsed : { ok: false, error: parsed.error };
       }
     }
     return { ok: false, error: res.error };
   }
-  return { ok: true, id: tweetIdFrom(res.json) };
+  const parsed = readWrite(res.json);
+  return parsed.ok ? parsed : { ok: false, error: parsed.error };
 }
 
-async function writeAction(path: string, query: Record<string, string>, json?: Record<string, unknown>): Promise<WriteResult> {
+async function writeAction(
+  path: string,
+  input: { query?: Record<string, string>; json?: Record<string, unknown> },
+): Promise<WriteResult> {
   const creds = await cookies();
-  const linked = await xSessionStatus();
-  if (!linked.ready && creds) await linkXSession();
-  const res = await call(path, { method: "POST", query, json: json ?? query, creds });
+  const send = () => call(path, { method: "POST", query: input.query, json: input.json, creds });
+  let res = await send();
   if (!res.ok && res.status === 409 && creds) {
     const again = await linkXSession();
-    if (again.ok) {
-      const retry = await call(path, { method: "POST", query, json: json ?? query, creds });
-      return retry.ok ? { ok: true } : { ok: false, error: retry.error, status: retry.status };
-    }
+    if (again.ok) res = await send();
   }
-  return res.ok ? { ok: true } : { ok: false, error: res.error, status: res.status };
+  if (!res.ok) return { ok: false, error: res.error, status: res.status };
+  const parsed = readWrite(res.json);
+  return parsed.ok ? { ok: true } : { ok: false, error: parsed.error };
 }
 
-/** POST /twitter/tweet/favorite — docs: id or url. */
+/** POST /twitter/tweet/favorite — the id is a query parameter, not a body field. */
 export async function favoriteTweet(tweetId: string): Promise<WriteResult> {
   const id = tweetId.trim();
   if (!id) return { ok: false, error: "Missing tweet id." };
-  return writeAction("/twitter/tweet/favorite", { id, tweet_id: id }, { id, tweet_id: id });
+  return writeAction("/twitter/tweet/favorite", { query: { id } });
 }
 
-/** POST /twitter/tweet/retweet — docs: id or url. */
+/** POST /twitter/tweet/retweet — the id is a query parameter. */
 export async function retweetTweet(tweetId: string): Promise<WriteResult> {
   const id = tweetId.trim();
   if (!id) return { ok: false, error: "Missing tweet id." };
-  return writeAction("/twitter/tweet/retweet", { id, tweet_id: id }, { id, tweet_id: id });
+  return writeAction("/twitter/tweet/retweet", { query: { id } });
 }
 
 export async function lookupUser(username: string): Promise<XUser | null> {
@@ -302,19 +289,15 @@ export async function lookupUser(username: string): Promise<XUser | null> {
   };
 }
 
-/** POST /twitter/user/follow — docs require user_id; username is sent as a fallback. */
+/** POST /twitter/user/follow — username alone is enough. Looking the id up first spends a read. */
 export async function followUser(input: { userId?: string; username?: string }): Promise<WriteResult> {
   const username = input.username?.replace(/^@/, "").trim();
-  let userId = input.userId?.trim();
-  if (!userId && username) {
-    const profile = await lookupUser(username);
-    userId = profile?.id || undefined;
-  }
+  const userId = input.userId?.trim();
   if (!userId && !username) return { ok: false, error: "Need a user id or username." };
-  const query: Record<string, string> = {};
-  if (userId) query.user_id = userId;
-  if (username) query.username = username;
-  return writeAction("/twitter/user/follow", query, { ...query });
+  const body: Record<string, string> = {};
+  if (userId) body.user_id = userId;
+  if (username) body.username = username;
+  return writeAction("/twitter/user/follow", { json: body });
 }
 
 function mentionsFrom(json: unknown): XMention[] {

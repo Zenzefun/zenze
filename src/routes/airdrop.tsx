@@ -5,10 +5,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { encodeFunctionData, parseAbi } from "viem";
 import { AppShell } from "@/components/layout/app-shell";
-import { SmartImage } from "@/components/media/smart-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ShareX } from "@/components/share/share-x";
 import { formatAddress } from "@/lib/format";
 import { airdropStatus, beginAirdropX, confirmAirdropX, prepareAirdropClaim, spinAirdrop } from "@/lib/server/airdrop";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/airdrop")({
   head: () =>
     pageHead({
       title: "Airdrop",
-      description: "Earn points. When this opens, the pool is shared by those points. One point is the same share for every wallet.",
+      description: "Points count after you buy $ZNZF. Hold at least 10,000. The payout uses those points when it opens.",
       path: "/airdrop",
     }),
 });
@@ -63,20 +63,18 @@ function Step({
   action: ReactNode;
 }) {
   return (
-    <li className={cn("flex flex-col rounded-[1.4rem] border bg-card p-4", done ? "border-gold shadow-[0_12px_30px_-24px_rgba(212,165,69,0.9)]" : "border-border")}>
-      <div className="flex items-start gap-3">
-        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full text-sm", done ? "bg-gold text-ink" : "bg-muted text-muted-foreground")}>
-          {done ? <Check className="size-4" /> : n}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="font-medium">{title}</p>
-            <p className="font-display text-lg tabular-nums">{amount}</p>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
+    <li className="flex items-start gap-3 py-4">
+      <span className={cn("grid size-8 shrink-0 place-items-center rounded-full text-xs", done ? "bg-gold text-ink" : "bg-muted text-muted-foreground")}>
+        {done ? <Check className="size-4" /> : n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="font-medium">{title}</p>
+          <p className="shrink-0 text-sm tabular-nums text-muted-foreground">{amount}</p>
         </div>
+        <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
+        <div className="mt-3 flex flex-wrap gap-2">{action}</div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">{action}</div>
     </li>
   );
 }
@@ -117,10 +115,9 @@ function SpinWheel({
     const end = (cursor / total) * 360;
     return `${WHEEL[i % WHEEL.length]} ${start}deg ${end}deg`;
   });
-  cursor = 0;
   return (
-    <div className="relative mx-auto my-4 size-64">
-      <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 border-x-[9px] border-t-[16px] border-x-transparent border-t-foreground" aria-hidden />
+    <div className="relative mx-auto my-4 size-64" aria-hidden>
+      <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 border-x-[9px] border-t-[16px] border-x-transparent border-t-foreground" />
       <div
         className={cn(
           "absolute inset-2 rounded-full shadow-[inset_0_0_0_10px_rgba(253,246,227,0.45)]",
@@ -130,22 +127,7 @@ function SpinWheel({
           background: `conic-gradient(${stops.join(", ")})`,
           transform: `rotate(${angle}deg)`,
         }}
-      >
-        {slices.map((slice, i) => {
-          const mid = ((cursor + slice.weight / 2) / total) * 360;
-          cursor += slice.weight;
-          const rad = ((mid - 90) * Math.PI) / 180;
-          return (
-            <span
-              key={`${slice.points}-${i}`}
-              className="absolute left-1/2 top-1/2 rounded-full bg-card/95 px-1.5 py-0.5 text-[11px] font-semibold text-foreground"
-              style={{ transform: `translate(-50%, -50%) translate(${Math.cos(rad) * 78}px, ${Math.sin(rad) * 78}px) rotate(${mid}deg)` }}
-            >
-              {slice.points}
-            </span>
-          );
-        })}
-      </div>
+      />
       <div className="absolute inset-[34%] z-10 grid place-items-center rounded-full border border-border bg-card text-center shadow-sm">
         <span className="font-display text-sm">{index == null ? "Spin" : `${slices[index]?.points ?? ""}`}</span>
       </div>
@@ -185,7 +167,8 @@ function AirdropPage() {
         return;
       }
       setXLine({ code: res.code, followUrl: res.followUrl, postUrl: res.postUrl });
-      window.open(res.postUrl, "_blank", "noopener,noreferrer");
+      const opened = window.open(res.postUrl, "_blank", "noopener,noreferrer");
+      if (!opened) toast.message("The X window was blocked. The line is on this page.");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -229,7 +212,10 @@ function AirdropPage() {
         functionName: "claim",
         args: [BigInt(prepared.total), BigInt(prepared.deadline), prepared.signature as `0x${string}`],
       });
-      return wallet.sendTransaction({ to: prepared.drop, data });
+      const hash = await wallet.sendTransaction({ to: prepared.drop, data });
+      const receipt = await wallet.waitReceipt(hash);
+      if (receipt.status !== "success") throw new Error("The claim did not go through.");
+      return hash;
     },
     onSuccess: (hash) => {
       toast.success(`Claim sent. ${hash.slice(0, 10)}…`);
@@ -241,7 +227,6 @@ function AirdropPage() {
   const rules = data?.rules;
   const funded = asNumber(data?.poolFunded);
   const left = asNumber(data?.poolBalance);
-  const waiting = funded > 0 ? Math.max(0, Math.min(100, (left / funded) * 100)) : 0;
   const slices = rules?.spin ?? [
     { points: 5, weight: 50 },
     { points: 10, weight: 30 },
@@ -255,41 +240,45 @@ function AirdropPage() {
   const connect = () => {
     void wallet.connect().catch((err) => toast.error(publicWalletError(err)));
   };
+  const hold = tokens(rules?.minHold ?? 10000);
+  const friends = data?.referrals ?? 0;
+  const friendMax = rules?.referralMax ?? 10;
+  const followUrl = xLine?.followUrl || data?.followUrl || "https://x.com/intent/follow?screen_name=ZenzeFun";
   const tasks = [
     {
       title: "Buy $ZNZF",
-      detail: data?.bought ? "You're in. Keep holding it." : "Buy $ZNZF. That is the first step.",
+      detail: data?.bought ? `You bought it. Hold at least ${hold}.` : "Buy $ZNZF. Nothing else counts until this wallet does.",
       done: Boolean(data?.bought),
       amount: `${(rules?.buy ?? 20).toLocaleString("en-US")} pts`,
     },
     {
       title: "Join Telegram",
-      detail: data?.telegramOk ? "You're in the room." : "Open the bot, tap start, then join the room.",
+      detail: data?.telegramOk ? "This wallet is in @zenzefun." : "Join @zenzefun, then tap Start in the bot. That is what counts this wallet.",
       done: Boolean(data?.telegramOk),
       amount: `${(rules?.telegram ?? 5).toLocaleString("en-US")} pts`,
     },
     {
       title: "Follow @ZenzeFun",
-      detail: data?.xFollow ? `@${data.xHandle} posted the line.` : "Follow @ZenzeFun, then post the line this page gives you.",
+      detail: data?.xFollow ? `@${data.xHandle} posted the line.` : "Follow @ZenzeFun and post the line from this page. Then paste the post link.",
       done: Boolean(data?.xFollow),
       amount: `${(rules?.x ?? 5).toLocaleString("en-US")} pts`,
     },
     {
       title: "Launch a token",
-      detail: data?.launched ? "Your launch is in." : "Launch one token. A second one does not add more.",
+      detail: data?.launched ? "This wallet launched a token." : "Launch one token. A second launch does not add points.",
       done: Boolean(data?.launched),
       amount: `${(rules?.launch ?? 8).toLocaleString("en-US")} pts`,
     },
     {
       title: "Get a buyer",
-      detail: data?.seen ? "Someone bought your token." : "Another wallet buys the token you launched.",
+      detail: data?.seen ? "Another wallet bought your token." : "A different wallet has to buy the token you launched.",
       done: Boolean(data?.seen),
       amount: `${(rules?.seen ?? 4).toLocaleString("en-US")} pts`,
     },
     {
       title: "Invite friends",
-      detail: `${data?.referrals ?? 0} of ${rules?.referralMax ?? 10} friends bought $ZNZF.`,
-      done: (data?.referrals ?? 0) > 0,
+      detail: `${friends} of ${friendMax} friends bought $ZNZF and still hold ${hold}.`,
+      done: friends >= friendMax && friendMax > 0,
       amount: `${(rules?.referral ?? 5).toLocaleString("en-US")} pts each`,
     },
   ];
@@ -306,26 +295,17 @@ function AirdropPage() {
     if (title === "Join Telegram") {
       return (
         <>
-          <Button
-            size="default"
-            variant="gold"
-            onClick={() => {
-              if (!address) {
-                connect();
-                return;
-              }
-              if (!data?.bot) {
-                toast.message("The room opens shortly.");
-                return;
-              }
-              window.open(data.bot, "_blank", "noopener,noreferrer");
-            }}
-          >
-            {address ? "Join Telegram" : "Connect wallet"}
+          <Button asChild size="default" variant="outline">
+            <a href={data?.group || "https://t.me/zenzefun"} target="_blank" rel="noopener noreferrer">Join @zenzefun</a>
           </Button>
+          {address && data?.bot ? (
+            <Button asChild size="default" variant="gold">
+              <a href={data.bot} target="_blank" rel="noopener noreferrer">Tap Start</a>
+            </Button>
+          ) : null}
           {data?.room ? (
             <Button asChild size="default" variant="outline">
-              <a href={data.room} target="_blank" rel="noopener noreferrer">Open the room</a>
+              <a href={data.room} target="_blank" rel="noopener noreferrer">Channel</a>
             </Button>
           ) : null}
         </>
@@ -336,9 +316,7 @@ function AirdropPage() {
         <div className="flex w-full flex-col gap-2">
           <div className="flex flex-wrap gap-2">
             <Button asChild size="default" variant="outline">
-              <a href={xLine?.followUrl || data?.x || "https://x.com/intent/follow?screen_name=ZenzeFun"} target="_blank" rel="noopener noreferrer">
-                Follow
-              </a>
+              <a href={followUrl} target="_blank" rel="noopener noreferrer">Follow</a>
             </Button>
             <Button
               size="default"
@@ -356,17 +334,22 @@ function AirdropPage() {
             </Button>
           </div>
           {xLine && !data?.xFollow ? (
-            <div className="flex w-full flex-col gap-2 sm:flex-row">
-              <input
-                value={xLink}
-                onChange={(e) => setXLink(e.target.value)}
-                placeholder="Paste the post link"
-                aria-label="Post link"
-                className="h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm"
-              />
-              <Button size="default" variant="gold" disabled={confirmX.isPending || xLink.trim().length < 12} onClick={() => confirmX.mutate()}>
-                {confirmX.isPending ? "Checking…" : "Confirm"}
-              </Button>
+            <div className="flex w-full flex-col gap-2">
+              <p className="rounded-md bg-muted px-3 py-2 font-mono text-sm">Following @ZenzeFun {xLine.code}</p>
+              <div className="flex w-full flex-col gap-2 sm:flex-row">
+                <Input
+                  value={xLink}
+                  onChange={(e) => setXLink(e.target.value)}
+                  placeholder="Paste the post link"
+                  aria-label="Post link"
+                />
+                <Button size="default" variant="gold" disabled={confirmX.isPending || xLink.trim().length < 12} onClick={() => confirmX.mutate()}>
+                  {confirmX.isPending ? "Checking…" : "Confirm"}
+                </Button>
+                <Button asChild size="default" variant="outline">
+                  <a href={xLine.postUrl} target="_blank" rel="noopener noreferrer">Open the post</a>
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -391,105 +374,149 @@ function AirdropPage() {
       );
     }
     return (
-      <Button
-        size="default"
-        variant="gold"
-        onClick={() => {
-          if (!address) {
-            connect();
-            return;
-          }
-          if (!inviteUrl) {
-            toast.message("Your link is almost ready.");
-            return;
-          }
-          void navigator.clipboard.writeText(inviteUrl);
-          toast.success("Invite link copied.");
-        }}
-      >
-        {address ? "Copy invite link" : "Connect wallet"}
-      </Button>
+      <div className="flex w-full min-w-0 flex-col gap-2">
+        {inviteUrl ? (
+          <Input
+            id="invite-link"
+            readOnly
+            value={inviteUrl}
+            aria-label="Invite link"
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">{address ? "Your link is almost ready." : "Connect a wallet and the invite link shows here."}</p>
+        )}
+        <Button
+          size="default"
+          variant="gold"
+          className="w-fit"
+          onClick={() => {
+            if (!address) {
+              connect();
+              return;
+            }
+            if (!inviteUrl) {
+              toast.message(invite.data && !invite.data.ok ? invite.data.error : "Your link is almost ready.");
+              return;
+            }
+            const field = document.getElementById("invite-link") as HTMLInputElement | null;
+            field?.focus();
+            field?.select();
+            void navigator.clipboard.writeText(inviteUrl).then(
+              () => toast.success("Invite link copied."),
+              () => toast.message("Select the link and copy it."),
+            );
+          }}
+        >
+          {address ? "Copy invite link" : "Connect wallet"}
+        </Button>
+      </div>
     );
   }
 
+  const heldNow = asNumber(data?.held);
+  const needHold = asNumber(hold);
+  const holding = needHold > 0 ? Math.max(0, Math.min(100, (heldNow / needHold) * 100)) : 0;
+  const preview = data?.preview ?? "0";
+  const totalPoints = data?.totalPoints ?? 0;
+  const sharePct = data?.sharePct ?? 0;
+  const cap = data?.maxPoints ?? 0;
+  const shownShare = open ? (data?.claim ?? "0") : preview;
+  const shareLine = `I have ${(data?.points ?? 0).toLocaleString("en-US")} points in the $ZNZF drop. One point is one share of the pool. Hold ${hold}.`;
+  const counted = data?.bought
+    ? heldNow >= needHold
+      ? "Counted. One point is one share."
+      : `Buy is in. Hold at least ${hold} or these points drop out.`
+    : "These points count after you buy $ZNZF.";
+
   return (
     <AppShell>
-      <article className="mx-auto max-w-5xl px-4 py-8 md:py-12">
-        <section className="overflow-hidden rounded-[2rem] border border-border bg-card">
-          <div className="grid gap-8 p-6 md:p-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-[0.16em] text-stone">Airdrop</p>
-              <Badge className="mt-3" variant={open ? "moss" : "gold"}>{open ? "Open" : opens ? "Opens soon" : "Points count now"}</Badge>
-              <h1 className="mt-4 font-display text-5xl font-semibold tracking-tight text-stone tabular-nums md:text-7xl">
-                {data?.points ?? 0}
-              </h1>
-              <p className="mt-2 font-display text-2xl text-stone">points</p>
-              <p className="mt-4 max-w-md text-base text-muted-foreground">
-                Earn points now. When this opens, the pool is shared by those points. One point is the same share for every wallet. Keep at least {tokens(rules?.minHold ?? 10000)} $ZNZF.
-              </p>
-              <div className="mt-6 h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-gold" style={{ width: `${waiting}%` }} />
+      <article className="mx-auto max-w-5xl px-4 py-8 md:py-10">
+        <section className="rounded-3xl border border-border bg-card p-6 md:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="min-w-0 max-w-xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={open ? "moss" : "gold"}>{open ? "Payout open" : "Points counting"}</Badge>
+                {address && data?.bought ? <Badge variant={heldNow >= needHold ? "moss" : "outline"}>{heldNow >= needHold ? "Holding enough" : "Hold more"}</Badge> : null}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Pool {tokens(funded)} $ZNZF · {tokens(left)} still there
+              <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight">Airdrop</h1>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Your share is your points divided by every eligible point, then multiplied by what is still in the pool.
+                A wallet counts only after it buys $ZNZF and still holds {hold}. More eligible points make each point smaller.
+                {open ? " Shares were frozen when the payout opened." : opens ? ` Payout opens ${opens}.` : " Payout is not open yet."}
               </p>
             </div>
-            <div className="rounded-[1.5rem] bg-background p-5 shadow-[0_18px_50px_-36px_rgba(43,43,43,0.7)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-stone">{open ? "Your share" : "Your points"}</p>
-                  <p className="mt-2 font-display text-5xl font-semibold tabular-nums">{open ? (data?.claim ?? "0") : (data?.points ?? 0)}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{open ? `${data?.points ?? 0} points · you hold ${data?.held ?? "0"} $ZNZF.` : `You hold ${data?.held ?? "0"} $ZNZF.`}</p>
-                </div>
-                <SmartImage
-                  src="/brand/capy-zen.webp"
-                  alt="Capy"
-                  width={96}
-                  height={96}
-                  className="size-16 rounded-2xl object-cover"
-                  rounded="2xl"
-                />
+            <div className="grid min-w-[16rem] gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div>
+                <p className="text-xs text-muted-foreground">Your points</p>
+                <p className="font-display text-4xl font-semibold tabular-nums">{data?.points ?? 0}</p>
+                <p className="text-sm text-muted-foreground">{cap > 0 ? `of ${cap.toLocaleString("en-US")} possible` : "Connect to see yours"}</p>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                {open ? "The pool is open. Your share is your points divided by every point." : opens ? `Opens ${opens}. Points keep counting until then.` : "Not open yet. Points keep counting."}
-              </p>
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                <Button asChild variant="gold" size="lg">
-                  <Link to="/token/$id" params={{ id: znzfLaunchpadId() }}>
-                    Buy $ZNZF
-                  </Link>
-                </Button>
-                <Button
-                  size="lg"
-                  variant={open && data?.claim !== "0" ? "gold" : "outline"}
-                  disabled={claim.isPending}
-                  onClick={() => {
-                    if (!address) {
-                      connect();
-                      return;
-                    }
-                    if (!open) {
-                      toast.message(opens ? `Opens ${opens}.` : "Not open yet.");
-                      return;
-                    }
-                    if (!data || data.claim === "0") {
-                      toast.message("No share is assigned yet.");
-                      return;
-                    }
-                    claim.mutate();
-                  }}
-                >
-                  {!address ? "Connect wallet" : claim.isPending ? "Confirm in your wallet" : open ? "Take your share" : "Closed"}
-                </Button>
+              <div>
+                <p className="text-xs text-muted-foreground">{open ? "Frozen share" : "If it opened today"}</p>
+                <p className="font-display text-4xl font-semibold tabular-nums">{shownShare}</p>
+                <p className="text-sm text-muted-foreground">{sharePct > 0 ? `${sharePct}% of ${totalPoints.toLocaleString("en-US")} points` : "No share yet"}</p>
               </div>
             </div>
           </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl bg-muted/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">You hold</p>
+              <p className="mt-1 text-lg font-medium tabular-nums">{address ? tokens(data?.held) : "—"}</p>
+            </div>
+            <div className="rounded-2xl bg-muted/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Need to hold</p>
+              <p className="mt-1 text-lg font-medium tabular-nums">{hold}</p>
+            </div>
+            <div className="rounded-2xl bg-muted/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Eligible points</p>
+              <p className="mt-1 text-lg font-medium tabular-nums">{totalPoints.toLocaleString("en-US")}</p>
+            </div>
+            <div className="rounded-2xl bg-muted/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Still in the pool</p>
+              <p className="mt-1 text-lg font-medium tabular-nums">{funded > 0 ? `${tokens(left)} $ZNZF` : "Not filled yet"}</p>
+            </div>
+          </div>
+          {address ? (
+            <div className="mt-4">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-gold" style={{ width: `${holding}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{heldNow >= needHold ? "This wallet is above the hold." : `${tokens(data?.held)} of ${hold} $ZNZF`}</p>
+            </div>
+          ) : null}
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="gold" size="lg">
+              <Link to="/token/$id" params={{ id: znzfLaunchpadId() }}>Buy $ZNZF</Link>
+            </Button>
+            {!address ? (
+              <Button size="lg" variant="outline" onClick={() => connect()}>Connect wallet</Button>
+            ) : (
+              <ShareX text={shareLine} path="/airdrop" label="Share your points" />
+            )}
+            {address && open ? (
+              <Button
+                size="lg"
+                variant={data?.claim !== "0" ? "gold" : "outline"}
+                disabled={claim.isPending}
+                onClick={() => {
+                  if (!data || data.claim === "0") {
+                    toast.message("No share is assigned yet.");
+                    return;
+                  }
+                  claim.mutate();
+                }}
+              >
+                {claim.isPending ? "Confirm in your wallet" : "Take your share"}
+              </Button>
+            ) : null}
+          </div>
         </section>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
           <section className="rounded-[1.6rem] border border-border bg-card p-5">
             <h2 className="font-display text-3xl font-semibold">One spin</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Once per connected wallet. The points count after that wallet buys $ZNZF.</p>
+            <p className="mt-1 text-sm text-muted-foreground">One spin for this wallet. It counts after the buy.</p>
             <SpinWheel slices={slices} index={spinIndex ?? (landed >= 0 ? landed : null)} spinId={spinId} />
             <ul className="grid grid-cols-2 gap-2 text-sm">
               {slices.map((slice, i) => (
@@ -505,9 +532,10 @@ function AirdropPage() {
             {result && !popup ? (
               <div className="mt-4 text-center" role="status">
                 <p className="font-display text-2xl font-semibold tabular-nums">{result.points.toLocaleString("en-US")} points</p>
+                <p className="mt-1 text-sm text-muted-foreground">{counted}</p>
                 <div className="mt-3 flex justify-center">
                   <ShareX
-                    text={`I spun ${result.points.toLocaleString("en-US")} points. One point is the same share when the pool opens.`}
+                    text={`I spun ${result.points.toLocaleString("en-US")} points. One point is the same share of the payout.`}
                     path="/airdrop"
                     label="Share on X"
                   />
@@ -526,10 +554,10 @@ function AirdropPage() {
                   />
                 </div>
                 <DialogTitle className="mt-4 text-3xl tabular-nums">{(result?.points ?? 0).toLocaleString("en-US")} points</DialogTitle>
-                <DialogDescription>Yours. One point is the same share when the pool opens.</DialogDescription>
+                <DialogDescription>{counted}</DialogDescription>
                 <div className="mt-4 flex justify-center">
                   <ShareX
-                    text={`I spun ${(result?.points ?? 0).toLocaleString("en-US")} points. One point is the same share when the pool opens.`}
+                    text={`I spun ${(result?.points ?? 0).toLocaleString("en-US")} points. One point is the same share of the payout.`}
                     path="/airdrop"
                     label="Share on X"
                   />
@@ -552,27 +580,35 @@ function AirdropPage() {
             </Button>
           </section>
 
-          <div className="flex flex-col gap-4">
-            <section className="rounded-[1.6rem] border border-border bg-card px-4">
-              <h2 className="pt-4 font-display text-2xl font-semibold">Airdrop</h2>
-              <ul className="mt-2 divide-y divide-border">
-                {(data?.board ?? []).length === 0 ? <li className="py-4 text-sm text-muted-foreground">No one is ready yet.</li> : null}
-                {(data?.board ?? []).map((row) => (
-                  <li key={row.wallet} className="flex justify-between py-3 text-sm">
-                    <span className="font-mono">{formatAddress(row.wallet)}</span>
-                    <span className="tabular-nums">{open ? `${row.claim} $ZNZF` : `${row.points} pts`}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
+          <section className="rounded-[1.6rem] border border-border bg-card px-5">
+            <h2 className="pt-5 font-display text-3xl font-semibold">Tasks</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Each line says what actually counts.</p>
+            <ol className="mt-2 divide-y divide-border">
+              {tasks.map((task, index) => (
+                <Step key={task.title} n={String(index + 1)} {...task} action={actionFor(task.title)} />
+              ))}
+            </ol>
+          </section>
         </div>
 
-        <ol className="mt-4 grid gap-3 md:grid-cols-2">
-          {tasks.map((task, index) => (
-            <Step key={task.title} n={String(index + 1).padStart(2, "0")} {...task} action={actionFor(task.title)} />
-          ))}
-        </ol>
+        <section className="mt-4 rounded-[1.6rem] border border-border bg-card px-5 pb-2">
+          <h2 className="pt-5 font-display text-2xl font-semibold">Standings</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Wallets with points. A wallet under the hold is not in the split.</p>
+          <ul className="mt-2 divide-y divide-border">
+            {(data?.board ?? []).length === 0 ? <li className="py-4 text-sm text-muted-foreground">No one is ready yet.</li> : null}
+            {(data?.board ?? []).map((row, index) => (
+              <li key={row.wallet} className="flex items-baseline justify-between gap-3 py-3 text-sm">
+                <span className="text-muted-foreground tabular-nums">{index + 1}</span>
+                <span className="min-w-0 flex-1 font-mono">{formatAddress(row.wallet)}</span>
+                <span className="tabular-nums">
+                  {row.points} pts
+                  {totalPoints > 0 ? ` · ${Math.round((row.points / totalPoints) * 1000) / 10}%` : ""}
+                  {open ? ` · ${row.claim}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       </article>
     </AppShell>
   );

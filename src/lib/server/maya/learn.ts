@@ -133,7 +133,11 @@ export async function touchContact(input: {
   }
 }
 
+const learnedAt = { t: 0 };
+
 export async function learnFromOwnPosts(handle: string) {
+  if (Date.now() - learnedAt.t < 30 * 60 * 1000) return;
+  learnedAt.t = Date.now();
   const mine = await searchTweets(`from:${handle}`);
   if (!mine.length) return;
   const sql = await getSql();

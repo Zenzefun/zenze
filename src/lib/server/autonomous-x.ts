@@ -4,7 +4,8 @@ import { xPublishReady } from "@/lib/server/x";
 import { loadCaps, countsToday } from "@/lib/server/x-engage";
 import { runAutonomousPulse as runMayaPulse, type PulsePlay, type PulseResult } from "@/lib/server/maya/loop";
 import { latestNote, listQueue, loadMemoryPack, playLearnings } from "@/lib/server/maya/learn";
-import { originalsToday, minutesSinceLastOriginal } from "@/lib/server/maya/observe";
+import { ownDomainOn, siteDoor } from "@/lib/server/x-door";
+import { originalsToday, minutesSinceLastOriginal, originalCapFrom } from "@/lib/server/maya/observe";
 
 export type { PulsePlay, PulseResult };
 
@@ -46,6 +47,7 @@ export async function autonomousStatus() {
     minutes,
     ready,
     today,
+    originalCap: originalCapFrom(await configValue("x_daily_originals")),
     sinceMin: Math.round(since),
     nextIn: on ? Math.max(0, Math.ceil(minutes - since)) : null,
     learnings,
@@ -59,6 +61,8 @@ export async function autonomousStatus() {
     autoReplies: ((await configValue("x_auto_replies_on_our_posts")) ?? "true") !== "false",
     autoFollows: ((await configValue("x_auto_follows")) ?? "true") !== "false",
     autoQuotes: ((await configValue("x_auto_quotes")) ?? "true") !== "false",
+    ownDomain: await ownDomainOn(),
+    door: await siteDoor(),
     quotas: {
       like: { done: engageToday.like, cap: caps.like },
       follow: { done: engageToday.follow, cap: caps.follow },

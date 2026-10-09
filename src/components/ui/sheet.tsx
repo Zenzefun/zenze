@@ -15,10 +15,10 @@ export function SheetContent({
 }: ComponentProps<typeof DialogPrimitive.Content> & { side?: "left" | "right" }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/40" />
+      <DialogPrimitive.Overlay className="veil-in fixed inset-0 z-50 bg-ink/40" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed z-50 flex h-full w-[min(100%,20rem)] flex-col bg-background p-6 shadow-xl",
+          "sheet-panel fixed z-50 flex h-full w-[min(100%,20rem)] flex-col bg-background p-6 shadow-xl",
           side === "right" ? "top-0 right-0" : "top-0 left-0",
           className,
         )}

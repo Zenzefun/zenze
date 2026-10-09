@@ -9,14 +9,13 @@ import type { TokenRow } from "@/lib/types";
 import { pickChatText, systemForKind, useCapyMemory } from "./ai-text";
 import { enrichToken } from "./market";
 
-export const ZENZE_SYSTEM_PROMPT = `You are Capy, the zen capybara mascot of Zenze.fun — an AI-powered token launchpad.
-The native token of Zenze.fun is $ZNZF. Pronounce it "Zin-zef". Official X: ${SITE.handle} (${SITE.x}).
-Tagline: Launch smart. Trade smarter.
+export const ZENZE_SYSTEM_PROMPT = `You are Capy, the zen capybara mascot of Zenzen — an AI-powered token launchpad.
+The native token of Zenzen is $ZNZF. Pronounce it "Zin-zef". Official X: ${SITE.handle} (${SITE.x}).
+Tagline: Launch a token. Trade it back.
 
-Brand Voice Rules:
-- Playful but not childish.
-- Calm and data-driven, like a capybara in an onsen.
-- Hype is allowed only when it is a true, sharp fact — never a promise.
+Brand voice:
+- No hype. Say what a person can do.
+- Fee math and pool rules belong in the docs, not in a greeting.
 - Use nature metaphors (water, rocks, leaves, campfires) when they help.
 - Use only the figures provided. Never invent holders, volume, or price.
 - Tweets must stay under 240 characters unless a thread is requested.
@@ -44,7 +43,7 @@ export type ChatOk = { ok: true; text: string; provider: string };
 export type ChatErr = { ok: false; error: string };
 
 function publicApiError(status: number): string {
-  if (status === 401 || status === 403) return "Capy could not reach the model. Try again in a moment.";
+  if (status === 401 || status === 403) return "The desk could not reach the model. Try again in a moment.";
   if (status === 429) return "The onsen is crowded. Wait a few seconds.";
   return `The onsen steam thickened (${status}).`;
 }
@@ -67,6 +66,7 @@ async function postChat(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(25_000),
     });
   }
 
@@ -113,7 +113,7 @@ async function postChat(
     r = await once({ model, max_tokens: Math.max(tokens, 2048), messages });
   }
   if (r.status !== 200) return { ok: false, error: publicApiError(r.status) };
-  if (!r.text) return { ok: false, error: "Capy went quiet. Try once more." };
+  if (!r.text) return { ok: false, error: "The model returned an empty answer." };
   return { ok: true, text: r.text, provider: model };
 }
 
@@ -136,19 +136,28 @@ export async function chat(
   const deepseek = await configValue("deepseek_api_key");
   const xai = await configValue("xai_api_key");
   const json = kind.startsWith("maya");
+  const tryModel = async (provider: string, url: string, key: string, model: string) => {
+    try {
+      const r = await postChat(url, key, model, messages, maxTokens, json);
+      await logJob(provider, model, kind, r.ok ? "ok" : "error", r.ok ? r.text : r.error);
+      return r;
+    } catch (err) {
+      const error = err instanceof Error ? err.message : "The model did not answer.";
+      await logJob(provider, model, kind, "error", error);
+      return { ok: false as const, error };
+    }
+  };
   if (deepseek) {
-    const r = await postChat("https://api.deepseek.com/chat/completions", deepseek, DEEPSEEK_MODEL, messages, maxTokens, json);
-    await logJob("deepseek", DEEPSEEK_MODEL, kind, r.ok ? "ok" : "error", r.ok ? r.text : r.error);
+    const r = await tryModel("deepseek", "https://api.deepseek.com/chat/completions", deepseek, DEEPSEEK_MODEL);
     if (r.ok) return { ...r, provider: "deepseek" };
   }
   if (xai) {
-    const r = await postChat("https://api.x.ai/v1/chat/completions", xai, "grok-4.5", messages, maxTokens, json);
-    await logJob("xai", "grok-4.5", kind, r.ok ? "ok" : "error", r.ok ? r.text : r.error);
+    const r = await tryModel("xai", "https://api.x.ai/v1/chat/completions", xai, "grok-4.5");
     if (r.ok) return { ...r, provider: "xai" };
     return r;
   }
   await logJob("none", "none", kind, "error", "No AI key configured.");
-  return { ok: false, error: "Capy is napping — AI is not available in this environment." };
+  return { ok: false, error: "That draft is not available right now." };
 }
 
 async function logJob(provider: string, model: string, kind: string, status: string, detail: string) {
@@ -156,7 +165,7 @@ async function logJob(provider: string, model: string, kind: string, status: str
     const sql = await getSql();
     await sql`
       insert into ai_jobs (provider, model, kind, status, detail)
-      values (${provider}, ${model}, ${kind}, ${status}, ${detail.trim().slice(0, 800)})
+      values (${provider}, ${model}, ${kind}, ${status}, ${detail.trim().slice(0, 2000)})
     `;
   } catch {
     // table may not exist yet

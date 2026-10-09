@@ -26,7 +26,7 @@ function AdminAi() {
         <div>
           <h1 className="text-2xl font-semibold">DeepSeek Flash</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Live V4.1 Flash model, memory, and every job Capy ran — public reads and operator drafts.
+            Model, memory, and jobs run from this desk. Nothing here is shown to visitors.
           </p>
         </div>
         <Button variant="gold" disabled={pulse.isPending} onClick={() => pulse.mutate()}>
@@ -68,7 +68,7 @@ function AdminAi() {
       <section>
         <h2 className="text-lg font-semibold">Job log</h2>
         {(!d?.jobs || d.jobs.length === 0) && (
-          <p className="mt-2 text-sm text-muted-foreground">No jobs yet. Pulse, marketing, or a public Capy read will appear here.</p>
+          <p className="mt-2 text-sm text-muted-foreground">No jobs yet.</p>
         )}
         <ul className="mt-3 divide-y divide-border">
           {d?.jobs.map((j) => (

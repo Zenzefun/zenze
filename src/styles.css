@@ -41,6 +41,7 @@
   --radius-xl: 1.75rem;
   --radius-2xl: 2rem;
   --radius: 0.75rem;
+  --ease-soft: cubic-bezier(0.2, 0, 0, 1);
   --animate-leaf-sway: leaf-sway 3.6s ease-in-out infinite;
 }
 
@@ -183,6 +184,24 @@ html.dark {
     box-shadow:
       inset 0 1px 0 color-mix(in oklab, white 70%, transparent),
       0 16px 40px -24px color-mix(in oklab, var(--color-stone) 32%, transparent);
+    transition:
+      transform 200ms var(--ease-soft),
+      box-shadow 200ms var(--ease-soft),
+      border-color 200ms var(--ease-soft),
+      background-color 200ms var(--ease-soft);
+  }
+
+  a.stone-card:hover,
+  a.lift:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, white 70%, transparent),
+      0 22px 44px -22px color-mix(in oklab, var(--color-stone) 42%, transparent);
+  }
+
+  a.stone-card:active,
+  a.lift:active {
+    transform: translateY(0) scale(0.99);
   }
 
   html.dark .stone-card,
@@ -192,6 +211,13 @@ html.dark {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 16px 40px -24px rgba(0, 0, 0, 0.45);
+  }
+
+  html.dark a.stone-card:hover,
+  html.dark a.lift:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 22px 44px -22px rgba(0, 0, 0, 0.55);
   }
 
   /* Token faces are always a circle — never a landscape oval. */
@@ -482,11 +508,13 @@ html.capy-ready #capy-boot.is-gone,
   height: 112px;
   flex: 0 0 auto;
   margin: auto;
+  border-radius: 999px;
+  overflow: hidden;
 }
 .capy-boot-skel {
   position: absolute;
   inset: 0;
-  border-radius: 28px;
+  border-radius: 999px;
   background: linear-gradient(90deg, #ead9b8 0%, #f7edd8 50%, #ead9b8 100%);
   background-size: 200% 100%;
   animation: capy-skel 1.2s ease-in-out infinite;
@@ -501,8 +529,9 @@ html.dark .capy-boot-skel {
   display: block;
   width: 112px;
   height: 112px;
-  object-fit: contain;
-  opacity: 1;
+  object-fit: cover;
+  border-radius: 999px;
+  opacity: 0;
   animation: capy-boot-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 #capy-boot img.on {
@@ -562,4 +591,72 @@ html.dark .capy-boot-skel {
   0% { transform: scale(0.7) rotate(-10deg); }
   55% { transform: scale(1.08) rotate(6deg); }
   100% { transform: scale(1) rotate(0deg); }
+}
+
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  height: 2px;
+  width: 40%;
+  pointer-events: none;
+  background: var(--color-gold);
+  animation: route-progress 0.9s ease-in-out infinite;
+}
+@keyframes route-progress {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+.shell-bar {
+  view-transition-name: site-header;
+}
+.shell-foot {
+  view-transition-name: site-footer;
+}
+.page-swap {
+  view-transition-name: page;
+}
+::view-transition-old(site-header),
+::view-transition-new(site-header),
+::view-transition-old(site-footer),
+::view-transition-new(site-footer) {
+  animation: none;
+}
+::view-transition-old(page) {
+  animation: 140ms var(--ease-soft) both vt-fade-out;
+}
+::view-transition-new(page) {
+  animation: 220ms var(--ease-soft) both vt-fade-in;
+}
+@keyframes vt-fade-out {
+  to { opacity: 0; }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.sheet-panel {
+  animation: sheet-in 220ms var(--ease-soft);
+}
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+.fill-bar {
+  transition: width 420ms var(--ease-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-progress,
+  .sheet-panel,
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-old(page),
+  ::view-transition-new(page) {
+    animation: none;
+  }
 }

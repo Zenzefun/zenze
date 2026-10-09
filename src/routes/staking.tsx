@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddZnzfToWallet } from "@/components/wallet/add-token";
 import { CHAINS } from "@/lib/chains";
 import { erc20ApproveCalldata, stakeCalldata, unstakeCalldata, claimStakeCalldata } from "@/lib/contracts";
-import { formatCompact, formatUsdMaybe } from "@/lib/format";
+import { floorDecimal, formatCompact, formatUsdMaybe } from "@/lib/format";
 import { isHexAddress } from "@/lib/intent";
 import { publishedConfig } from "@/lib/onchain";
 import { protocolStats, stakingPage } from "@/lib/server/market";
@@ -23,12 +23,13 @@ import { publicWalletError, useWallet } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/staking")({
+  loader: () => stakingPage({ data: {} }),
   component: Staking,
   head: () =>
     pageHead({
       title: "Stake $ZNZF",
       description:
-        "Lock $ZNZF and your vote counts. You can take it back. The reward is only what the treasury has already put in.",
+        "Lock $ZNZF and your vote counts. You can take it back. The reward is the $ZNZF the treasury already put in.",
       path: "/staking",
     }),
 });
@@ -37,11 +38,13 @@ const PRESETS = [0.25, 0.5, 0.75, 1] as const;
 const TOKEN_NAME = "Zenze";
 
 function Staking() {
+  const loaded = Route.useLoaderData();
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats(), refetchInterval: 15_000 });
   const wallet = useWallet();
   const page = useQuery({
     queryKey: ["staking", wallet.address],
     queryFn: () => stakingPage({ data: { wallet: wallet.address ?? undefined } }),
+    initialData: loaded,
     refetchInterval: 10_000,
   });
   const [amt, setAmt] = useState("");
@@ -60,6 +63,9 @@ function Staking() {
   const liveWeight = d?.liveWeight ?? Math.min(yourStake, onchain);
   const cap = mode === "stake" ? room : yourStake;
   const over = n > 0 && n > cap + 1e-12;
+  const ends = d?.rewardEnds ? new Date(d.rewardEnds) : null;
+  const endsLabel = ends && !Number.isNaN(ends.getTime()) ? ends.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+  const paying = (d?.rewardLeft ?? 0) > 0;
   const ready = n > 0 && !over;
 
   const stake = useMutation({
@@ -67,7 +73,8 @@ function Staking() {
       if (!locked || !robinhood) throw new Error("The stake contract is not published yet.");
       if (!wallet.connected) await wallet.connect();
       if (wallet.chainId !== CHAINS.robinhood.id) await wallet.switchChain("robinhood");
-      const wei = parseUnits(String(n), 18);
+      const clean = floorDecimal(n, 6);
+      const wei = parseUnits(clean, 18);
       if (kind === "stake") {
         const approveHash = await wallet.sendTransaction({ to: robinhood, data: erc20ApproveCalldata(stakeTo, wei) });
         const approved = await wallet.waitReceipt(approveHash);
@@ -181,11 +188,15 @@ function Staking() {
         </div>
 
         <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Reward pool" value="1,000" note="$ZNZF funded for 30 days. Not a fee share." />
           <Stat
             label="Total staked"
             value={formatCompact(d?.totalStaked ?? 0)}
             note={formatUsdMaybe(price != null ? (d?.totalStaked ?? 0) * price : null)}
+          />
+          <Stat
+            label="Still to pay"
+            value={formatCompact(d?.rewardLeft ?? 0)}
+            note={paying ? `${formatCompact(d?.rewardPerDay ?? 0)} a day until ${endsLabel}` : "The funded reward has finished"}
           />
           <Stat
             label="Your stake"
@@ -195,7 +206,7 @@ function Staking() {
           <Stat
             label="Voting power"
             value={wallet.connected ? formatCompact(liveWeight) : "—"}
-            note="Locked in the stake contract"
+            note="Same as what this wallet has locked"
           />
         </dl>
 
@@ -295,8 +306,7 @@ function Staking() {
                 <li>Claim pays $ZNZF from the funded reward. It does not pay a share of trading fees.</li>
               </ol>
               <p className="mt-3 text-xs text-muted-foreground">
-                The treasury funded 1,000 $ZNZF of rewards over 30 days. Nothing is staked until a wallet locks tokens.
-                A displayed APY from trading fees is not a payment.
+                The treasury put 1,000 $ZNZF in for 30 days. {paying ? `${formatCompact(d?.rewardLeft ?? 0)} is still to be paid, through ${endsLabel}.` : "That payment has finished."} Trading fees are not paid here.
               </p>
               <AddZnzfToWallet robinhood={robinhood} arc={arc} image={ZNZF_IPFS_GATEWAY} />
             </div>
@@ -413,5 +423,6 @@ function Row({ k, v, sub }: { k: string; v: string; sub?: string }) {
 
 function trimAmt(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "";
-  return n.toFixed(6).replace(/\.?0+$/, "");
+  const floored = floorDecimal(n, 6);
+  return floored === "0" ? "" : floored;
 }

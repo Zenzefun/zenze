@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { formatAddress, formatCompact, timeAgo } from "@/lib/format";
-import { draftProposal } from "@/lib/server/ai";
 import { createProposal, governancePage, protocolStats, voteProposal } from "@/lib/server/market";
 import { pageHead } from "@/lib/seo";
 import { publicWalletError, useWallet } from "@/lib/wallet";
@@ -30,30 +29,13 @@ function Governance() {
   const wallet = useWallet();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [hint, setHint] = useState("");
-  const [source, setSource] = useState<"wallet" | "ai">("wallet");
-
-  const draft = useMutation({
-    mutationFn: () => draftProposal({ data: { hint } }),
-    onSuccess: (res) => {
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      setTitle(res.title);
-      setBody(res.body);
-      setSource("ai");
-      toast.success("Capy drafted from live desk facts. Read it, then sign to submit.");
-    },
-    onError: () => toast.error("Capy could not draft just now."),
-  });
 
   const submit = useMutation({
     mutationFn: async () => {
       if (!wallet.connected) await wallet.connect();
       if (!wallet.signed) await wallet.ensureSession();
       const signed = await wallet.signIntent({ action: "propose", tokenId: "governance", amount: title.trim() });
-      const res = await createProposal({ data: { title, body, source, ...signed } });
+      const res = await createProposal({ data: { title, body, source: "wallet", ...signed } });
       if (!res.ok) throw new Error(res.error);
       return res;
     },
@@ -61,8 +43,6 @@ function Governance() {
       toast.success("Proposal is open.");
       setTitle("");
       setBody("");
-      setHint("");
-      setSource("wallet");
       await page.refetch();
     },
     onError: (err) => toast.error(publicWalletError(err)),
@@ -111,26 +91,14 @@ function Governance() {
             className="mt-4"
             placeholder="Title"
             value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setSource("wallet");
-            }}
+            onChange={(e) => setTitle(e.target.value)}
           />
           <Textarea
             className="mt-3 min-h-32"
             placeholder="What should change, and how we will know it worked."
             value={body}
-            onChange={(e) => {
-              setBody(e.target.value);
-              setSource("wallet");
-            }}
+            onChange={(e) => setBody(e.target.value)}
           />
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <Input placeholder="Optional hint for Capy" value={hint} onChange={(e) => setHint(e.target.value)} />
-            <Button variant="outline" disabled={draft.isPending} onClick={() => draft.mutate()}>
-              {draft.isPending ? "Capy is reading the desk…" : "Ask Capy to draft"}
-            </Button>
-          </div>
           <Button
             className="mt-4 w-full"
             variant="gold"
@@ -155,7 +123,7 @@ function Governance() {
                     <p className="font-medium">{p.title}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{p.body}</p>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {p.proposer ? formatAddress(p.proposer) : "Desk"} · {p.source === "ai" ? "Capy draft" : "Wallet"} · {timeAgo(p.created_at)}
+                      {p.proposer ? formatAddress(p.proposer) : "A wallet"} · {timeAgo(p.created_at)}
                     </p>
                   </div>
                   <Badge variant={p.status === "open" ? "moss" : "outline"}>{p.status}</Badge>

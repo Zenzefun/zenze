@@ -19,14 +19,12 @@ export function PairSelect({
   value,
   onChange,
   symbol = "TOKEN",
-  znzfLive = true,
   className,
 }: {
   chain: ChainKey;
   value: QuoteKey;
   onChange: (key: QuoteKey) => void;
   symbol?: string;
-  znzfLive?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -37,12 +35,12 @@ export function PairSelect({
     staleTime: 10 * 60_000,
   });
   const current = quoteOf(value, chain);
-  const catalog = quotesFor(chain);
+  const catalog = quotesFor(chain).filter((p) => p.key !== "znzf");
   const all = useMemo(() => {
-    const keys = live.data;
-    if (!keys) return catalog.filter((p) => p.native || p.kind === "stable" || (p.key === "znzf" && znzfLive));
+    const keys = live.data?.filter((key) => key !== "znzf");
+    if (!keys) return catalog.filter((p) => p.native || p.kind === "stable");
     return catalog.filter((p) => keys.includes(p.key));
-  }, [catalog, live.data, znzfLive]);
+  }, [catalog, live.data]);
 
   useEffect(() => {
     if (live.isPending) return;
@@ -59,12 +57,11 @@ export function PairSelect({
         p.name.toLowerCase().includes(s) ||
         p.key.includes(s) ||
         p.pair.toLowerCase().includes(s) ||
-        pairLabel(ticker, p).toLowerCase().includes(s),
+        pairLabel(ticker, p, " ").toLowerCase().includes(s),
     );
   }, [all, q, ticker]);
 
   function pick(key: QuoteKey) {
-    if (key === "znzf" && !znzfLive) return;
     onChange(key);
     setQ("");
     setOpen(false);
@@ -85,10 +82,10 @@ export function PairSelect({
             "flex h-12 w-full items-center gap-3 rounded-xl border border-border bg-card px-3 text-left text-sm hover:bg-muted",
             className,
           )}
-          aria-label={pairLabel(ticker, current)}
+          aria-label={pairLabel(ticker, current, " ")}
         >
           <QuoteMark quote={current.key} className="size-7" />
-          <span className="min-w-0 flex-1 truncate font-medium whitespace-nowrap">{pairLabel(ticker, current)}</span>
+          <span className="min-w-0 flex-1 truncate font-medium whitespace-nowrap">{pairLabel(ticker, current, " ")}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
@@ -108,12 +105,10 @@ export function PairSelect({
           )}
           {filtered.map((asset) => {
             const on = value === asset.key;
-            const locked = asset.key === "znzf" && !znzfLive;
-            const label = pairLabel(ticker, asset);
+            const label = pairLabel(ticker, asset, " ");
             return (
               <DropdownMenuItem
                 key={asset.key}
-                disabled={locked}
                 onSelect={(e) => {
                   e.preventDefault();
                   pick(asset.key);

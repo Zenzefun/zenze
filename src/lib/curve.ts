@@ -52,6 +52,14 @@ export function quoteBuy(curve: CurveState, baseIn: number) {
   return { tokensOut, fee, net, avgPrice, newRealBase: curve.realBase + net, newSold: curve.tokensSold + tokensOut };
 }
 
+/** Snipe is taken first and stays in the pool. The 2% fee applies only to what remains. */
+export function quoteBuyWithSnipe(curve: CurveState, baseIn: number, snipeBps: number) {
+  const bps = Math.max(0, Math.min(10_000, snipeBps));
+  const snipe = (baseIn * bps) / 10_000;
+  const quoted = quoteBuy(curve, Math.max(0, baseIn - snipe));
+  return { ...quoted, snipe, snipeBps: bps };
+}
+
 export function quoteSell(curve: CurveState, tokenIn: number) {
   const { x, y, k } = poolReserves(curve);
   const safeIn = Math.min(tokenIn, curve.tokensSold);

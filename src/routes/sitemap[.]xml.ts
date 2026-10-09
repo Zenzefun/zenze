@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DOCS } from "@/lib/docs-content";
 import { getSql } from "@/lib/db";
-import { SITE } from "@/lib/seo";
+import { SITE, publicSite } from "@/lib/seo";
 import { tokenRouteId, znzfLaunchpadId } from "@/lib/token-path";
 
 const STATIC = [
@@ -72,6 +72,16 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        if (publicSite().burned) {
+          return new Response("Not found\n", {
+            status: 404,
+            headers: {
+              "content-type": "text/plain; charset=utf-8",
+              "x-robots-tag": "noindex",
+              "cache-control": "no-store",
+            },
+          });
+        }
         const today = new Date().toISOString().slice(0, 10);
         const tokens = await tokenUrls(today);
         const body = xml([
@@ -81,7 +91,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         return new Response(body, {
           headers: {
             "content-type": "application/xml; charset=utf-8",
-            "cache-control": "public, max-age=3600",
+            "cache-control": "public, max-age=300",
           },
         });
       },

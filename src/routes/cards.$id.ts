@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const PAGES: Record<string, { title: string; tagline: string }> = {
-  home: { title: "Zenze.fun", tagline: "Launch a token. You choose the pair and who receives the creator share." },
+  home: { title: "Zenzen", tagline: "Name a token. Buy and sell it in the same pool." },
   explore: { title: "Explore", tagline: "Live pools on Robinhood Chain and Arc." },
-  launch: { title: "Launch a token", tagline: "You name it, choose the pair, and set the creator share." },
-  list: { title: "List a token", tagline: "Index an existing contract on Zenze.fun." },
+  launch: { title: "Launch a token", tagline: "Name it, pick the pair, and launch. The fee rules are in the docs." },
+  list: { title: "List a token", tagline: "Index an existing contract on Zenzen." },
   staking: { title: "Stake $ZNZF", tagline: "Lock tokens. Claim the funded reward. Not a fee share." },
   governance: { title: "Governance", tagline: "Vote weight is the locked $ZNZF balance." },
   analytics: { title: "Analytics", tagline: "Live figures from the pool ledger and published contracts." },
-  ai: { title: "Capy AI", tagline: "On-demand reads of live Zenze.fun pools." },
+  ai: { title: "Capy AI", tagline: "Ask before you buy. The read stays on this page." },
   bridge: { title: "Bridge", tagline: "The same coin on the other network. Nothing extra is created." },
   guide: { title: "Guide", tagline: "Connect, launch, list, and trade. Stay zen." },
   docs: { title: "Docs", tagline: "Launch, listing, fee, and $ZNZF mechanics." },

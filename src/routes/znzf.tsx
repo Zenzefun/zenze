@@ -8,7 +8,7 @@ import { ChainMark } from "@/components/chains/chain-mark";
 import { ZnzfHero } from "@/components/capy/znzf-hero";
 import { AddZnzfToWallet } from "@/components/wallet/add-token";
 import { CHAINS, TOTAL_SUPPLY, TRADE_FEE_BPS, ZNZF_ID } from "@/lib/chains";
-import { asNumber, formatAddress, formatCompact, formatUsdTiny, timeAgo } from "@/lib/format";
+import { asNumber, formatAddress, formatCompact, formatUsdCompact, formatUsdTiny, timeAgo } from "@/lib/format";
 import { znzfLaunchpadId } from "@/lib/token-path";
 import { publishedConfig } from "@/lib/onchain";
 import { getToken, getWalletHoldings, protocolStats, publicConfig, stakingPage, znzfPage } from "@/lib/server/market";
@@ -27,19 +27,19 @@ export const Route = createFileRoute("/znzf")({
     return { page, stats, cfg, live };
   },
   component: Znzf,
-  head: () => ({
-    ...pageHead({
+  head: () => {
+    const head = pageHead({
       title: "$ZNZF",
       description:
         "The $ZNZF pool on Robinhood Chain. Supply, the curve, the bridge to Arc, and the stake lock, on one page.",
       path: "/znzf",
-      imageAlt: "$ZNZF — protocol token of Zenze.fun",
-    }),
-    links: [
-      { rel: "canonical", href: "https://zenze.fun/znzf" },
-      { rel: "preload", href: "/brand/capy-mark-512.webp", as: "image" },
-    ],
-  }),
+      imageAlt: "$ZNZF — protocol token of Zenzen",
+    });
+    return {
+      ...head,
+      links: [...(head.links ?? []), { rel: "preload", href: "/brand/capy-mark-512.webp", as: "image" }],
+    };
+  },
 });
 
 function Znzf() {
@@ -75,10 +75,13 @@ function Znzf() {
   const onchain = stake.data?.onchainZnzf ?? 0;
   const shownBag = Math.max(bag, onchain);
   const token = page.data?.token;
-  const totalStaked = stake.data?.totalStaked ?? page.data?.totalStaked ?? 0;
+  const totalStaked = Math.max(stake.data?.totalStaked ?? 0, page.data?.totalStaked ?? 0);
   const robinhood = cfg.data?.znzf_robinhood?.startsWith("0x") ? cfg.data.znzf_robinhood : null;
   const arc = cfg.data?.znzf_arc?.startsWith("0x") ? cfg.data.znzf_arc : null;
+  const arcSupply = page.data?.arcSupply ?? 0;
   const poolId = znzfLaunchpadId();
+  const burned = stats.data?.burned ?? page.data?.burned ?? 0;
+  const events = (page.data?.events ?? []).filter((event) => Number(event.amount) >= 0.01);
 
   return (
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
@@ -88,7 +91,11 @@ function Znzf() {
             <Badge variant="gold">Protocol token</Badge>
             <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">$ZNZF</h1>
             <p className="mt-2 text-base text-muted-foreground sm:text-lg">
-              Buy it earlier and you pay less than the next buyer. You can sell it back into the same pool. The trade takes 2%. New buys stop once the pool has taken 2 ETH. It stays on this pool.
+              The protocol token. Buy it, or sell it back into the same pool. Lock it if you want a vote.{" "}
+              <Link to="/docs" className="font-medium text-stone underline-offset-2 hover:underline">
+                How the pool works
+              </Link>{" "}
+              is in the docs.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button asChild variant="gold">
@@ -105,18 +112,26 @@ function Znzf() {
               <ShareX text={tweetForPath("/znzf")} path="/znzf" />
             </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
+            <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
               <div className="min-w-0">
                 <dt className="text-xs text-muted-foreground">Price</dt>
                 <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatUsdTiny(token?.priceUsd)}</dd>
               </div>
               <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Market cap</dt>
+                <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatUsdCompact(token?.mcap)}</dd>
+              </div>
+              <div className="min-w-0">
                 <dt className="text-xs text-muted-foreground">Supply now</dt>
-                <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatCompact(TOTAL_SUPPLY - (stats.data?.burned ?? 0))}</dd>
+                <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatCompact(TOTAL_SUPPLY - burned)}</dd>
               </div>
               <div className="min-w-0">
                 <dt className="text-xs text-muted-foreground">Burned</dt>
-                <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatCompact(stats.data?.burned ?? 0)}</dd>
+                <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatCompact(burned)}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Locked</dt>
+                <dd className="font-display text-xl tabular-nums sm:text-2xl">{formatCompact(totalStaked)}</dd>
               </div>
               <div className="min-w-0">
                 <dt className="text-xs text-muted-foreground">Your bag</dt>
@@ -125,7 +140,7 @@ function Znzf() {
             </dl>
             <div className="mt-5 space-y-3">
               <ContractRow chain="robinhood" label="Canonical" address={robinhood} explorer={CHAINS.robinhood.explorer} />
-              <ContractRow chain="arc" label="Bridged" address={arc} explorer={CHAINS.arc.explorer} />
+              <ContractRow chain="arc" label="Bridged" address={arc} explorer={CHAINS.arc.explorer} hint={arcSupply > 0 ? `${formatCompact(arcSupply)} on Arc` : undefined} />
             </div>
             <AddZnzfToWallet robinhood={robinhood} arc={arc} image={token?.image_url} />
           </div>
@@ -144,7 +159,7 @@ function Znzf() {
             <div className="stone-card rounded-xl p-4">
               <p className="font-medium">Curve fee</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Every swap on this curve pays {((token?.feeBps ?? TRADE_FEE_BPS) / 100).toFixed(2)}%. Holding $ZNZF does not reduce it. There is no live rebate.
+                Every swap on this curve pays {((token?.feeBps ?? TRADE_FEE_BPS) / 100).toFixed(0)}%. Holding $ZNZF does not reduce it. There is no live rebate.
               </p>
             </div>
             <Link to="/staking" className="stone-card rounded-xl p-4 transition-transform hover:-translate-y-0.5">
@@ -157,30 +172,29 @@ function Znzf() {
             <div className="stone-card rounded-xl p-4">
               <p className="font-medium">Buyback</p>
               <p className="mt-2 text-sm text-muted-foreground">A sweep can send 80% of the ETH in the fee vault to buyback. 20% stays in the vault. $ZNZF is burned only when that transaction runs. Arc does not burn.</p>
-              <p className="mt-3 text-sm tabular-nums text-stone">
-                {(page.data?.events ?? []).filter((e) => e.kind === "creator_bonus").length} nods so far
-              </p>
+              <p className="mt-3 text-sm tabular-nums text-stone">{formatCompact(burned)} burned</p>
             </div>
           </div>
         </section>
 
         <section className="mt-12 sm:mt-14">
-          <h2 className="text-2xl font-semibold">Buyback, burn & creator nods</h2>
-          {(page.data?.events ?? []).length === 0 ? (
+          <h2 className="text-2xl font-semibold">Buyback and burn</h2>
+          {events.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No buybacks, burns, or creator nods yet. They post here when protocol fees actually buy $ZNZF or a pool graduates.
+              {burned > 0
+                ? `${formatCompact(burned)} $ZNZF has been burned by the buyback contract. A single sweep shows up here once it is recorded.`
+                : "No buyback has been recorded yet."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border">
-              {(page.data?.events ?? []).map((e: any) => (
-                <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-                  <span className="capitalize">{e.kind.replace("_", " ")}</span>
+              {events.map((event) => (
+                <li key={event.id} className="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-3 py-3 text-sm">
+                  <span className="font-medium">{event.kind === "burn" ? "Burn" : event.kind === "buyback" ? "Buyback" : "Creator"}</span>
                   <span className="tabular-nums">
-                    {formatCompact(Number(e.amount))}
-                    {e.kind === "burn" || e.kind === "buyback" ? " $ZNZF" : ""}
+                    {formatCompact(Number(event.amount))} $ZNZF
+                    {event.note ? <span className="ml-2 text-muted-foreground">{event.note}</span> : null}
                   </span>
-                  <span className="text-muted-foreground">{e.note}</span>
-                  <span className="text-xs text-muted-foreground">{timeAgo(e.created_at)}</span>
+                  <time className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</time>
                 </li>
               ))}
             </ul>
@@ -196,11 +210,13 @@ function ContractRow({
   label,
   address,
   explorer,
+  hint,
 }: {
   chain: "robinhood" | "arc";
   label: string;
   address: string | null;
   explorer: string;
+  hint?: string;
 }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
@@ -219,6 +235,7 @@ function ContractRow({
       ) : (
         <span className="text-muted-foreground">Not published</span>
       )}
+      {hint ? <span className="text-muted-foreground">{hint}</span> : null}
     </div>
   );
 }

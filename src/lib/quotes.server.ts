@@ -3,6 +3,7 @@ import { usdFromDexPairs, usdFromYahooChart } from "./quote-usd";
 
 let ethCache: { at: number; usd: number } | null = null;
 let mapCache: { at: number; map: Record<string, number | null> } | null = null;
+let mapFlight: Promise<QuoteUsdMap> | null = null;
 
 export type QuoteUsdMap = Record<string, number | null>;
 
@@ -91,7 +92,16 @@ function pairAddresses(asset: (typeof PAIR_ASSETS)[number]): string[] {
 
 /** Live USD for every analytics pair: on-chain Dexscreener, ETH CEX, stables $1, Yahoo/refUsd fallback. */
 export async function fetchQuoteUsdMap(): Promise<QuoteUsdMap> {
-  if (mapCache && Date.now() - mapCache.at < 60_000) return { ...mapCache.map };
+  if (mapCache && Date.now() - mapCache.at < 15_000) return { ...mapCache.map };
+  if (mapFlight) return mapFlight;
+  mapFlight = loadQuoteUsdMap().finally(() => {
+    mapFlight = null;
+  });
+  return mapFlight;
+}
+
+async function loadQuoteUsdMap(): Promise<QuoteUsdMap> {
+  if (mapCache && Date.now() - mapCache.at < 15_000) return { ...mapCache.map };
 
   const priced = PAIR_ASSETS.filter(
     (a) => a.key !== "eth" && a.kind !== "stable" && a.key !== "usdc" && a.key !== "usdg",

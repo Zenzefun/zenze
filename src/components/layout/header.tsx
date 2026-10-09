@@ -23,9 +23,9 @@ export function Header({ znzfPrice }: { znzfPrice?: number | null }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/40 bg-background/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl backdrop-saturate-150">
+    <header className="shell-bar sticky top-0 z-40 border-b border-white/40 bg-background/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex h-14 max-w-6xl min-w-0 items-center gap-1.5 px-3 sm:h-16 sm:gap-3 sm:px-4">
-        <Link to="/" className="flex min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Zenze.fun home">
+        <Link to="/" className="flex min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Zenzen home">
           <BrandLockup wordmarkClassName="hidden sm:inline text-lg lg:text-xl" />
         </Link>
         <nav className="ml-1 hidden min-w-0 items-center gap-0.5 sm:flex" aria-label="Main">
@@ -37,8 +37,8 @@ export function Header({ znzfPrice }: { znzfPrice?: number | null }) {
                 to={item.to}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex min-h-11 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  "inline-flex min-h-11 items-center border-b-2 px-2.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  active ? "border-gold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 {item.label}

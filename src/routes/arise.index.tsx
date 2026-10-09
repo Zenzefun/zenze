@@ -7,7 +7,14 @@ export const Route = createFileRoute("/arise/")({ component: AdminHome });
 
 function AdminHome() {
   const q = useQuery({ queryKey: ["admin-overview"], queryFn: () => adminOverview(), retry: false });
-  if (q.isPending) return <p className="text-sm text-muted-foreground">Capy is still counting.</p>;
+  if (q.isPending) return <p className="text-sm text-muted-foreground">Still counting.</p>;
+  if (q.isError) {
+    return (
+      <p className="text-sm text-destructive">
+        {q.error instanceof Error ? q.error.message : "The desk could not be read. Sign in again with the treasury wallet."}
+      </p>
+    );
+  }
   if (!q.data || !q.data.ok) return <p className="text-sm text-muted-foreground">Sign in with the operator wallet to open the desk.</p>;
   const d = q.data;
   return (

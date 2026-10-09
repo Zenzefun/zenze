@@ -3,7 +3,7 @@ import { getSql } from "@/lib/db";
 import { configValue } from "@/lib/server/secrets";
 
 const REDIRECT = "https://zenze.fun/api/x/callback";
-const AUTHORIZE = "https://twitter.com/i/oauth2/authorize";
+const AUTHORIZE = "https://x.com/i/oauth2/authorize";
 const TOKEN_URL = "https://api.x.com/2/oauth2/token";
 
 export async function xOAuthConfig() {

@@ -1,14 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { ArtPicker } from "@/components/tokens/art-picker";
+import { ListingFields, listingSocials, useListingPool } from "@/components/tokens/listing-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ChainSelect } from "@/components/chains/chain-select";
 import { CHAINS, type ChainKey } from "@/lib/chains";
 import { isTokenArt } from "@/lib/image-art";
 import { publishedConfig } from "@/lib/onchain";
@@ -21,7 +17,7 @@ export const Route = createFileRoute("/list")({
   head: () =>
     pageHead({
       title: "List a token",
-      description: "Already have a token? List it so buyers can find it here.",
+      description: "List a token that already trades in a Uniswap v4 pool. Website, X, Telegram, and the pool are saved with it.",
       path: "/list",
     }),
 });
@@ -33,22 +29,28 @@ function vaultKey(chain: ChainKey) {
 function ListToken() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats() });
   const cfg = useQuery({ queryKey: ["public-config"], queryFn: () => publicConfig(), initialData: publishedConfig() });
-  const search = useSearch({ strict: false }) as { ref?: string };
   const wallet = useWallet();
   const navigate = useNavigate();
   const [chain, setChain] = useState<ChainKey>("robinhood");
   const [contract, setContract] = useState("");
   const [description, setDescription] = useState("");
-  const [referrer, setReferrer] = useState(search.ref ?? "");
   const [imageUrl, setImageUrl] = useState("");
+  const [website, setWebsite] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [telegram, setTelegram] = useState("");
   const fees = useQuery({ queryKey: ["fee-quote", chain], queryFn: () => feeQuote({ data: { chain } }) });
+  const pool = useListingPool(chain, contract);
 
   const vault = cfg.data?.[vaultKey(chain)];
   const vaultLive = Boolean(vault && /^0x[a-fA-F0-9]{40}$/.test(vault));
 
   const mut = useMutation({
     mutationFn: async () => {
+      const note = description.trim();
+      if (!note) throw new Error("Add a description.");
+      const socials = listingSocials(website, twitter, telegram);
       if (!isTokenArt(imageUrl)) throw new Error("Upload a token image first.");
+      if (!pool.data?.ok) throw new Error(pool.data && !pool.data.ok ? pool.data.error : "That contract has no pool yet.");
       if (!vaultLive) throw new Error("Listing is not open on this chain right now.");
       if (!wallet.connected) await wallet.connect();
       if (wallet.chainId !== CHAINS[chain].id) await wallet.switchChain(chain);
@@ -72,15 +74,16 @@ function ListToken() {
       if (receipt.status !== "success") throw new Error("Payment transaction reverted.");
       const signed = await wallet.signIntent({ action: "list", tokenId: contract.trim(), amount: String(quoteFees.listUsd) });
       const res = await listExternalToken({
-        data: { chain, contract, description, imageUrl: pinned.url, referrer, txHash: hash, ...signed },
+        data: { chain, contract, description: note, imageUrl: pinned.url, txHash: hash, ...socials, ...signed },
       });
       if (!res.ok) throw new Error(res.error);
-      return res.token;
+      return res;
     },
-    onSuccess: (token) => {
-      if (!token) return;
-      toast.success(`$${token.symbol} is listed from on-chain data.`);
-      navigate({ to: "/token/$id", params: { id: token.id } });
+    onSuccess: (res) => {
+      if (!res?.token) return;
+      toast.success(`$${res.token.symbol} is listed from on-chain data.`);
+      if (res.promo === "failed") toast.error(res.promoError || "Listed, but the X post did not go out.");
+      navigate({ to: "/token/$id", params: { id: res.token.id } });
     },
     onError: (err) => toast.error(publicWalletError(err)),
   });
@@ -88,9 +91,9 @@ function ListToken() {
   return (
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <h1 className="text-3xl font-semibold">List a token you already have</h1>
+        <h1 className="text-3xl font-semibold">List a token that already trades</h1>
         <p className="mt-2 text-muted-foreground">
-          Paste the contract. The name and the supply come from the chain, and buyers can find it here.
+          Paste the contract. The Uniswap v4 ETH pool is read and shown before you pay. Website, X, and Telegram are saved on the token page.
         </p>
         {!vaultLive && (
           <p className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm">
@@ -104,23 +107,22 @@ function ListToken() {
             mut.mutate();
           }}
         >
-          <div className="space-y-2">
-            <Label>Chain</Label>
-            <ChainSelect value={chain} onChange={setChain} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ca">Contract</Label>
-            <Input id="ca" required value={contract} onChange={(e) => setContract(e.target.value)} placeholder="0x…" className="font-mono" />
-          </div>
-          <ArtPicker value={imageUrl} onChange={setImageUrl} />
-          <div className="space-y-2">
-            <Label htmlFor="desc">Note (optional)</Label>
-            <Textarea id="desc" maxLength={280} value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ref">Referrer wallet (optional)</Label>
-            <Input id="ref" value={referrer} onChange={(e) => setReferrer(e.target.value)} placeholder="0x…" className="font-mono" />
-          </div>
+          <ListingFields
+            chain={chain}
+            onChain={setChain}
+            contract={contract}
+            onContract={setContract}
+            imageUrl={imageUrl}
+            onImage={setImageUrl}
+            description={description}
+            onDescription={setDescription}
+            website={website}
+            onWebsite={setWebsite}
+            twitter={twitter}
+            onTwitter={setTwitter}
+            telegram={telegram}
+            onTelegram={setTelegram}
+          />
           <Button type="submit" variant="gold" className="w-full" disabled={mut.isPending || !vaultLive}>
             {mut.isPending ? "Waiting on the wallet…" : wallet.connected ? "Confirm in wallet" : "Connect wallet to list"}
           </Button>

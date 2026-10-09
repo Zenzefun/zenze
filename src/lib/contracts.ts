@@ -2,6 +2,7 @@ import { encodeDeployData, encodeFunctionData, encodePacked, keccak256, parseAbi
 import artifacts from "./abi/contracts.json";
 import buybackArtifact from "./abi/buyback.json";
 import { ZERO_ADDRESS } from "./chains";
+import { capCreatorTaxBps } from "./fee-split";
 import { FACTORY_MIN_WEI } from "./fees";
 import { quoteAddress, type QuoteAsset } from "./pairs";
 import type { ChainKey } from "./chains";
@@ -57,10 +58,7 @@ export function launchCalldata(input: {
     input.creatorWallet && /^0x[a-fA-F0-9]{40}$/.test(input.creatorWallet)
       ? (input.creatorWallet as `0x${string}`)
       : ZERO_ADDRESS;
-  let tax = Number(input.creatorTaxBps);
-  if (!Number.isFinite(tax)) tax = 1000;
-  if (tax < 0) tax = 0;
-  if (tax > 1000) tax = 1000;
+  let tax = capCreatorTaxBps(Number(input.creatorTaxBps));
   const exempt = (input.snipeExempt ?? [])
     .map((a) => a.trim())
     .filter((a) => /^0x[a-fA-F0-9]{40}$/.test(a))

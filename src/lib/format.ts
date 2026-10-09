@@ -20,6 +20,23 @@ export function formatUsd(n: number, digits = 2): string {
   return `$${n.toFixed(5)}`;
 }
 
+export function formatUsdCompact(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n) || n <= 0) return "—";
+  const abs = Math.abs(n);
+  const units = [
+    { v: 1e9, s: "B" },
+    { v: 1e6, s: "M" },
+    { v: 1e3, s: "k" },
+  ];
+  for (const unit of units) {
+    if (abs >= unit.v) {
+      const text = (n / unit.v).toLocaleString("en-US", { maximumFractionDigits: 2 });
+      return `$${text}${unit.s}`;
+    }
+  }
+  return formatUsd(n);
+}
+
 export function formatUsdMaybe(n: number | null | undefined, digits = 2): string {
   if (n == null || !Number.isFinite(n)) return "—";
   return formatUsd(n, digits);
@@ -42,6 +59,15 @@ export function formatAmount(n: number, maxFrac = 8): string {
   const digits = abs >= 1 ? Math.min(4, maxFrac) : abs >= 0.01 ? Math.min(6, maxFrac) : maxFrac;
   const raw = abs.toFixed(digits);
   return sign + raw.replace(/\.?0+$/, "");
+}
+
+/** Truncate toward zero. Used when the text is later parsed back into a token amount. */
+export function floorDecimal(n: number, decimals: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  const places = Math.min(18, Math.max(0, Math.floor(decimals)));
+  const [whole, frac = ""] = Math.abs(n).toFixed(places + 4).split(".");
+  const cut = frac.slice(0, places).replace(/0+$/, "");
+  return cut ? `${whole}.${cut}` : whole;
 }
 
 /** Always show a fixed number of decimals, including zeros: 0 → "0.000000". */

@@ -1,3 +1,4 @@
+import { usesRivalFigure } from "./audit.ts";
 import type { MayaActionKind, MayaCta, MayaJob, MayaRisk } from "./policy.ts";
 import { hasTruncatedUrl, isMillDump } from "./shape.ts";
 
@@ -9,6 +10,7 @@ export type ScoreCtx = {
   audience?: string;
   mentionedUs?: boolean;
   isOurPost?: boolean;
+  ownDomain?: boolean;
 };
 
 export type ScoreResult = {
@@ -27,6 +29,13 @@ const FAKE_TRACTION = /\b(\d[\d,]*)\s*(holders?|volume|mcap|market cap)\b/i;
 
 const TEMPLATE =
   /\b(i'd rather|i would rather|glad you(?:'re| are) here|fair offer|nothing to sign up|just collecting real questions)\b/i;
+
+const WEAK_HOOK = /^(gpar|gm\b|hey\b|hi\b|hello\b|stay zen|a pad can|not a bad way|meanwhile|question for the room)/i;
+
+const FEE_PITCH = /slice of the|who receives your slice|2%\s*fee/i;
+
+const BAIT_QUESTION =
+  /what(?:'s| is) the (?:one )?ticker|name the ticker|reply with one ticker|question for the room|first thing you check/i;
 
 const HASHTAG_SOUP = /(?:#[a-z0-9]+){3,}/i;
 
@@ -57,17 +66,43 @@ export function scoreDraft(text: string, ctx: ScoreCtx): ScoreResult {
   if (writing && hasTruncatedUrl(t)) {
     return { ok: false, score: 0, reasons: ["truncated URL"], risk: "high" };
   }
-  if (/https?:\/\/(?:www\.)?zenze\.fun/i.test(t) || /\bzenze\.fun\b/i.test(t)) {
-    return { ok: false, score: 0, reasons: ["zenze.fun is hidden on X"], risk: "high" };
-  }
-  if ((action === "original" || action === "quote") && /https?:\/\//i.test(t)) {
-    return { ok: false, score: 0, reasons: ["originals carry no link"], risk: "high" };
+  if (/(?:https?:\/\/(?:www\.)?)?zenze\.fun\b/i.test(t) || /linktr\.ee\/zenzefun/i.test(t)) {
+    return { ok: false, score: 0, reasons: ["the old domain and Linktree stay off X"], risk: "high" };
   }
   if ((action === "original" || action === "quote") && /^@\w/.test(t)) {
     return { ok: false, score: 0, reasons: ["opens with @, so only mutuals see it"], risk: "high" };
   }
   if (writing && TEMPLATE.test(t)) {
     return { ok: false, score: 0, reasons: ["repeated pitch template"], risk: "high" };
+  }
+  if ((action === "original" || action === "quote") && WEAK_HOOK.test(t)) {
+    return { ok: false, score: 0, reasons: ["a greeting does not sell the product"], risk: "high" };
+  }
+  if ((action === "original" || action === "quote") && BAIT_QUESTION.test(t)) {
+    return { ok: false, score: 0, reasons: ["that question is a template"], risk: "high" };
+  }
+  if (action === "original" || action === "quote") {
+    const marks = t.match(/\?/g)?.length ?? 0;
+    if (marks > 1) return { ok: false, score: 0, reasons: ["one question is enough"], risk: "high" };
+    const opening = t.split(/\n\n/)[0]?.trim() ?? "";
+    const first = (opening.match(/^.*?[.!?](?=\s+[A-Z$]|$)/)?.[0] ?? opening).trim();
+    if (first.includes("?")) {
+      return { ok: false, score: 0, reasons: ["the first sentence is the fact, not a question"], risk: "high" };
+    }
+  }
+  if ((action === "original" || action === "quote") && usesRivalFigure(t)) {
+    return { ok: false, score: 0, reasons: ["that number belongs to a rival"], risk: "high" };
+  }
+  if (action === "original") {
+    const block = t.split(/\n\n/)[0]?.trim() ?? "";
+    const hook = (block.match(/^.*?[.!](?=\s+[A-Z$]|$)/)?.[0] ?? block).trim();
+    const words = hook.split(/\s+/).filter(Boolean).length;
+    if (!hook || words > 12 || WEAK_HOOK.test(hook) || !/(\$[a-z][a-z0-9]{1,12}|\b(?:pools?|tokens?|votes?|points|bridges?)\b)/i.test(hook)) {
+      return { ok: false, score: 0, reasons: ["line 1 must name the product, in 12 words or fewer"], risk: "high" };
+    }
+  }
+  if ((action === "original" || action === "quote") && FEE_PITCH.test(t)) {
+    return { ok: false, score: 0, reasons: ["fee math belongs in the docs, not the post"], risk: "high" };
   }
   if (SLOP.test(t)) {
     score -= 30;
@@ -90,7 +125,7 @@ export function scoreDraft(text: string, ctx: ScoreCtx): ScoreResult {
     score -= 25;
     reasons.push("shill CTA");
   }
-  if (urls.some((u) => !/linktr\.ee\/zenzefun|x\.com\//i.test(u)) && action !== "quote") {
+  if (urls.some((u) => !/^https:\/\/zenzen\.fun(?:\/|$)/i.test(u) && !/x\.com\//i.test(u)) && action !== "quote") {
     score -= 10;
     reasons.push("off-site URL");
   }
@@ -119,27 +154,29 @@ export function scoreDraft(text: string, ctx: ScoreCtx): ScoreResult {
     score -= 20;
     reasons.push("first-touch reply with a link");
   }
-  if (!ctx.job) {
+  const answering = action === "reply" && (ctx.mentionedUs || ctx.isOurPost);
+  if (!answering && !ctx.job) {
     score -= 15;
     reasons.push("no conversion job");
   }
-  if (!ctx.segment) {
+  if (!answering && !ctx.segment) {
     score -= 10;
     reasons.push("no segment");
   }
-  if (!ctx.audience) {
+  if (!answering && !ctx.audience) {
     score -= 8;
     reasons.push("no audience");
   }
 
   const grounded =
     !writing ||
+    answering ||
     t
       .toLowerCase()
       .split(/[^a-z0-9.$]+/)
       .filter((w) => w.length >= 4)
-      .some((w) => facts.includes(w) || /zenze|znzf|robinhood|bonding|curve|uniswap|capy/.test(w));
-  if (writing && !grounded) {
+      .some((w) => facts.includes(w) || /zenze|znzf|robinhood|bonding|curve|uniswap|capy|pool|token|points|bridge|stake|launch/.test(w));
+  if (writing && !answering && !grounded) {
     score -= 25;
     reasons.push("not grounded in facts or product nouns");
   }

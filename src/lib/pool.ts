@@ -40,7 +40,7 @@ export function hasQuotedPool(token: {
   return isHexAddress(token.curve_address);
 }
 
-/** Graduated badge: only after the curve closed into Uniswap v4. $ZNZF stays live until then. */
+/** Graduated badge: a launch curve that filled on its own. The live $ZNZF curve does not move to Uniswap. */
 export function isGraduatedPool(token: {
   id?: string | null;
   symbol?: string | null;
@@ -48,6 +48,43 @@ export function isGraduatedPool(token: {
   graduated?: boolean | null;
 }): boolean {
   if (!token?.graduated) return false;
-  if (isProtocolToken(token) && token.source === "protocol") return false;
+  if (token.source === "listed") return false;
+  if (isProtocolToken(token)) return false;
   return true;
+}
+
+/** A listed token, or a curve that already moved, trades on Uniswap v4. */
+export function hasDexPool(token: {
+  id?: string | null;
+  symbol?: string | null;
+  source?: string | null;
+  graduated?: boolean | null;
+  dex?: { priceNative?: number | null } | null;
+}): boolean {
+  if (!token || isProtocolToken(token)) return false;
+  if (!(Number(token.dex?.priceNative ?? 0) > 0)) return false;
+  return token.source === "listed" || Boolean(token.graduated);
+}
+
+/** Listed pool and a live curve do not share a stat row. A closed curve has neither. */
+export function tokenStatMode(token: Parameters<typeof tokenSwapReady>[0]): "listed" | "curve" | "none" {
+  if (hasDexPool(token)) return "listed";
+  if (hasQuotedPool(token)) return "curve";
+  return "none";
+}
+export function tokenSwapReady(token: Parameters<typeof hasQuotedPool>[0] & Parameters<typeof hasDexPool>[0]): boolean {
+  return hasQuotedPool(token) || hasDexPool(token);
+}
+export type BoardKind = "protocol" | "curve" | "graduated" | "listed";
+
+export function tokenBoardKind(token: {
+  id?: string | null;
+  symbol?: string | null;
+  source?: string | null;
+  graduated?: boolean | null;
+}): BoardKind {
+  if (isProtocolToken(token)) return "protocol";
+  if (token.source === "listed") return "listed";
+  if (isGraduatedPool(token)) return "graduated";
+  return "curve";
 }

@@ -4,10 +4,13 @@ import { researchDesk } from "@/lib/server/ai-core.server";
 import { configValue } from "@/lib/server/secrets";
 import { fetchMentions, searchTweets, type XMention } from "@/lib/server/twitterapis";
 import { countsToday, isRiverSpam, loadCaps } from "@/lib/server/x-engage";
-import { SEARCH_SEEDS } from "./policy";
+import { DAILY_CAPS, SEARCH_SEEDS } from "./policy";
+import { ownDomainOn } from "@/lib/server/x-door";
 import { themeFor, urlForTheme } from "./calendar";
 import { loadMemoryPack } from "./learn";
 import { plannerFacts } from "./facts";
+import { launchNeedles } from "./shape";
+import { jakartaDayStart } from "@/lib/server/telegram-posts";
 
 export type LaunchRipple = {
   id: string;
@@ -33,11 +36,14 @@ export type ObservePack = {
   originalsToday: number;
   minutesSinceOriginal: number;
   cadenceMin: number;
+  originalCap: number;
   caps: Awaited<ReturnType<typeof loadCaps>>;
   done: Awaited<ReturnType<typeof countsToday>>;
   autoReplies: boolean;
   autoFollows: boolean;
   autoQuotes: boolean;
+  ownDomain: boolean;
+  followsThisHour: number;
   freezeUntil: number;
   memory: Awaited<ReturnType<typeof loadMemoryPack>>;
   gaps: string[];
@@ -47,6 +53,12 @@ function clampMinutes(raw: string | undefined) {
   const n = Number(raw);
   if (!Number.isFinite(n)) return 45;
   return Math.min(180, Math.max(20, Math.round(n)));
+}
+
+export function originalCapFrom(raw: string | undefined) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return DAILY_CAPS.original;
+  return Math.min(12, Math.max(0, Math.round(n)));
 }
 
 function flagOn(raw: string | undefined) {
@@ -65,10 +77,12 @@ export async function alreadyCovered(sql: Awaited<ReturnType<typeof getSql>>, ne
 }
 
 export async function originalsToday(sql: Awaited<ReturnType<typeof getSql>>) {
+  const dayStart = jakartaDayStart(new Date());
   const rows = await sql<{ n: number }>`
     select count(*)::int as n from marketing_posts
     where status = 'posted'
-      and created_at > date_trunc('day', now())
+      and created_at >= ${dayStart}
+      and coalesce(kind, '') <> 'listing'
       and coalesce(play, '') not in ('reply', 'engage', 'like', 'follow')
   `;
   return rows[0]?.n ?? 0;
@@ -77,7 +91,9 @@ export async function originalsToday(sql: Awaited<ReturnType<typeof getSql>>) {
 export async function minutesSinceLastOriginal(sql: Awaited<ReturnType<typeof getSql>>) {
   const rows = await sql<{ created_at: string }>`
     select created_at from marketing_posts
-    where status = 'posted' and coalesce(play, '') not in ('reply', 'engage', 'like', 'follow')
+    where status = 'posted'
+      and coalesce(kind, '') <> 'listing'
+      and coalesce(play, '') not in ('reply', 'engage', 'like', 'follow')
     order by created_at desc limit 1
   `;
   if (!rows[0]) return 9999;
@@ -94,35 +110,59 @@ async function newestUnpostedLaunch(sql: Awaited<ReturnType<typeof getSql>>): Pr
      limit 6
   `;
   for (const t of rows) {
-    const needle = (t.contract_address || t.symbol).toLowerCase();
-    if (await alreadyCovered(sql, needle)) continue;
+    let covered = false;
+    for (const needle of launchNeedles(t.symbol, t.contract_address)) {
+      if (await alreadyCovered(sql, needle)) {
+        covered = true;
+        break;
+      }
+    }
+    if (covered) continue;
     return t;
   }
   return null;
 }
 
+async function followsThisHour(sql: Awaited<ReturnType<typeof getSql>>) {
+  try {
+    const rows = await sql<{ n: number }>`
+      select count(*)::int as n from marketing_actions
+      where status = 'ok' and kind = 'follow' and created_at > now() - interval '1 hour'
+    `;
+    return rows[0]?.n ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function observe(handle: string): Promise<ObservePack> {
   const sql = await getSql();
   const factsPack = await researchDesk();
-  const [graduatedRows, launch, mentions, today, since, caps, done, memory] = await Promise.all([
+  const [graduatedRows, launch, today, since, caps, done, memory, followsHour] = await Promise.all([
     sql<{ n: number }>`select count(*)::int as n from tokens where graduated = true`,
     newestUnpostedLaunch(sql),
-    fetchMentions(handle),
     originalsToday(sql),
     minutesSinceLastOriginal(sql),
     loadCaps(),
     countsToday(),
     loadMemoryPack(),
+    followsThisHour(sql),
   ]);
 
+  const autoReplies = flagOn(await configValue("x_auto_replies_on_our_posts"));
+  const autoFollows = flagOn(await configValue("x_auto_follows"));
+  const autoQuotes = flagOn(await configValue("x_auto_quotes"));
+  const wantMentions = autoReplies && done.comment < caps.comment;
+  const wantRiver = autoQuotes || done.like < caps.like || (autoFollows && done.follow < caps.follow) || done.repost < caps.repost;
   const seedIdx = Math.floor(Date.now() / (5 * 60 * 1000)) % SEARCH_SEEDS.length;
   const weatherQuery = SEARCH_SEEDS[seedIdx]!;
-  let weather: XMention[] = [];
-  try {
-    weather = (await searchTweets(weatherQuery)).filter((p) => !isRiverSpam(p.text, p.author)).slice(0, 8);
-  } catch {
-    weather = [];
-  }
+  const [mentions, weatherRaw] = await Promise.all([
+    wantMentions ? fetchMentions(handle) : Promise.resolve([] as XMention[]),
+    wantRiver
+      ? searchTweets(weatherQuery).catch(() => [] as XMention[])
+      : Promise.resolve([] as XMention[]),
+  ]);
+  const weather = weatherRaw.filter((p) => !isRiverSpam(p.text, p.author)).slice(0, 8);
 
   const theme = themeFor();
   const factsText = plannerFacts({
@@ -138,7 +178,6 @@ export async function observe(handle: string): Promise<ObservePack> {
     themeIntent: theme.intent,
     themeJob: theme.job,
     themeUrl: urlForTheme(theme),
-    themeExample: theme.example,
   });
 
   const gaps = [
@@ -148,10 +187,6 @@ export async function observe(handle: string): Promise<ObservePack> {
       ? "Early account. Prefer owned originals over graph actions."
       : "",
   ].filter(Boolean);
-
-  const autoReplies = flagOn(await configValue("x_auto_replies_on_our_posts"));
-  const autoFollows = flagOn(await configValue("x_auto_follows"));
-  const autoQuotes = flagOn(await configValue("x_auto_quotes"));
 
   return {
     handle,
@@ -169,21 +204,37 @@ export async function observe(handle: string): Promise<ObservePack> {
     originalsToday: today,
     minutesSinceOriginal: since,
     cadenceMin: clampMinutes(await configValue("x_auto_minutes")),
+    originalCap: originalCapFrom(await configValue("x_daily_originals")),
     caps,
     done,
     autoReplies,
     autoFollows,
     autoQuotes,
+    ownDomain: await ownDomainOn(),
+    followsThisHour: followsHour,
     freezeUntil: memory.freezeUntil,
     memory,
     gaps,
   };
 }
 
-export function mentionIsQuestion(p: XMention, handle: string) {
+export function mentionIsQuestion(p: { author: string; text: string }, handle: string) {
   if (p.author.toLowerCase() === handle.toLowerCase()) return false;
   if (isRiverSpam(p.text, p.author)) return false;
   return /(\?|how |what |where |wen |fee|launch|curve|bridge|swap|znzf|zenze)/i.test(p.text);
+}
+
+/** The model often writes the answer and forgets the id. Pin it to the person who is waiting. */
+export function attachWaitingReply<T extends { action: string; post_id: string; handle: string }>(
+  item: T,
+  mentions: { id: string; author: string; text: string }[],
+  handle: string,
+): T {
+  if (item.action !== "reply") return item;
+  const waiting = mentions.find((p) => mentionIsQuestion(p, handle));
+  if (!waiting) return item;
+  if (mentions.some((m) => m.id === item.post_id)) return item;
+  return { ...item, post_id: waiting.id, handle: item.handle || waiting.author };
 }
 
 export function weatherOnSegment(p: XMention) {

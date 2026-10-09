@@ -61,7 +61,7 @@ export function AppErrorComponent({ error, reset }: ErrorComponentProps) {
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone stagger-item">Error</p>
         <SmartImage src="/brand/capy-zen.webp" alt="" width={640} height={480} className="mx-auto mt-4 w-48 rounded-2xl object-cover capy-bob" rounded="2xl" />
         <h1 className="mt-6 font-display text-2xl font-semibold stagger-item" style={{ animationDelay: "80ms" }}>
-          {chunk ? "Zenze updated" : "The tea spilled"}
+          {chunk ? "Zenzen updated" : "The tea spilled"}
         </h1>
         <p className="mt-3 max-w-md text-sm break-words text-muted-foreground stagger-item" style={{ animationDelay: "160ms" }}>
           {errorMessage(error)}

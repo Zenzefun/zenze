@@ -2,20 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { operatorMiddleware } from "@/lib/operator-middleware";
 import { capyChat } from "@/lib/server/ai-core.server";
+import { cleanNote } from "@/lib/server/telegram-posts";
 import { configValue } from "@/lib/server/secrets";
 
 export const NOTE =
-  "Write one Telegram message for the Zenze community. Sound like a person in the group, not an advertisement. Ask one question or answer one thing. Do not mention fees, percentages, contract addresses, or wallets. Do not say the project is not Robinhood or Circle. Do not ask for a seed phrase. If a link is needed, use exactly one https://zenze.fun/ path. No hashtags.";
+  "Write one Telegram announcement for Zenzen. Four short lines. Line 1 is the result. Name one product: a pool, a token, $ZNZF, points, the bridge, or a vote. No question. No fee percentage. No contract address. No wallet. No seed phrase. No hashtags. Points live at https://zenzen.fun/airdrop. There is no /points page. Stake is https://zenzen.fun/staking. If a link is needed, use exactly one of those real paths on its own line.";
 
-export function cleanNote(raw: string): string | null {
-  const text = raw.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").slice(0, 700);
-  if (text.length < 20) return null;
-  if (/seed phrase|private key|guaranteed|100x|to the moon|buy now|not affiliated/i.test(text)) return null;
-  if (/0x[a-fA-F0-9]{40}/.test(text)) return null;
-  if (/http:\/\//i.test(text)) return null;
-  if (/\bzenze\.fun\b/i.test(text) && !/https:\/\/zenze\.fun\//i.test(text)) return null;
-  return text;
-}
+export { cleanNote };
 
 export async function telegramCreds() {
   const token = (await configValue("telegram_bot_token"))?.trim() ?? "";
@@ -29,27 +22,34 @@ async function telegramCall(token: string, method: string, body?: Record<string,
     headers: body ? { "content-type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  const json = (await res.json()) as { ok?: boolean; description?: string; result?: { id?: number; username?: string; title?: string } };
+  const json = (await res.json()) as {
+    ok?: boolean;
+    description?: string;
+    result?: { id?: number; message_id?: number; username?: string; title?: string };
+  };
   if (!json.ok) throw new Error(json.description || "Telegram did not accept that.");
   return json.result ?? {};
 }
 
+export const COMMUNITY_GROUP = "zenzefun";
+export const COMMUNITY_GROUP_URL = "https://t.me/zenzefun";
+
+export async function publicRoomUrl() {
+  const { token, chat } = await telegramCreds();
+  if (!chat) return "";
+  if (chat.startsWith("@")) return `https://t.me/${chat.slice(1)}`;
+  if (!token) return "";
+  try {
+    const info = await telegramCall(token, "getChat", { chat_id: chat });
+    if (info.username) return `https://t.me/${info.username}`;
+  } catch {
+    return "";
+  }
+  return "";
+}
+
 export async function ensureCommunityTable() {
-  const sql = await getSql();
-  await sql`
-    create table if not exists community_notes (
-      id bigserial primary key,
-      platform text not null default 'telegram',
-      content text not null,
-      status text not null default 'draft',
-      telegram_message_id text,
-      created_at timestamptz not null default now(),
-      sent_at timestamptz
-    )
-  `;
-  await sql`alter table community_notes add column if not exists kind text not null default 'note'`;
-  await sql`alter table community_notes add column if not exists source_message_id text`;
-  return sql;
+  return getSql();
 }
 
 export async function deliverCommunityNote(id: number, replyTo?: number) {
@@ -72,12 +72,17 @@ export async function deliverCommunityNote(id: number, replyTo?: number) {
       disable_web_page_preview: false,
       ...(Number.isFinite(reply) && reply > 0 ? { reply_to_message_id: reply } : {}),
     });
-    const messageId = sent.id ? String(sent.id) : "";
+    const messageId = sent.message_id ? String(sent.message_id) : sent.id ? String(sent.id) : "";
     await sql`
       update community_notes
          set status = 'sent', telegram_message_id = ${messageId}, sent_at = now(), content = ${text}
        where id = ${row.id}
     `;
+    await telegramCall(token, "sendMessage", {
+      chat_id: `@${COMMUNITY_GROUP}`,
+      text,
+      disable_web_page_preview: false,
+    }).catch(() => null);
     return { ok: true as const, sent: true, id: row.id };
   } catch (err) {
     await sql`update community_notes set status = 'failed' where id = ${row.id}`;
@@ -123,7 +128,7 @@ export const draftCommunityNote = createServerFn({ method: "POST" })
     const recent = await sql<{ content: string }>`select content from community_notes order by created_at desc limit 5`;
     const avoid = recent.map((r) => r.content).join("\n");
     const drafted = await capyChat(
-      `${NOTE}\nDo not repeat:\n${avoid || "(none)"}\nHint: ${hint || "Ask the group what they want to launch next."}`,
+      `${NOTE}\nDo not repeat:\n${avoid || "(none)"}\nHint: ${hint || "Tell the room one thing they can do today."}`,
       280,
       NOTE,
       "maya:telegram",

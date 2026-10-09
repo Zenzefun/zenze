@@ -18,19 +18,19 @@ const EVAL: { label: Label; action: "original" | "reply" | "quote"; text: string
   {
     label: "good",
     action: "original",
-    text: "If the first buyers had a private round, it was not a fair launch.\n\n2% on the curve. 2 ETH locks into Uniswap v4.\n$ZNZF",
+    text: "A token with no private round.\n\nThe curve is the launch.\n\nYou can sell it back.\n\nLaunch it.",
     why: "Doctrine plus the live mechanic. No domain.",
   },
   {
     label: "good",
     action: "original",
-    text: "The $ZNZF curve is on-chain. Volume today is 0. The fee on that curve is 2%.",
+    text: "The $ZNZF pool is early.\n\nVolume today is quiet.\n\nYou can still buy it.\n\nBuy $ZNZF.",
     why: "Honest zero. No fake traction.",
   },
   {
     label: "good",
     action: "original",
-    text: "$BABI is live on Zenze, paired with ETH.\n2% curve fee. Graduation is a lock, not a promise.",
+    text: "$BABI has a pool.\n\nIt is paired with ETH.\n\nYou can sell it back.\n\nLook first.",
     why: "Product moment without a profit promise.",
   },
   {
@@ -42,8 +42,8 @@ const EVAL: { label: Label; action: "original" | "reply" | "quote"; text: string
   {
     label: "good",
     action: "original",
-    text: "Buying $ZNZF earlier means you pay less than the next buyer. You can sell it back into the same pool. The trade takes 2%.",
-    why: "The allowed buyer sentence. No profit promise.",
+    text: "$ZNZF has a pool.\n\nYou can sell it back.\n\nThe pool sets the price.\n\nBuy $ZNZF.",
+    why: "The allowed buy frame. No price ladder and no profit promise.",
   },
   {
     label: "toxic",
@@ -64,12 +64,64 @@ const EVAL: { label: Label; action: "original" | "reply" | "quote"; text: string
     why: "An original that opens with @ is shown only to mutuals.",
   },
   {
+    label: "good",
+    action: "original",
+    text: "$ZNZF has a pool. You can sell it back into that same pool. Which side do you use first?",
+    why: "One specific question can follow the fact.",
+  },
+  {
     label: "bad",
     action: "original",
-    text: "I'd rather ask than pitch. What would you want to know first?",
-    why: "The repeated pitch template is what the last posts all used.",
+    text: "Which pool do you open first? $ZNZF has a pool.",
+    why: "The first sentence cannot be the question.",
+  },
+  {
+    label: "bad",
+    action: "original",
+    text: "$ZNZF has a pool. What is the one ticker you would list next?",
+    why: "A ticker question is a template.",
+  },
+  {
+    label: "bad",
+    action: "original",
+    text: "Your token can have a pool.\n\nYou choose who receives your slice of the 2% fee.\n\nLaunch it.",
+    why: "Fee math does not belong in a post.",
+  },
+  {
+    label: "good",
+    action: "original",
+    text: "$CASHCAT is listed. You can swap that same pool, and their account sits next to it so you do not have to hunt.",
+    why: "A short first sentence can sit in a longer paragraph.",
+  },
+  {
+    label: "bad",
+    action: "original",
+    text: "$CASHCAT showed up with a pool that anyone can swap against today now.",
+    why: "The first sentence itself is over 12 words.",
   },
 ];
+
+describe("a reply to a person", () => {
+  it("allows one zenzen.fun link and rejects the old domain", () => {
+    const old = scoreDraft("The pool is here.\n\nhttps://zenze.fun", { facts: "", action: "reply", mentionedUs: true });
+    const original = scoreDraft("The pool is here.\n\nhttps://zenzen.fun", { facts, action: "original", job: "A6", segment: "holders", audience: "$ZNZF holders" });
+    assert.equal(old.ok, false);
+    assert.equal(original.ok, true, original.reasons.join(", "));
+  });
+
+  it("can be plain words, without a segment or a slogan", () => {
+    const res = scoreDraft("Zenze is where a token gets its own pool the day you launch it. You can sell it back into that same pool.", {
+      facts: "",
+      action: "reply",
+      job: "A1",
+      segment: "",
+      audience: "",
+      mentionedUs: true,
+      isOurPost: false,
+    });
+    assert.equal(res.ok, true, res.reasons.join(", "));
+  });
+});
 
 describe("scoreDraft", () => {
   for (const row of EVAL) {

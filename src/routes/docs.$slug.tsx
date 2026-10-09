@@ -16,7 +16,7 @@ export const Route = createFileRoute("/docs/$slug")({
   head: ({ loaderData, params }) =>
     pageHead({
       title: loaderData?.title ?? "Docs",
-      description: loaderData?.description ?? "Zenze protocol docs.",
+      description: loaderData?.description ?? "Zenzen protocol docs.",
       path: `/docs/${params.slug}`,
     }),
 });

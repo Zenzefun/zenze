@@ -5,18 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { asNumber, formatCompact, formatMcap, formatUsdMaybe } from "@/lib/format";
 import { pairLabel } from "@/lib/pairs";
 import { TokenImage } from "@/components/media/smart-image";
-import { hasQuotedPool, isGraduatedPool, isProtocolToken } from "@/lib/pool";
+import { hasQuotedPool, tokenBoardKind } from "@/lib/pool";
 import { isZnzfRef, tokenRouteId } from "@/lib/token-path";
 import type { EnrichedToken } from "@/lib/server/market";
 
 type Enriched = EnrichedToken;
 
 const CARD_CLASS =
-  "stone-card group flex flex-col rounded-xl p-4 transition-transform duration-200 hover:-translate-y-0.5";
+  "stone-card group flex h-full flex-col overflow-hidden rounded-xl p-4";
 
-export function TokenCard({ token }: { token: Enriched }) {
-  const body = <TokenCardBody token={token} />;
-  if (isProtocolToken(token) || isZnzfRef(token.id) || isZnzfRef(token.contract_address)) {
+export function TokenCard({ token, showDescription = true }: { token: Enriched; showDescription?: boolean }) {
+  const body = <TokenCardBody token={token} showDescription={showDescription} />;
+  if (isZnzfRef(token.id) || isZnzfRef(token.contract_address)) {
     return (
       <Link to="/znzf" className={CARD_CLASS}>
         {body}
@@ -30,60 +30,72 @@ export function TokenCard({ token }: { token: Enriched }) {
   );
 }
 
-function TokenCardBody({ token }: { token: Enriched }) {
+function TokenCardBody({ token, showDescription }: { token: Enriched; showDescription: boolean }) {
   const volNative = asNumber(token.volume_24h);
   const volUsd =
-    token.quote.key === "eth"
-      ? token.ethUsd != null
-        ? volNative * token.ethUsd
-        : null
-      : volNative;
+    token.quote.key === "eth" ? (token.ethUsd != null ? volNative * token.ethUsd : null) : volNative;
   const live = hasQuotedPool(token);
-  const graduated = isGraduatedPool(token);
-  const protocol = isProtocolToken(token);
+  const kind = tokenBoardKind(token);
+  const onCurve = kind === "curve" || kind === "protocol";
+  const progress = onCurve ? Math.max(0, Math.min(100, token.progress || 0)) : 100;
 
   return (
     <>
-      <div className="flex items-start gap-3">
-        <TokenImage src={token.image_url} alt={token.name} size={48} seed={token.id} protocol={protocol} className="size-12" />
+      <div className="flex items-center gap-3">
+        <TokenImage
+          src={token.image_url}
+          alt={token.name}
+          size={48}
+          seed={token.id}
+          protocol={kind === "protocol"}
+          className="size-12 shrink-0"
+        />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-baseline gap-2">
             <p className="truncate font-medium">{token.name}</p>
-            <span className="text-xs text-muted-foreground">${token.symbol}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">${token.symbol}</span>
           </div>
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Badge variant="steam" className="gap-1">
               <ChainMark chain={token.chain.key} className="size-3" />
               {token.chain.short}
             </Badge>
-            {live && (
+            {live ? (
               <Badge variant="outline" className="gap-1">
                 <QuoteMark quote={token.quote.key} className="size-3" />
                 {pairLabel(token.symbol, token.quote)}
               </Badge>
-            )}
-            <Badge variant={token.band.key === "storm" ? "blossom" : token.band.key === "calm" ? "moss" : "sand"}>
-              {token.band.label}
-            </Badge>
-            {protocol && !graduated && <Badge variant="gold">Protocol</Badge>}
-            {token.source === "listed" && !protocol && <Badge variant="gold">Listed</Badge>}
-            {graduated && <Badge variant="gold">Graduated</Badge>}
+            ) : null}
           </div>
         </div>
       </div>
-      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{token.description}</p>
-      <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
+      <div className="mt-3">
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>{onCurve ? "Filled" : "Uniswap"}</span>
+          <span className="tabular-nums">{onCurve ? `${progress.toFixed(0)}%` : "Live"}</span>
+        </div>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className={`fill-bar h-full rounded-full ${onCurve ? "bg-moss" : "bg-foreground/35"}`}
+            style={{ width: `${Math.max(progress, onCurve ? 2 : 100)}%` }}
+          />
+        </div>
+      </div>
+      {showDescription ? (
+        <p className="mt-3 line-clamp-2 min-h-10 text-sm text-muted-foreground">{token.description || "\u00a0"}</p>
+      ) : null}
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
         <div>
-          <dt className="text-muted-foreground">Mcap</dt>
-          <dd className="font-medium tabular-nums">{live ? formatMcap(token.mcap, token.priceUsd, token.quote.symbol) : "—"}</dd>
+          <dt className="text-muted-foreground">Market cap</dt>
+          <dd className="mt-0.5 font-medium tabular-nums">
+            {live || token.dex ? formatMcap(token.mcap, token.priceUsd, token.quote.symbol) : "—"}
+          </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Volume</dt>
-          <dd className="font-medium tabular-nums">{volUsd != null ? formatUsdMaybe(volUsd) : formatCompact(volNative)}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Holders</dt>
-          <dd className="font-medium tabular-nums">{token.holders.toLocaleString()}</dd>
+          <dt className="text-muted-foreground">24h volume</dt>
+          <dd className="mt-0.5 font-medium tabular-nums">
+            {volUsd != null ? formatUsdMaybe(volUsd) : formatCompact(volNative)}
+          </dd>
         </div>
       </dl>
     </>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MIN_HOLD, PARTS, pointTotal, rulesFromDesk, shareWei, spinFromRoll, UNIT } from "./airdrop-rules.ts";
+import { MIN_HOLD, PARTS, maxPoints, pointTotal, rulesFromDesk, shareWei, spinFromRoll, UNIT } from "./airdrop-rules.ts";
 
 test("points stay at zero until the wallet has bought $ZNZF", () => {
   const points = pointTotal({
@@ -13,6 +13,13 @@ test("points stay at zero until the wallet has bought $ZNZF", () => {
     spinPoints: 30,
   });
   assert.equal(points, 0);
+});
+
+test("a bigger crowd makes the same points a smaller share", () => {
+  const pool = 1_000n * UNIT;
+  assert.equal(shareWei(10n, 100n, pool), 100n * UNIT);
+  assert.equal(shareWei(10n, 200n, pool), 50n * UNIT);
+  assert.equal(maxPoints(), PARTS.buy + PARTS.telegram + PARTS.x + PARTS.launch + PARTS.seen + PARTS.referral * 10 + 30);
 });
 
 test("the pool is split by points, not by a fixed token amount", () => {

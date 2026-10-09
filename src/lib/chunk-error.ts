@@ -19,7 +19,7 @@ export function isChunkLoadError(error: unknown): boolean {
 
 export function chunkErrorCopy(error: unknown): string {
   if (isChunkLoadError(error)) {
-    return "Zenze just updated. Reload to get the latest version.";
+    return "Zenzen just updated. Reload to get the latest version.";
   }
   return "";
 }

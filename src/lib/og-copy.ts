@@ -1,5 +1,6 @@
 import { SITE } from "@/lib/seo";
-import { isZnzfRef, znzfLaunchpadId, znzfTradePath } from "@/lib/token-path";
+import { isProtocolToken } from "@/lib/pool";
+import { isZnzfRef, znzfLaunchpadId } from "@/lib/token-path";
 
 export type ShareToken = {
   id?: string;
@@ -21,41 +22,44 @@ function ticker(symbol: string) {
 /** Tweet body only — the intent URL is attached separately. Stay under ~220 so X does not clip. */
 export function tweetForToken(token: ShareToken) {
   const sym = ticker(token.symbol);
+  if (isProtocolToken(token)) {
+    return `$${sym} is the token of Zenzen. Trade it here. It stays in this pool.`;
+  }
   const blurb = (token.description ?? "").trim().replace(/\s+/g, " ");
   const short = blurb.length > 90 ? `${blurb.slice(0, 87).trim()}…` : blurb;
   const extra = short ? ` ${short}` : "";
-  return `$${sym} · ${token.name} on Zenze.fun.${extra}`.trim().slice(0, 240);
+  return `$${sym} · ${token.name} on Zenzen.${extra}`.trim().slice(0, 240);
 }
 
 export function tweetForPath(path: string) {
   switch (path) {
     case "/":
-      return `Buy $ZNZF earlier and you pay less than the next buyer. You can sell it back. The trade takes 2%. https://zenze.fun${znzfTradePath()}`;
+      return "Your token can have a pool today.\nName it.\nPick the pair.\nLaunch it.";
     case "/explore":
-      return "Newest pools first. On a new pool, buying earlier means you pay less than the next buyer.";
+      return "New pools sit at the top.\nOpen one.\nBuy it, or sell it back.\nLook first.";
     case "/launch":
-      return "Name a token and buy it first. You keep the creator share you set. https://zenze.fun/launch";
+      return "Your token can have a pool today.\nName it.\nPick the pair.\nLaunch it.";
     case "/list":
-      return "Already have a token? List it so buyers can find it. https://zenze.fun/list";
+      return "You already have a token.\nList the contract you deployed.\nDo not deploy a second one.\nList it.";
     case "/znzf":
-      return `Buy $ZNZF earlier and you pay less than the next buyer. You can sell it back. The trade takes 2%. https://zenze.fun${znzfTradePath()}`;
+      return "$ZNZF has a pool.\nYou buy it there.\nYou can sell it back into that same pool.\nBuy $ZNZF.";
     case "/staking":
-      return "Lock $ZNZF and your vote counts. You can take it back. The reward is only what the treasury already funded.";
+      return "A locked $ZNZF is a vote.\nYou lock it.\nA balance in the wallet does not vote.\nLock it.";
     case "/governance":
-      return "Your say is the $ZNZF you lock. A balance left in your wallet does not vote.";
+      return "Your say is the $ZNZF you lock.\nAn unlocked balance does not vote.\nYou can unlock it later.\nLock it.";
     case "/analytics":
-      return "What people actually traded on Zenze. A zero means nobody traded.";
+      return "This is what people traded.\nA zero means nobody traded.\nThe numbers are the trades.\nRead them.";
     case "/capyai":
-      return "Ask before you buy. Capy reads the pool and stays quiet until you ask.";
+      return "Ask before you buy.\nCapy reads the pool you pick.\nIt stays quiet until you ask.\nOpen it.";
     case "/move":
     case "/bridge":
-      return "The same $ZNZF on the other network. Lock some here, the same amount shows up there.";
+      return "$ZNZF can sit on the other network.\nYou lock it here.\nThe same amount shows up there.\nMove it.";
     case "/guide":
-      return "Buy $ZNZF, launch your own, or list one you already have. https://zenze.fun/guide";
+      return "You can buy $ZNZF.\nYou can launch your own.\nYou can list one you already have.\nStart.";
     case "/docs":
-      return "Buy earlier, pay less, sell back. The docs are the exact rules. https://zenze.fun/docs";
+      return "The rules live in the docs.\nThe fee is there.\nThe pool rules are there.\nRead them.";
     case "/legal":
-      return "Terms, privacy, and risk disclosure for Zenze.fun.";
+      return "Terms, privacy, and the risks.\nRead them before you sign.";
     default:
       return `${SITE.tagline} ${SITE.name}.`;
   }
@@ -66,10 +70,13 @@ export function ogTitleForToken(token: ShareToken) {
 }
 
 export function ogDescriptionForToken(token: ShareToken) {
+  if (isProtocolToken(token)) {
+    return "This is the token of Zenzen. You can buy and sell it here. It stays in this pool.";
+  }
   const chain = chainName(token);
   const blurb = (token.description ?? "").trim().replace(/\s+/g, " ");
-  if (blurb) return `${token.name} ($${ticker(token.symbol)}) on Zenze.fun. ${blurb.slice(0, 140)}`.slice(0, 180);
-  return `${token.name} ($${ticker(token.symbol)}) on ${chain}. Trade on Zenze.fun.`;
+  if (blurb) return `${token.name} ($${ticker(token.symbol)}) on Zenzen. ${blurb.slice(0, 140)}`.slice(0, 180);
+  return `${token.name} ($${ticker(token.symbol)}) on ${chain}. Trade on Zenzen.`;
 }
 
 export function tokenSharePath(id: string, contract?: string | null) {

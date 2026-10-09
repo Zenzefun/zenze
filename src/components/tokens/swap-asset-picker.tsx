@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { ChainKey } from "@/lib/chains";
 import { PAIR_ASSETS, quotesFor } from "@/lib/pairs";
 import { assetFromQuote, type SwapAsset } from "@/lib/swap-route";
+import { isZnzfAsset } from "@/lib/swap-legs";
 import { cn } from "@/lib/utils";
 
 const PAIR_ORDER = new Map(PAIR_ASSETS.map((p, i) => [p.symbol.toUpperCase(), i]));
@@ -52,10 +53,10 @@ export const SwapAssetButton = Chip;
 export function SwapAssetPicker({
   assets,
   value,
-  other,
   onChange,
   chain,
   znzfAddress,
+  locked = false,
 }: {
   assets: SwapAsset[];
   value: SwapAsset;
@@ -63,6 +64,7 @@ export function SwapAssetPicker({
   onChange: (asset: SwapAsset) => void;
   chain: ChainKey;
   znzfAddress?: string | null;
+  locked?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -76,11 +78,14 @@ export function SwapAssetPicker({
       const k = a.symbol.toUpperCase();
       if (!bySym.has(k)) bySym.set(k, a);
     }
+    const dexReady = assets.some((a) => a.kind === "quote" && a.venue === "dex");
     const out: SwapAsset[] = [];
     const seen = new Set<string>();
     for (const p of quotesFor(chain)) {
+      if (p.key === "znzf") continue;
       const hit = bySym.get(p.symbol.toUpperCase()) ?? assetFromQuote(p, chain, znzfAddress);
-      if (!hit || seen.has(hit.graphId)) continue;
+      if (!hit || seen.has(hit.graphId) || isZnzfAsset(hit)) continue;
+      if (dexReady && !hit.native && hit.venue !== "dex") continue;
       seen.add(hit.graphId);
       out.push(hit);
     }
@@ -90,28 +95,36 @@ export function SwapAssetPicker({
     return out;
   }, [assets, chain, znzfAddress]);
 
-  const launched = useMemo(() => {
+  const tradable = useMemo(() => {
     const quoteIds = new Set(quotes.map((a) => a.graphId));
     const seen = new Set<string>();
-    const out: SwapAsset[] = [];
+    const launched: SwapAsset[] = [];
+    const listed: SwapAsset[] = [];
     for (const a of assets) {
-      if (a.kind !== "token" || !a.curveAddress || quoteIds.has(a.graphId) || seen.has(a.graphId)) continue;
+      if (a.kind !== "token" || quoteIds.has(a.graphId) || seen.has(a.graphId) || isZnzfAsset(a)) continue;
+      if (a.venue === "dex") {
+        seen.add(a.graphId);
+        listed.push(a);
+        continue;
+      }
+      if (!a.curveAddress) continue;
       seen.add(a.graphId);
-      out.push(a);
+      launched.push(a);
     }
-    return out;
+    return { launched, listed };
   }, [assets, quotes]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
+    const needle = s === "usdc" || s === "usd" ? "usdg" : s;
     const match = (a: SwapAsset) =>
-      !s ||
-      a.symbol.toLowerCase().includes(s) ||
-      a.name.toLowerCase().includes(s) ||
-      (a.tokenId ?? "").toLowerCase().includes(s) ||
-      a.quoteSymbol.toLowerCase().includes(s);
-    return { pairs: quotes.filter(match), launched: launched.filter(match) };
-  }, [quotes, launched, q]);
+      !needle ||
+      a.symbol.toLowerCase().includes(needle) ||
+      a.name.toLowerCase().includes(needle) ||
+      (a.tokenId ?? "").toLowerCase().includes(needle) ||
+      a.quoteSymbol.toLowerCase().includes(needle);
+    return { pairs: quotes.filter(match), launched: tradable.launched.filter(match), listed: tradable.listed.filter(match) };
+  }, [quotes, tradable, q]);
 
   useLayoutEffect(() => {
     if (!open || !rootRef.current) return;
@@ -147,6 +160,19 @@ export function SwapAssetPicker({
     setOpen(false);
   }
 
+  if (locked) {
+    return (
+      <span
+        data-swap-chip={value.symbol}
+        data-locked="true"
+        className="inline-flex min-h-11 max-w-[10.5rem] items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1.5"
+      >
+        <Mark asset={value} />
+        <span className="truncate text-sm font-semibold">{value.symbol}</span>
+      </span>
+    );
+  }
+
   return (
     <div className="relative z-20 inline-flex" ref={rootRef}>
       <Chip asset={value} open={open} onClick={() => setOpen((o) => !o)} />
@@ -177,7 +203,7 @@ export function SwapAssetPicker({
               </p>
             )}
             {filtered.pairs.map((a) => (
-              <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} other={other} onPick={pick} />
+              <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} onPick={pick} />
             ))}
             {filtered.launched.length > 0 && (
               <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -185,9 +211,17 @@ export function SwapAssetPicker({
               </p>
             )}
             {filtered.launched.map((a) => (
-              <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} other={other} onPick={pick} />
+              <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} onPick={pick} />
             ))}
-            {filtered.pairs.length === 0 && filtered.launched.length === 0 && (
+            {filtered.listed.length > 0 && (
+              <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Listed
+              </p>
+            )}
+            {filtered.listed.map((a) => (
+              <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} onPick={pick} />
+            ))}
+            {filtered.pairs.length === 0 && filtered.launched.length === 0 && filtered.listed.length === 0 && (
               <p className="px-2 py-3 text-center text-sm text-muted-foreground">No pair matches that ticker.</p>
             )}
           </div>
@@ -200,18 +234,12 @@ export function SwapAssetPicker({
 function Row({
   asset,
   active,
-  other,
   onPick,
 }: {
   asset: SwapAsset;
   active: boolean;
-  other?: SwapAsset | null;
   onPick: (a: SwapAsset) => void;
 }) {
-  const pairHint =
-    other && isQuotePair(asset) && other.kind === "token"
-      ? `${other.symbol}/${asset.symbol}`
-      : asset.name;
   return (
     <button
       type="button"
@@ -229,10 +257,7 @@ function Row({
     >
       <span className="flex min-w-0 items-center gap-2">
         <Mark asset={asset} className="size-5" />
-        <span className="min-w-0">
-          <span className="block truncate font-medium">{asset.symbol}</span>
-          <span className="block truncate text-[11px] text-muted-foreground">{pairHint}</span>
-        </span>
+        <span className="truncate font-medium">{asset.symbol}</span>
       </span>
       {active && <Check className="size-3.5 shrink-0 text-moss" />}
     </button>

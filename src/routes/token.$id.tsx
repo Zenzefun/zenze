@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,14 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ZERO_ADDRESS } from "@/lib/chains";
-import { asNumber, formatAddress, formatCompact, formatEth, formatMcap, formatUsdTiny, timeAgo } from "@/lib/format";
+import { asNumber, formatAddress, formatCompact, formatEth, formatMcap, formatUsd, formatUsdCompact, formatUsdTiny, timeAgo } from "@/lib/format";
 import { ogDescriptionForToken, ogTitleForToken, tokenSharePath, tweetForToken } from "@/lib/og-copy";
 import { pairLabel } from "@/lib/pairs";
 import { SmartImage, TokenImage } from "@/components/media/smart-image";
 import { HomeButton } from "@/components/site/home-button";
-import { hasQuotedPool, hasTradablePool, isGraduatedPool, isProtocolToken } from "@/lib/pool";
-import { analyzeToken } from "@/lib/server/ai";
-import { getToken, protocolStats } from "@/lib/server/market";
+import { hasDexPool, hasQuotedPool, hasTradablePool, isGraduatedPool, isProtocolToken, tokenStatMode, tokenSwapReady } from "@/lib/pool";
+import { getToken, onchainHolders, protocolStats } from "@/lib/server/market";
 import { cardUrl, pageHead } from "@/lib/seo";
 import { QueryError } from "@/components/site/query-error";
 import { PublicNotFound } from "@/components/not-found-public";
@@ -63,10 +62,10 @@ export const Route = createFileRoute("/token/$id")({
     if (!token) {
       return pageHead({
         title: `$${ticker}`,
-        description: `${name} ($${ticker}) on Zenze.fun.`,
+        description: `${name} ($${ticker}) on Zenzen.`,
         path,
         image,
-        imageAlt: `$${ticker} on Zenze.fun`,
+        imageAlt: `$${ticker} on Zenzen`,
       });
     }
     return pageHead({
@@ -74,7 +73,7 @@ export const Route = createFileRoute("/token/$id")({
       description: ogDescriptionForToken(token),
       path,
       image,
-      imageAlt: `$${ticker} — ${name} on Zenze.fun`,
+      imageAlt: `$${ticker} — ${name} on Zenzen`,
     });
   },
   component: TokenPage,
@@ -85,15 +84,27 @@ function TokenPage() {
   const { id } = Route.useParams();
   const loaded = Route.useLoaderData();
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats() });
+  const [copied, setCopied] = useState(false);
   const q = useQuery({
     queryKey: ["token", id],
     queryFn: () => getToken({ data: { id } }),
     initialData: loaded ?? undefined,
-    refetchInterval: 15_000,
+    staleTime: 10_000,
+    refetchInterval: 20_000,
   });
-  const ai = useMutation({
-    mutationFn: () => analyzeToken({ data: { id } }),
-    onError: () => toast.error("Capy could not read this pool just now."),
+  const holderAddress = loaded?.token?.contract_address ?? "";
+  const holdersQ = useQuery({
+    queryKey: ["onchain-holders", id, holderAddress],
+    queryFn: () =>
+      onchainHolders({
+        data: {
+          chain: loaded?.token?.chain?.key ?? "robinhood",
+          address: holderAddress,
+        },
+      }),
+    enabled: isHexAddress(holderAddress),
+    staleTime: 30_000,
+    refetchInterval: (query) => (query.state.data?.holders != null && !query.state.data?.pending ? 60_000 : 2_000),
   });
 
   if (q.isPending) {
@@ -129,27 +140,36 @@ function TokenPage() {
     );
   }
 
-  const { token, trades: rawTrades } = q.data;
-  const trades = rawTrades as TradeRow[];
-  const analysis = ai.data && ai.data.ok ? ai.data : null;
-  const live = hasQuotedPool(token);
+  const { token, trades: rawTrades, tradesError } = q.data as {
+    token: (typeof q.data)["token"];
+    trades: Array<TradeRow & { tx_hash?: string | null }>;
+    tradesError?: boolean;
+  };
+  const trades = rawTrades;
+  const curveLive = hasQuotedPool(token);
+  const dexLive = hasDexPool(token);
+  const live = tokenSwapReady(token);
+  const statMode = tokenStatMode(token);
+  const scanned = holdersQ.data?.ok ? holdersQ.data.holders : null;
+  const storedHolders = Number(token.holders);
+  const holderText =
+    scanned != null
+      ? scanned.toLocaleString()
+      : Number.isFinite(storedHolders) && storedHolders > 0
+        ? storedHolders.toLocaleString()
+        : isHexAddress(token.contract_address)
+          ? "…"
+          : "—";
+  const athUsd = Math.max(Number(token.dex?.athUsd ?? 0), Number(token.mcap) || 0);
   const onchain = hasTradablePool(token);
   const protocol = isProtocolToken(token);
   const graduated = isGraduatedPool(token);
   let chartPoints = trades
     .filter((t) => asNumber(t.price) > 0)
-    .map((t) => ({ t: t.created_at, p: asNumber(t.price) }));
-  if (chartPoints.length === 0 && live && token.price > 0) {
-    const now = Date.now();
-    chartPoints = [
-      { t: new Date(now - 3_600_000).toISOString(), p: token.price },
-      { t: new Date(now).toISOString(), p: token.price },
-    ];
-  }
+    .map((t) => ({ t: t.created_at, p: asNumber(t.price), side: t.side, size: asNumber(t.base_amount) }));
   const creator = token.creator_wallet === ZERO_ADDRESS ? "Protocol" : formatAddress(token.creator_wallet);
   const explorerAddr = token.contract_address || (isZnzfRef(token.id) ? znzfLaunchpadId() : null);
   const displayName = cleanTokenName(token.name, token.symbol);
-  const [copied, setCopied] = useState(false);
 
   async function copyAddress() {
     if (!explorerAddr) return;
@@ -260,12 +280,16 @@ function TokenPage() {
         <aside id="swap" className="min-w-0 scroll-mt-24 space-y-4 lg:sticky lg:top-20 lg:row-span-4 lg:self-start">
           {live ? (
             <>
-              <GraduationCard token={token} />
-              <CreatorFees token={token} />
-              <HolderFees token={token} />
+              {curveLive || graduated ? (
+                <>
+                  <GraduationCard token={token} />
+                  <CreatorFees token={token} />
+                  <HolderFees token={token} />
+                </>
+              ) : null}
               <div className="stone-card overflow-visible rounded-xl p-3 sm:p-4">
                 <p className="mb-3 text-sm font-medium">
-                  {onchain ? "Swap on the bonding curve" : "Bonding curve · opening quote"}
+                  {graduated ? "Swap" : onchain ? "Swap on the bonding curve" : dexLive ? "Swap" : "Bonding curve · opening quote"}
                 </p>
                 <TradePanel token={token} onTraded={() => void q.refetch()} />
               </div>
@@ -274,9 +298,11 @@ function TokenPage() {
             <div className="stone-card rounded-xl p-4">
               <p className="font-medium">{token.source === "listed" ? "Listed token" : "Curve closed"}</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {token.source === "listed"
-                  ? "This contract is indexed on Zenze.fun. Trade it in your wallet or on the explorer."
-                  : "This curve is closed. New buys have stopped. This deployment does not move liquidity to Uniswap."}
+                {graduated
+                  ? "The curve is full. Liquidity is moving to Uniswap. This page switches to that pool on its own."
+                  : token.source === "listed"
+                    ? "This token already trades. Swap it here, or open it on the explorer."
+                    : "This curve is closed. New buys have stopped."}
               </p>
               {token.contract_address ? (
                 <a
@@ -310,49 +336,109 @@ function TokenPage() {
             />
           </div>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Metric label="Price" value={live ? formatUsdTiny(token.priceUsd) : "—"} />
-            <Metric label="Market cap" value={live ? formatMcap(token.mcap, token.priceUsd, token.quote.symbol) : "—"} />
-            <Metric label="Holders" value={token.holders.toLocaleString()} />
-            <Metric
-              label={live ? `Curve ${token.quote.symbol}` : "Liquidity"}
-              value={live ? formatEth(token.curve.realBase) : "—"}
-            />
+            {statMode === "listed" ? (
+              <>
+                <Metric label="Market cap" value={formatUsdCompact(token.mcap)} />
+                <Metric label="Liquidity" value={formatUsdCompact(token.dex?.liquidityUsd)} />
+                <Metric label="24h volume" value={formatUsdCompact(token.dex?.volumeUsd)} />
+                <Metric label="ATH" value={formatUsdCompact(athUsd)} />
+                <Metric label="Holders" value={holderText} />
+              </>
+            ) : statMode === "curve" ? (
+              <>
+                <Metric label="Price" value={formatUsdTiny(token.priceUsd)} />
+                <Metric label="Market cap" value={formatMcap(token.mcap, token.priceUsd, token.quote.symbol)} />
+                <Metric label={`Price in ${token.quote.symbol}`} value={`${formatEth(token.price)} ${token.quote.symbol}`} />
+                <Metric label="Market" value="Bonding curve" />
+                <Metric label="Holders" value={holderText} />
+              </>
+            ) : (
+              <>
+                <Metric label="Price" value="—" />
+                <Metric label="Market cap" value="—" />
+                <Metric label="Holders" value={holderText} />
+              </>
+            )}
           </dl>
-          <div className="rounded-xl border border-border p-4">
-            <p className="text-sm font-medium">Capy read</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {token.band.hint} Rug signal {token.rug_probability}%.
-            </p>
-            <Button className="mt-3" variant="outline" disabled={ai.isPending} onClick={() => ai.mutate()}>
-              {ai.isPending ? "Capy is reading…" : "Ask Capy to analyze"}
-            </Button>
-            {analysis ? <p className="mt-3 text-sm text-muted-foreground">{analysis.summary}</p> : null}
-          </div>
           <div>
-            <h2 className="text-lg font-semibold">Trades</h2>
-            <ul className="mt-3 divide-y divide-border">
-              {trades.length === 0 && <li className="py-4 text-sm text-muted-foreground">No trades yet.</li>}
-              {trades
-                .slice()
-                .reverse()
-                .slice(0, 24)
-                .map((t) => (
-                  <li key={t.id} className="grid grid-cols-2 gap-x-2 gap-y-1 py-2 text-sm sm:flex sm:flex-wrap sm:justify-between">
-                    <span className="font-medium capitalize">{t.side}</span>
-                    <span className="tabular-nums">
-                      {formatCompact(asNumber(t.token_amount))} {token.symbol}
-                    </span>
-                    <span className="tabular-nums text-muted-foreground">
-                      {formatEth(asNumber(t.base_amount))} {token.quote.symbol}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{timeAgo(t.created_at)}</span>
-                  </li>
-                ))}
-            </ul>
+            <h2 className="text-lg font-semibold">Recent trades</h2>
+            <RecentTrades key={token.id} trades={trades} tradesError={Boolean(tradesError)} token={token} />
           </div>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function RecentTrades({
+  trades,
+  tradesError,
+  token,
+}: {
+  trades: Array<TradeRow & { tx_hash?: string | null }>;
+  tradesError: boolean;
+  token: { symbol: string; quote: { symbol: string; kind?: string; key?: string }; quoteUsd?: number | null; ethUsd?: number | null; chain: { explorer: string } };
+}) {
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const newest = trades.slice().reverse();
+  const pages = Math.max(1, Math.ceil(newest.length / pageSize));
+  const current = Math.min(page, pages);
+  const rows = newest.slice((current - 1) * pageSize, current * pageSize);
+  const numbers =
+    pages <= 8
+      ? Array.from({ length: pages }, (_, i) => i + 1)
+      : [1, current - 1, current, current + 1, pages].filter((n, i, all) => n >= 1 && n <= pages && all.indexOf(n) === i).sort((a, b) => a - b);
+  if (tradesError && newest.length === 0) return <p className="mt-3 text-sm text-muted-foreground">Recent trades unavailable</p>;
+  return (
+    <>
+      <ul className="mt-3 divide-y divide-border">
+        {rows.length === 0 && <li className="py-4 text-sm text-muted-foreground">No trades yet</li>}
+        {rows.map((t) => {
+          const hash = t.tx_hash && t.tx_hash.startsWith("0x") ? t.tx_hash : "";
+          const quoteUsd = token.quote.kind === "stable" || token.quote.key === "usdc" || token.quote.key === "usdg" ? 1 : (token.quoteUsd ?? token.ethUsd);
+          const usd = quoteUsd != null ? asNumber(t.base_amount) * quoteUsd : 0;
+          const amount = `${formatCompact(asNumber(t.token_amount))} ${token.symbol}`;
+          return (
+            <li key={t.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1 py-2 text-sm">
+              <span className={t.side === "sell" ? "font-medium text-destructive" : "font-medium text-moss"}>{t.side === "sell" ? "Sell" : "Buy"}</span>
+              <span className="min-w-0">
+                {hash ? (
+                  <a className="font-medium hover:underline" href={`${token.chain.explorer}/tx/${hash}`} target="_blank" rel="noreferrer">
+                    {amount}
+                  </a>
+                ) : (
+                  <span className="font-medium">{amount}</span>
+                )}
+                {t.wallet ? <span className="ml-2 text-muted-foreground">{formatAddress(t.wallet)}</span> : null}
+              </span>
+              <span className="text-right">
+                <span className="block tabular-nums">
+                  {formatEth(asNumber(t.base_amount))} {token.quote.symbol}
+                </span>
+                {usd > 0 ? <span className="block text-xs tabular-nums text-muted-foreground">{formatUsd(usd)}</span> : null}
+                <time className="block text-xs text-muted-foreground">{timeAgo(t.created_at)}</time>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {pages > 1 ? (
+        <nav className="mt-3 flex flex-wrap gap-1.5" aria-label="Recent trades pages">
+          {numbers.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setPage(n)}
+              aria-current={n === current ? "page" : undefined}
+              className={n === current ? "h-8 min-w-8 rounded-md bg-primary px-2 text-sm font-medium text-primary-foreground" : "h-8 min-w-8 rounded-md bg-muted px-2 text-sm text-muted-foreground hover:text-foreground"}
+            >
+              {n}
+            </button>
+          ))}
+        </nav>
+      ) : null}
+    </>
   );
 }
 

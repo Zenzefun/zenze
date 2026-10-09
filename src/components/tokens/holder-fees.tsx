@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { claimHolderFeesCalldata } from "@/lib/contracts";
-import { formatAddress, formatFixed } from "@/lib/format";
+import { formatFixed } from "@/lib/format";
 import { isHexAddress } from "@/lib/intent";
 import { isProtocolToken } from "@/lib/pool";
 import { holderFeeSnapshot, prepareWalletTx, type EnrichedToken } from "@/lib/server/market";
@@ -47,12 +47,10 @@ function useHolderClaim(token: EnrichedToken) {
 }
 
 export function HolderFees({ token }: { token: EnrichedToken }) {
-  if (isProtocolToken(token) || token.source === "listed" || !isHexAddress(token.curve_address)) return null;
   const { wallet, snap, claim } = useHolderClaim(token);
+  if (isProtocolToken(token) || token.source === "listed" || !isHexAddress(token.curve_address)) return null;
   const stored = Boolean(token.holder_sharing);
   const liveSharing = snap.data && snap.data.ok !== false ? Boolean(snap.data.sharing) : stored;
-  const ticker = (token.symbol || "Token").replace(/^\$/, "").toUpperCase();
-  const creator = token.creator_wallet && isHexAddress(token.creator_wallet) ? formatAddress(token.creator_wallet) : "";
   const unit = token.quote.native ? token.chain.gas : token.quote.symbol;
   const accrued = snap.data?.accrued ?? 0;
 
@@ -60,9 +58,7 @@ export function HolderFees({ token }: { token: EnrichedToken }) {
     return (
       <div className="stone-card rounded-xl p-4">
         <p className="text-sm font-medium">Holder fee sharing</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          ${ticker} pays its creator fees to {creator || "the creator wallet"}. Holder sharing is off, so that share stays with the creator. It is chosen at launch and cannot be changed after.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Off. This fee goes to the creator, not holders.</p>
       </div>
     );
   }
@@ -73,9 +69,7 @@ export function HolderFees({ token }: { token: EnrichedToken }) {
       <p className="mt-1 font-display text-2xl tabular-nums">
         {wallet.address ? `${formatFixed(accrued, 6)} ${unit}` : "—"}
       </p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        ${ticker} splits its creator fees across holders. Claim your part on this page or in Portfolio.
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">Your share of the creator fee. Claim it here.</p>
       {wallet.address ? (
         <Button
           className="mt-3 w-full"
@@ -86,7 +80,7 @@ export function HolderFees({ token }: { token: EnrichedToken }) {
           {claim.isPending ? "Claiming…" : accrued > 0 ? "Claim holder fees" : "Nothing to claim yet"}
         </Button>
       ) : (
-        <p className="mt-3 text-xs text-muted-foreground">Connect the wallet that holds this token to claim.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Connect your wallet to claim.</p>
       )}
     </div>
   );

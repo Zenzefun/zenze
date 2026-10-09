@@ -10,51 +10,24 @@ export function GraduationCard({ token }: { token: EnrichedToken }) {
   const pct = target > 0 ? Math.min(100, Math.max(0, (raised / target) * 100)) : 0;
   const pctLabel = pct > 0 && pct < 10 ? pct.toFixed(2) : pct.toFixed(0);
   const quote = token.quote.symbol;
-  const protocol = isProtocolToken(token);
-  const arc = token.chain.key === "arc";
-
-  if (protocol) {
-    return (
-      <div className="rounded-xl border border-border bg-muted/30 p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-medium">Bonding curve</p>
-          <p className="text-sm font-semibold tabular-nums">{pctLabel}% of {formatEth(target)} {quote}</p>
-        </div>
-        <Progress value={pct} className="mt-3" barClassName={token.band.barClass} />
-        <p className="mt-2 text-sm text-muted-foreground">
-          {formatEth(raised)} of {formatEth(target)} {quote} in real reserves. New buys stop at that mark. This curve does not move to Uniswap.
-        </p>
-      </div>
-    );
-  }
-
-  if (token.graduated) {
-    return (
-      <div className="rounded-xl border border-border bg-muted/30 p-4">
-        <p className="text-sm font-medium">Bonding curve</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums">Closed</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {arc
-            ? `The curve closed at ${formatEth(target)} ${quote}. This app does not migrate Arc curves to Uniswap.`
-            : `The curve closed at ${formatEth(target)} ${quote}. Remaining reserves go to Uniswap v4 only after a migrator is set and someone calls migrate().`}
-        </p>
-        <Progress value={100} className="mt-3" barClassName={token.band.barClass} />
-      </div>
-    );
-  }
+  const closed = Boolean(token.graduated) || (target > 0 && raised >= target);
+  const mark = `${formatEth(target)} ${quote}`;
+  const raisedLine = `${formatEth(raised)} of ${mark} raised.`;
+  const note = isProtocolToken(token)
+    ? `${raisedLine} At ${mark} buying stops on its own. This pool stays on Zenzen.`
+    : closed
+      ? `${raisedLine} The curve has closed and the liquidity moves to a Uniswap v4 pool on its own.`
+      : `${raisedLine} At the threshold the curve closes and liquidity moves to a Uniswap v4 pool.`;
 
   return (
     <div className="rounded-xl border border-border bg-muted/30 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-medium">Bonding curve</p>
-        <p className="text-sm font-semibold tabular-nums">{pctLabel}% to close</p>
+        <p className="text-sm font-medium">Reserves</p>
+        <p className="text-sm font-semibold tabular-nums">{closed ? "Full" : `${pctLabel}%`}</p>
       </div>
-      <Progress value={pct} className="mt-3" barClassName={token.band.barClass} />
+      <Progress value={closed ? 100 : pct} className="mt-3" barClassName={token.band.barClass} />
       <p className="mt-2 text-sm text-muted-foreground">
-        {formatEth(raised)} of {formatEth(target)} {quote} raised. At the threshold, buy and sell stop.
-        {arc
-          ? " This app does not migrate Arc curves to Uniswap."
-          : " On Robinhood, remaining reserves go to Uniswap v4 only if a migrator is set and someone calls migrate()."}
+        {note}
       </p>
     </div>
   );

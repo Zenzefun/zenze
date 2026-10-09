@@ -1,5 +1,7 @@
 import { decodeFunctionResult, encodeFunctionData, formatUnits, parseAbi } from "viem";
 import { CHAINS, TRADE_FEE_BPS, type ChainKey } from "./chains";
+import { decodeAbiWord } from "./erc20-text";
+import { applyTransfer, positiveHolders } from "./holders";
 import { cleanTokenName, cleanTokenSymbol } from "./token-name";
 
 const ERC20 = parseAbi([
@@ -54,29 +56,86 @@ async function ethCall(rpcUrl: string, to: string, data: string): Promise<string
   return result;
 }
 
+function rpcUrls(chain: ChainKey): readonly string[] {
+  return CHAINS[chain].rpcs?.length ? CHAINS[chain].rpcs! : [CHAINS[chain].rpc];
+}
+
+function transportFailure(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /RPC |timeout|timed out|fetch|429|502|503|504|rate|ECONN|aborted|network|empty eth_call/i.test(message);
+}
+
+async function chainCall(chain: ChainKey, method: string, params: unknown[]): Promise<unknown> {
+  let last: unknown;
+  for (const url of rpcUrls(chain)) {
+    try {
+      return await rpc(url, method, params);
+    } catch (err) {
+      last = err;
+      if (!transportFailure(err)) throw err;
+    }
+  }
+  throw last instanceof Error ? last : new Error("rpc error");
+}
+
 export async function chainRpc(chain: ChainKey, method: string, params: unknown[]): Promise<unknown> {
-  return rpc(CHAINS[chain].rpc, method, params);
+  return chainCall(chain, method, params);
+}
+
+const erc20Cache = new Map<string, { at: number; row: RpcToken }>();
+
+async function callWord(chain: ChainKey, address: string, data: string): Promise<string> {
+  let last: unknown;
+  for (const url of rpcUrls(chain)) {
+    try {
+      return await ethCall(url, address, data);
+    } catch (err) {
+      last = err;
+      if (!transportFailure(err)) return "";
+    }
+  }
+  throw last instanceof Error ? last : new Error("rpc error");
 }
 
 export async function readErc20(chain: ChainKey, address: string): Promise<RpcToken> {
-  const rpcUrl = CHAINS[chain].rpc;
-  const [nameData, symbolData, decimalsData, supplyData] = await Promise.all([
-    ethCall(rpcUrl, address, encodeFunctionData({ abi: ERC20, functionName: "name" })),
-    ethCall(rpcUrl, address, encodeFunctionData({ abi: ERC20, functionName: "symbol" })),
-    ethCall(rpcUrl, address, encodeFunctionData({ abi: ERC20, functionName: "decimals" })),
-    ethCall(rpcUrl, address, encodeFunctionData({ abi: ERC20, functionName: "totalSupply" })),
+  const key = `${chain}:${address.toLowerCase()}`;
+  const cached = erc20Cache.get(key);
+  if (cached && Date.now() - cached.at < 60_000) return cached.row;
+  const code = await chainCall(chain, "eth_getCode", [address, "latest"]);
+  if (typeof code !== "string" || code === "0x") throw new Error("no contract");
+  const symbolData = encodeFunctionData({ abi: ERC20, functionName: "symbol" });
+  const nameData = encodeFunctionData({ abi: ERC20, functionName: "name" });
+  const decimalsData = encodeFunctionData({ abi: ERC20, functionName: "decimals" });
+  const supplyData = encodeFunctionData({ abi: ERC20, functionName: "totalSupply" });
+  const [symbolRaw, nameRaw, decimalsRaw, supplyRaw] = await Promise.all([
+    callWord(chain, address, symbolData),
+    callWord(chain, address, nameData).catch(() => ""),
+    callWord(chain, address, decimalsData).catch(() => ""),
+    callWord(chain, address, supplyData).catch(() => ""),
   ]);
-  const name = decodeFunctionResult({ abi: ERC20, functionName: "name", data: nameData as `0x${string}` });
-  const symbol = decodeFunctionResult({ abi: ERC20, functionName: "symbol", data: symbolData as `0x${string}` });
-  const decimals = decodeFunctionResult({ abi: ERC20, functionName: "decimals", data: decimalsData as `0x${string}` });
-  const totalSupply = decodeFunctionResult({ abi: ERC20, functionName: "totalSupply", data: supplyData as `0x${string}` });
-  const ticker = cleanTokenSymbol(symbol);
-  return {
-    name: cleanTokenName(name, ticker),
-    symbol: ticker,
-    decimals: Number(decimals),
-    totalSupply: totalSupply.toString(),
-  };
+  const symbol = cleanTokenSymbol(decodeAbiWord(symbolRaw));
+  if (!symbol) throw new Error("not a token");
+  const name = cleanTokenName(decodeAbiWord(nameRaw), symbol) || symbol;
+  let decimals = 18;
+  if (decimalsRaw && decimalsRaw !== "0x") {
+    try {
+      decimals = Number(decodeFunctionResult({ abi: ERC20, functionName: "decimals", data: decimalsRaw as `0x${string}` }));
+    } catch {
+      decimals = 18;
+    }
+  }
+  if (!Number.isFinite(decimals) || decimals < 0 || decimals > 36) decimals = 18;
+  let totalSupply = "0";
+  if (supplyRaw && supplyRaw !== "0x") {
+    try {
+      totalSupply = decodeFunctionResult({ abi: ERC20, functionName: "totalSupply", data: supplyRaw as `0x${string}` }).toString();
+    } catch {
+      totalSupply = "0";
+    }
+  }
+  const row = { name, symbol, decimals, totalSupply };
+  erc20Cache.set(key, { at: Date.now(), row });
+  return row;
 }
 
 export async function readCurveState(
@@ -220,7 +279,7 @@ export async function getTransaction(chain: ChainKey, hash: string): Promise<Cha
 }
 
 export async function getCode(chain: ChainKey, address: string): Promise<string> {
-  const result = await rpc(CHAINS[chain].rpc, "eth_getCode", [address, "latest"]);
+  const result = await chainCall(chain, "eth_getCode", [address, "latest"]);
   return typeof result === "string" ? result : "0x";
 }
 
@@ -240,6 +299,176 @@ export async function getLogs(
     transactionHash: (l.transactionHash ?? "").toLowerCase(),
     blockNumber: l.blockNumber ?? "0x0",
   }));
+}
+
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const HOLDER_TTL_MS = 180_000;
+const HOLDER_SCAN = 200_000;
+
+type HolderSnapshot = {
+  at: number;
+  count: number;
+  scannedTo: number;
+  balances: Map<string, bigint>;
+  done: boolean;
+};
+const holderCache = new Map<string, HolderSnapshot>();
+const holderFlight = new Map<string, Promise<void>>();
+const holderFailedAt = new Map<string, number>();
+
+type TransferLog = { topics?: string[]; data?: string };
+
+function topicAddress(topic: string | undefined): string {
+  if (!topic || topic.length < 42) return "0x" + "0".repeat(40);
+  return `0x${topic.slice(-40)}`.toLowerCase();
+}
+
+async function rawTransferLogs(chain: ChainKey, token: string, from: number, to: number): Promise<TransferLog[]> {
+  const result = await chainRpc(chain, "eth_getLogs", [
+    { address: token, topics: [TRANSFER_TOPIC], fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` },
+  ]);
+  return Array.isArray(result) ? (result as TransferLog[]) : [];
+}
+
+async function transferLogs(chain: ChainKey, token: string, from: number, to: number, attempt = 0): Promise<TransferLog[]> {
+  if (to < from) return [];
+  try {
+    return await rawTransferLogs(chain, token, from, to);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/too many requests|429/i.test(message) && attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      return transferLogs(chain, token, from, to, attempt + 1);
+    }
+    if (/exceeds limit|timed out|timeout|aborted/i.test(message) && to > from) {
+      const mid = from + Math.floor((to - from) / 2);
+      const left = await transferLogs(chain, token, from, mid);
+      const right = await transferLogs(chain, token, mid + 1, to);
+      return left.concat(right);
+    }
+    throw err;
+  }
+}
+
+/** First block window that contains transfers. Empty history is skipped in big steps. */
+async function regionStart(chain: ChainKey, token: string, from: number, to: number, stalls = 0): Promise<number | null> {
+  if (to < from) return null;
+  try {
+    const logs = await rawTransferLogs(chain, token, from, to);
+    return logs.length > 0 ? from : null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/too many requests|429/i.test(message) && stalls < 4) {
+      await new Promise((resolve) => setTimeout(resolve, 400 * (stalls + 1)));
+      return regionStart(chain, token, from, to, stalls + 1);
+    }
+    if (/exceeds limit|timed out|timeout|aborted/i.test(message)) {
+      if (to - from <= 10_000) return from;
+      const mid = from + Math.floor((to - from) / 2);
+      const left = await regionStart(chain, token, from, mid);
+      if (left != null) return left;
+      return regionStart(chain, token, mid + 1, to);
+    }
+    throw err;
+  }
+}
+
+/** First block window that contains transfers. Empty history is skipped in big steps. */
+async function firstHolderBlock(chain: ChainKey, token: string, head: number): Promise<number> {
+  let start = 1;
+  const step = 4_000_000;
+  while (start <= head) {
+    const end = Math.min(head, start + step - 1);
+    const hit = await regionStart(chain, token, start, end);
+    if (hit != null) return hit;
+    start = end + 1;
+  }
+  return head;
+}
+
+function foldTransfers(balances: Map<string, bigint>, logs: TransferLog[]) {
+  for (const log of logs) {
+    let value = 0n;
+    try {
+      value = BigInt(log.data && log.data !== "0x" ? log.data : "0x0");
+    } catch {
+      value = 0n;
+    }
+    applyTransfer(balances, topicAddress(log.topics?.[1]), topicAddress(log.topics?.[2]), value);
+  }
+}
+
+async function scanHolders(key: string, chain: ChainKey, token: string) {
+  const headHex = await chainRpc(chain, "eth_blockNumber", []);
+  const head = typeof headHex === "string" ? Number(headHex) : 0;
+  if (!head) throw new Error("Chain head is unavailable.");
+  const previous = holderCache.get(key);
+  const balances = previous?.balances ?? new Map<string, bigint>();
+  let cursor = previous?.scannedTo ?? 0;
+  if (cursor === 0) cursor = Math.max(0, (await firstHolderBlock(chain, token, head)) - 1);
+  const windows: Array<[number, number]> = [];
+  for (let from = cursor + 1; from <= head; from += HOLDER_SCAN) {
+    windows.push([from, Math.min(head, from + HOLDER_SCAN - 1)]);
+  }
+  for (const [from, to] of windows) {
+    let logs: TransferLog[] | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 6 && !logs; attempt += 1) {
+      try {
+        logs = await transferLogs(chain, token, from, to);
+      } catch (err) {
+        lastError = err;
+        const message = err instanceof Error ? err.message : String(err);
+        if (!/429|too many|timed out|timeout|aborted|exceeds limit/i.test(message)) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
+      }
+    }
+    if (!logs) throw lastError instanceof Error ? lastError : new Error("Holder window failed.");
+    foldTransfers(balances, logs);
+    cursor = to;
+    const done = cursor >= head;
+    const count = positiveHolders(balances);
+    holderCache.set(key, { at: Date.now(), count, scannedTo: cursor, balances, done });
+    if (done) await rememberHolders(chain, token, count);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  const count = positiveHolders(balances);
+  holderCache.set(key, { at: Date.now(), count, scannedTo: head, balances, done: true });
+  await rememberHolders(chain, token, count);
+}
+
+async function rememberHolders(chain: ChainKey, token: string, count: number) {
+  try {
+    const { getSql } = await import("./db");
+    const sql = await getSql();
+    const key = `holders:${chain}:${token.toLowerCase()}`;
+    await sql`
+      insert into protocol_config (key, value) values (${key}, ${String(count)})
+      on conflict (key) do update set value = excluded.value
+    `;
+  } catch (err) {
+    console.error("holder save", err instanceof Error ? err.message : err);
+  }
+}
+
+/** Starts an on-chain holder scan and returns the count once that scan has finished. */
+export function readTokenHolders(chain: ChainKey, token: string): { pending: boolean; holders: number | null } {
+  const key = `${chain}:${token.toLowerCase()}`;
+  const cached = holderCache.get(key);
+  const fresh = Boolean(cached?.done && Date.now() - cached.at < HOLDER_TTL_MS);
+  const failedRecently = Date.now() - (holderFailedAt.get(key) ?? 0) < 20_000;
+  if (!fresh && !failedRecently && !holderFlight.has(key)) {
+    const job = scanHolders(key, chain, token.toLowerCase())
+      .then(() => holderFailedAt.delete(key))
+      .catch((err) => {
+        holderFailedAt.set(key, Date.now());
+        console.error("holder scan", key, err instanceof Error ? err.message : err);
+      })
+      .finally(() => holderFlight.delete(key));
+    holderFlight.set(key, job);
+  }
+  if (cached?.done) return { pending: !fresh, holders: cached.count };
+  return { pending: true, holders: null };
 }
 
 export async function readNativeBalance(chain: ChainKey, address: string): Promise<bigint> {

@@ -14,6 +14,8 @@ export type ChainInfo = {
   colorClass: string;
   explorer: string;
   rpc: string;
+  /** Extra public endpoints. The first failure falls through. Robinhood's own RPC is rate-limited. */
+  rpcs?: readonly string[];
 };
 
 /** Official mainnet params — Robinhood docs + Circle Arc RPC reference. */
@@ -32,6 +34,11 @@ export const CHAINS: Record<ChainKey, ChainInfo> = {
     colorClass: "bg-steam/40 text-stone",
     explorer: "https://robinhoodchain.blockscout.com",
     rpc: "https://rpc.mainnet.chain.robinhood.com",
+    rpcs: [
+      "https://rpc.mainnet.chain.robinhood.com",
+      "https://robinhood-rpc.publicnode.com",
+      "https://robinhood.drpc.org",
+    ],
   },
   arc: {
     key: "arc",
@@ -57,10 +64,11 @@ export function chainById(id: number | null): ChainInfo | null {
 
 export const LISTING_REFERRAL_BPS = 1000;
 export const TRADE_FEE_BPS = 200;
-/** Legacy curves split 70% of the 2% fee to the creator. New launches cap creator tax at 10% of that fee. */
+/** Legacy curves may pay 70% of the 2% fee to the creator. Not the default for new launches. */
 export const CREATOR_SHARE_BPS = 7000;
 export const MAX_CREATOR_TAX_BPS = 1000;
-export const DEFAULT_CREATOR_TAX_BPS = 1000;
+/** 2% of the 2% trade fee. Not 2% of the trade. */
+export const DEFAULT_CREATOR_TAX_BPS = 200;
 export const PROTOCOL_BUYBACK_BPS = 8000;
 export const GRADUATION_ETH = 2;
 export const VIRTUAL_BASE = 30;

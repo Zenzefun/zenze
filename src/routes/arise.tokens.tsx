@@ -21,7 +21,7 @@ function AdminTokens() {
       if (!res.ok) toast.error(res.error);
       else {
         setReview({ id, text: res.text });
-        toast.success("Capy looked.");
+        toast.success("Checked.");
       }
     },
     onError: (err) => toast.error(err.message),
@@ -34,13 +34,13 @@ function AdminTokens() {
         <div>
           <h1 className="text-2xl font-semibold">Tokens</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ledger plus Capy vision — DeepSeek Flash looks at launch art.
+            The ledger, plus a look at the launch art.
           </p>
         </div>
       </div>
       {review ? (
         <div className="stone-card mt-4 rounded-xl p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Capy on this canvas</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">On this art</p>
           <p className="mt-2 text-sm leading-relaxed">{review.text}</p>
         </div>
       ) : null}
@@ -81,7 +81,7 @@ function AdminTokens() {
                     disabled={looking === t.id}
                     onClick={() => look.mutate(t.id)}
                   >
-                    {looking === t.id ? "Looking…" : "Capy look"}
+                    {looking === t.id ? "Looking…" : "Check art"}
                   </Button>
                   <Link className="text-stone underline" to="/token/$id" params={{ id: t.id }}>
                     View

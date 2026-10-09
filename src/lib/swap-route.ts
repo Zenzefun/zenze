@@ -1,9 +1,11 @@
 import { quoteBuy, quoteSell, type CurveState } from "./curve";
+import { TRADE_FEE_BPS, type ChainInfo, type ChainKey } from "./chains";
+import { netDexOut } from "./dex-swap";
 import { isHexAddress } from "./intent";
+import { isZnzfAsset } from "./swap-legs";
 import { quoteAddress, quoteLogoPath, quotesFor, type QuoteAsset } from "./pairs";
 import { hasTradablePool, isProtocolToken } from "./pool";
 import { publishedZnzfCurve } from "./onchain";
-import type { ChainInfo, ChainKey } from "./chains";
 
 /** Minimal token shape the swap catalog needs. Avoid importing server/market into the client. */
 export type SwapToken = {
@@ -19,6 +21,7 @@ export type SwapToken = {
   quote: QuoteAsset;
   curve: CurveState;
   feeBps?: number | null;
+  dex?: { priceNative?: number | null; decimals?: number | null } | null;
 };
 
 /** One selectable leg in the swap widget — a quote asset or a live curve token. */
@@ -40,6 +43,10 @@ export type SwapAsset = {
   quoteSymbol: string;
   feeBps: number;
   curve: CurveState | null;
+  /** Curve pool, or a listed token whose only encoded pool is native ETH. */
+  venue?: "curve" | "dex";
+  /** ETH per token. Set for a listed Uniswap v4 pool. */
+  priceNative?: number;
 };
 
 export type SwapHop = {
@@ -107,6 +114,36 @@ export function assetFromQuote(quote: QuoteAsset, chain: ChainKey, znzfAddress?:
 }
 
 export function assetFromToken(token: SwapToken, znzfAddress?: string | null): SwapAsset | null {
+  const dexPrice = Number(token.dex?.priceNative ?? 0);
+  const onUniswap =
+    !isProtocolToken(token) &&
+    dexPrice > 0 &&
+    isHexAddress(token.contract_address) &&
+    (token.source === "listed" || Boolean(token.graduated));
+  if (onUniswap && token.contract_address) {
+    const decimals = Number(token.dex?.decimals ?? 18);
+    return {
+      graphId: tokenGraphId(token),
+      kind: "token",
+      symbol: token.symbol,
+      name: token.name,
+      image: token.image_url || "",
+      decimals: Number.isFinite(decimals) && decimals > 0 ? decimals : 18,
+      native: false,
+      address: token.contract_address.toLowerCase(),
+      tokenId: token.id,
+      curveAddress: null,
+      quoteGraphId: nativeGraphId(token.chain.key),
+      quoteNative: true,
+      quoteAddress: null,
+      quoteDecimals: 18,
+      quoteSymbol: "ETH",
+      feeBps: TRADE_FEE_BPS,
+      curve: null,
+      venue: "dex",
+      priceNative: dexPrice,
+    };
+  }
   const protocolCurve = isProtocolToken(token) ? publishedZnzfCurve(token.chain.key) : null;
   const curveAddr = isHexAddress(token.curve_address) ? token.curve_address : protocolCurve;
   if (!hasTradablePool({ ...token, curve_address: curveAddr }) || !isHexAddress(curveAddr)) return null;
@@ -137,6 +174,7 @@ export function assetFromToken(token: SwapToken, znzfAddress?: string | null): S
     quoteSymbol: quote.symbol,
     feeBps: token.feeBps ?? token.curve.feeBps ?? 200,
     curve: token.curve,
+    venue: "curve",
   };
 }
 
@@ -169,6 +207,9 @@ export function buildSwapCatalog(input: {
       existing.quoteSymbol = asset.quoteSymbol;
       existing.feeBps = asset.feeBps;
       existing.curve = asset.curve;
+      existing.venue = asset.venue ?? existing.venue;
+      existing.priceNative = asset.priceNative ?? existing.priceNative;
+      existing.decimals = asset.decimals || existing.decimals;
       existing.image = asset.image || existing.image;
       continue;
     }
@@ -177,18 +218,47 @@ export function buildSwapCatalog(input: {
   return out;
 }
 
+/** Quote tokens that have a Uniswap v4 ETH pool can be sold for ETH, then into a curve. $ZNZF stays on its curve. */
+export function attachDexQuotes(
+  catalog: SwapAsset[],
+  markets: { address: string; priceNative: number; decimals?: number }[],
+  chain: ChainKey,
+): SwapAsset[] {
+  const byAddress = new Map(markets.map((market) => [market.address.toLowerCase(), market]));
+  const native = nativeGraphId(chain);
+  return catalog.map((asset) => {
+    if (!asset.address || asset.native || asset.curveAddress || isZnzfAsset(asset)) return asset;
+    const market = byAddress.get(asset.address.toLowerCase());
+    if (!market || !(market.priceNative > 0)) return asset;
+    return {
+      ...asset,
+      venue: "dex" as const,
+      priceNative: market.priceNative,
+      decimals: market.decimals || asset.decimals,
+      quoteGraphId: native,
+      quoteNative: true,
+      quoteAddress: null,
+      quoteDecimals: 18,
+      quoteSymbol: "ETH",
+      feeBps: TRADE_FEE_BPS,
+    };
+  });
+}
+
+function pooled(asset: SwapAsset) {
+  return Boolean(asset.quoteGraphId) && (asset.kind === "token" || asset.venue === "dex");
+}
+
 function neighbors(from: SwapAsset, catalog: SwapAsset[]): { hop: SwapHop; to: SwapAsset }[] {
   const edges: { hop: SwapHop; to: SwapAsset }[] = [];
   const byId = new Map(catalog.map((a) => [a.graphId, a]));
-  if (from.kind === "token" && from.quoteGraphId) {
-    const quote = byId.get(from.quoteGraphId);
+  if (pooled(from)) {
+    const quote = byId.get(from.quoteGraphId!);
     if (quote) edges.push({ hop: { op: "sell", token: from }, to: quote });
   }
   for (const t of catalog) {
-    if (t.kind !== "token" || !t.quoteGraphId) continue;
-    if (t.quoteGraphId === from.graphId && t.graphId !== from.graphId) {
-      edges.push({ hop: { op: "buy", token: t }, to: t });
-    }
+    if (!pooled(t) || t.quoteGraphId !== from.graphId || t.graphId === from.graphId) continue;
+    edges.push({ hop: { op: "buy", token: t }, to: t });
   }
   return edges;
 }
@@ -236,9 +306,12 @@ export function findSwapRoute(pay: SwapAsset, receive: SwapAsset, catalog: SwapA
     }
   }
   const pair = receive.kind === "token" ? receive.quoteSymbol : pay.kind === "token" ? pay.quoteSymbol : receive.symbol;
+  const viaDex = pay.venue === "dex" || receive.venue === "dex";
   return {
     ok: false,
-    error: `No curve route. This pool prices in ${pair}. Pay with ${pair}, or a token paired with ${pair}.`,
+    error: viaDex
+      ? `No route through ETH. This pool prices in ETH. Pay with ETH, or a token that prices in ETH.`
+      : `No curve route. This pool prices in ${pair}. Pay with ${pair}, or a token paired with ${pair}.`,
   };
 }
 
@@ -253,6 +326,15 @@ export function quoteRoute(
   let amt = amountIn;
   const hops: { op: "buy" | "sell"; symbol: string; inAmt: number; outAmt: number; fee: number }[] = [];
   for (const hop of route.hops) {
+    if (hop.token.venue === "dex") {
+      const price = hop.token.priceNative ?? 0;
+      if (!(price > 0)) return { ok: false, error: `${hop.token.symbol} has no pool price.` };
+      const q = netDexOut(hop.op, amt, price, hop.token.feeBps || TRADE_FEE_BPS);
+      if (!(q.out > 0)) return { ok: false, error: "That amount is too small for this pool." };
+      hops.push({ op: hop.op, symbol: hop.token.symbol, inAmt: amt, outAmt: q.out, fee: q.fee });
+      amt = q.out;
+      continue;
+    }
     const curve = hop.token.curve;
     if (!curve) return { ok: false, error: `${hop.token.symbol} has no live curve.` };
     if (hop.op === "buy") {

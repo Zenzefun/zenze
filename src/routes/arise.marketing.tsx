@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,22 +11,24 @@ import { xIntent } from "@/components/share/share-x";
 import { listMarketing, markPostStatus, publishQueuedPost, resolveMayaQueue, runXPulse, saveConfig, xDesk, xRadar } from "@/lib/server/admin";
 import { discardCommunityNote, draftCommunityNote, sendCommunityNote, telegramDesk } from "@/lib/server/telegram";
 import { referralDesk } from "@/lib/server/referral";
-import { generateCopy, rewritePost, runMarketingJob } from "@/lib/server/ai";
+import { rewritePost, runMarketingJob } from "@/lib/server/ai";
 import { timeAgo } from "@/lib/format";
-import { ARC, REPLY_SHAPE, themeFor } from "@/lib/server/maya/calendar";
+import { deskLimits } from "@/lib/desk-limits";
+import { RANK_RULE } from "@/lib/server/maya/rank";
+import { ARC, themeFor } from "@/lib/server/maya/calendar";
 
 export const Route = createFileRoute("/arise/marketing")({ component: AdminMarketing });
 
 function AdminMarketing() {
   const [request, setRequest] = useState("");
-  const [minutesDraft, setMinutesDraft] = useState("");
-  const [capDraft, setCapDraft] = useState({ like: "", follow: "", repost: "", comment: "" });
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<"x" | "drafts" | "room" | "watch">("x");
   const q = useQuery({ queryKey: ["marketing"], queryFn: () => listMarketing(), retry: false });
   const x = useQuery({ queryKey: ["x-desk"], queryFn: () => xDesk(), retry: false });
   const [roomHint, setRoomHint] = useState("");
   const room = useQuery({ queryKey: ["telegram-desk"], queryFn: () => telegramDesk(), retry: false });
   const invites = useQuery({ queryKey: ["referral-desk"], queryFn: () => referralDesk(), retry: false });
-  const radar = useQuery({ queryKey: ["x-radar"], queryFn: () => xRadar(), retry: false });
+  const radar = useQuery({ queryKey: ["x-radar"], queryFn: () => xRadar(), enabled: tab === "watch", retry: false });
   const job = useMutation({
     mutationFn: (publish: boolean) => runMarketingJob({ data: { request, publish } }),
     onSuccess: (res) => {
@@ -40,14 +42,6 @@ function AdminMarketing() {
       q.refetch();
     },
     onError: (err) => toast.error(err.message),
-  });
-  const gen = useMutation({
-    mutationFn: () => generateCopy({ data: { kind: "insight" } }),
-    onSuccess: (res) => {
-      if (!res.ok) toast.error(res.error);
-      else toast.success("Insight drafted.");
-      q.refetch();
-    },
   });
   const mark = useMutation({
     mutationFn: (input: { id: number; status: "queued" | "posted" | "failed" }) => markPostStatus({ data: input }),
@@ -78,7 +72,14 @@ function AdminMarketing() {
     onSuccess: (res, input) => {
       if (!res.ok) toast.error(res.error ?? "Could not save.");
       else if (input.key === "x_auto_on") toast.success(input.value === "true" ? "Autonomous pulse is on." : "Autonomous pulse paused.");
-      else if (input.key.startsWith("x_daily_")) toast.success("Daily cap saved.");
+      else if (input.key.startsWith("x_daily_") || input.key === "x_auto_minutes") {
+        toast.success("Saved.");
+        setEdits((d) => {
+          const next = { ...d };
+          delete next[input.key];
+          return next;
+        });
+      }
       else toast.success("Cadence saved.");
       void x.refetch();
       void room.refetch();
@@ -134,50 +135,116 @@ function AdminMarketing() {
   });
   const posts = q.data ?? [];
   const auto = x.data?.auto;
-  const minutesValue = minutesDraft || String(auto?.minutes ?? 45);
-  const capValue = (key: "like" | "follow" | "repost" | "comment") =>
-    capDraft[key] || String(auto?.quotas?.[key]?.cap ?? "");
+  const limits = deskLimits(auto);
+  function limitValue(key: string, fallback: string) {
+    const typed = edits[key];
+    return typed == null || typed === "" ? fallback : typed;
+  }
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "drafts" || hash === "room" || hash === "watch") setTab(hash);
+  }, []);
+  function openTab(next: typeof tab) {
+    setTab(next);
+    window.history.replaceState(null, "", `#${next}`);
+  }
+  const nextLabel =
+    auto?.on === false
+      ? "Paused"
+      : (auto?.today ?? 0) >= (auto?.originalCap ?? 2)
+        ? "Day's cap"
+        : auto?.nextIn === 0
+          ? "Due now"
+          : auto?.nextIn != null
+            ? `In ${auto.nextIn}m`
+            : "—";
 
   return (
-    <div className="min-w-0">
+    <div className="mx-auto min-w-0 max-w-3xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Capy desk</h1>
+          <h1 className="text-2xl font-semibold">Marketing</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ask Capy to research, write, and publish as <span className="font-medium text-foreground">@ZenzeFun</span>.
-            Maya plans and sends. Originals, mention replies, quotes, and named follows go live. No mill templates.
-            {x.data ? ` ${x.data.ready ? `Live as @${x.data.username ?? x.data.handle}.` : x.data.note}` : ""}
+            {x.data?.ready ? `Live as @${x.data.username ?? x.data.handle}.` : x.data?.note ?? "Checking the X session."}
           </p>
         </div>
-        <Button variant="outline" disabled={gen.isPending} onClick={() => gen.mutate()}>
-          {gen.isPending ? "Capy writing…" : "Draft insight"}
+        <Button size="sm" variant="gold" disabled={pulse.isPending} onClick={() => pulse.mutate()}>
+          {pulse.isPending ? "Researching…" : "Run now"}
         </Button>
       </div>
 
-      <section className="mt-6 rounded-xl border border-border bg-card p-4">
-        <p className="font-medium">Daily posts</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Fourteen days, then it repeats. Today is {themeFor().name}. Maya retells the story. She does not paste it twice, and she does not attach the domain while X hides it. If someone asks where, she answers first: {REPLY_SHAPE}
-        </p>
-        <ol className="mt-3 space-y-2">
-          {ARC.map((day) => (
-            <li key={day.day} className={day.name === themeFor().name ? "rounded-lg border border-gold bg-background px-3 py-2" : "rounded-lg border border-border px-3 py-2"}>
-              <p className="text-xs font-medium text-stone">{day.name}{day.name === themeFor().name ? " · today" : ""}</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm">{day.example}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
+        <div className="bg-card px-3 py-3">
+          <dt className="text-xs text-muted-foreground">Posts today</dt>
+          <dd className="mt-1 text-lg font-semibold tabular-nums">{auto?.today ?? 0}<span className="text-sm font-normal text-muted-foreground"> / {auto?.originalCap ?? 2}</span></dd>
+        </div>
+        <div className="bg-card px-3 py-3">
+          <dt className="text-xs text-muted-foreground">Next post</dt>
+          <dd className="mt-1 text-lg font-semibold">{nextLabel}</dd>
+        </div>
+        <div className="bg-card px-3 py-3">
+          <dt className="text-xs text-muted-foreground">Session</dt>
+          <dd className="mt-1 text-lg font-semibold">{x.data?.ready ? "Live" : "Off"}</dd>
+        </div>
+        <div className="bg-card px-3 py-3">
+          <dt className="text-xs text-muted-foreground">Loop</dt>
+          <dd className="mt-1 text-lg font-semibold">{x.data?.loop?.running ? "Running" : "Idle"}</dd>
+        </div>
+      </dl>
 
+      <div className="mt-5 flex gap-1 border-b border-border" role="tablist">
+        {(
+          [
+            ["x", "X"],
+            ["drafts", "Drafts"],
+            ["room", "Room"],
+            ["watch", "Watch"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? "border-b-2 border-foreground px-3 py-2 text-sm font-medium" : "px-3 py-2 text-sm text-muted-foreground"}
+            onClick={() => openTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "watch" && (
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <p className="font-medium">Today · {themeFor().name}</p>
+        <p className="mt-2 whitespace-pre-wrap text-sm">{themeFor().example}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          The original ends with one link, {themeFor().url}. A reply adds that link only if someone asked where.
+        </p>
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-muted-foreground">The other days</summary>
+          <ol className="mt-3 space-y-2">
+            {ARC.filter((day) => day.name !== themeFor().name).map((day) => (
+              <li key={day.day} className="rounded-lg border border-border px-3 py-2">
+                <p className="text-xs font-medium text-stone">{day.name}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{day.example}</p>
+              </li>
+            ))}
+          </ol>
+        </details>
+      </section>
+      )}
+
+      {tab === "room" && (
+      <>
       <section className="mt-6 space-y-4 rounded-xl border border-border bg-card p-4">
         <div>
           <p className="font-medium">Community room · Telegram</p>
           <div className="mt-1 flex items-start justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              Maya writes and sends. She replies when someone speaks in the room, and she asks a question when the room is quiet.
-              You still see every message here. The bot has to be in the group. If it cannot see messages, turn off group privacy in BotFather.
+              Five notes a day, at 08:00, 12:00, 16:00, 20:00, and 23:00 WIB. A missed morning note goes out once.
               {room.data?.bot ? ` Bot ${room.data.bot}.` : " Add the bot token and chat id in Settings."}
-              {room.data?.room ? ` Room: ${room.data.room}.` : ""}
+              {room.data?.room ? ` ${room.data.room}.` : ""}
               {room.data?.error ? ` ${room.data.error}` : ""}
             </p>
             <Switch
@@ -192,7 +259,7 @@ function AdminMarketing() {
           <Input
             value={roomHint}
             onChange={(e) => setRoomHint(e.target.value)}
-            placeholder="Optional hint. Example: ask what people want to launch."
+            placeholder="Optional hint. Example: the bridge, in one sentence."
           />
           <Button variant="outline" disabled={roomDraft.isPending} onClick={() => roomDraft.mutate()}>
             {roomDraft.isPending ? "Maya is sending…" : "Send to the room"}
@@ -224,16 +291,18 @@ function AdminMarketing() {
         <div>
           <p className="font-medium">Invite links</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            This is the acquisition path besides Telegram. A wallet shares https://zenze.fun/?ref=… and this desk counts real visits, launches, and buys. There is no reward payout.
+            A wallet copies https://zenzen.fun/airdrop?ref=… from the points page. A friend counts after they buy $ZNZF and still hold the minimum. Ten friends at most.
           </p>
         </div>
-        {(invites.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No invite links yet. They appear after a wallet opens the launch page and connects.</p>
+        {invites.isError ? (
+          <p className="text-sm text-destructive">Invite links could not be read. Sign in again with the treasury wallet.</p>
+        ) : (invites.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No invite links yet. They appear after a wallet connects on the points page.</p>
         ) : (
           <ul className="space-y-2 text-sm">
             {(invites.data ?? []).map((row) => (
               <li key={row.code} className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-border px-3 py-2">
-                <span className="font-mono text-xs">?ref={row.code}</span>
+                <span className="break-all font-mono text-xs">https://zenzen.fun/airdrop?ref={row.code}</span>
                 <span className="text-xs text-muted-foreground">
                   {row.visits} arrived · {row.launches} launched · {row.buys} bought
                 </span>
@@ -242,27 +311,118 @@ function AdminMarketing() {
           </ul>
         )}
       </section>
-
-      <section className="mt-6 min-w-0 space-y-4 overflow-hidden rounded-xl border border-border bg-card p-4">
+      </>
+      )}
+      {tab === "x" && (
+      <section className="mt-6 min-w-0 space-y-4 rounded-xl border border-border bg-card p-4">
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="font-medium">Autonomous @ZenzeFun</p>
-            <p className="mt-1 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
-            Maya writes a shaped post (hook, one true line, one complete URL) and sends it.
-            Mentions, replies on our posts, quotes, and named 4–5 follows send themselves.
-            One planned like per pulse. Cold first-touch stays off. Maya is not Capy — no mill dumps, no cut URLs.
+            <p className="font-medium">X</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {x.data?.ready ? `Live as @${x.data.username ?? x.data.handle}.` : x.data?.note ?? "Checking the session."}
+              {" "}The number you save is the number that runs. One like per pulse.
             </p>
+            <p className="mt-2 text-xs text-muted-foreground">{RANK_RULE}</p>
           </div>
-          <Switch
-            checked={auto?.on !== false}
-            onCheckedChange={(v) => save.mutate({ key: "x_auto_on", value: v ? "true" : "false" })}
-            disabled={save.isPending || !x.data}
-          />
+          <div className="flex items-center gap-3">
+            <Button size="sm" variant="gold" disabled={pulse.isPending} onClick={() => pulse.mutate()}>
+              {pulse.isPending ? "Researching…" : "Run now"}
+            </Button>
+            <Switch
+              checked={auto?.on !== false}
+              onCheckedChange={(v) => save.mutate({ key: "x_auto_on", value: v ? "true" : "false" })}
+              disabled={save.isPending || !x.data}
+              aria-label="Autonomous posting"
+            />
+          </div>
         </div>
-        {auto?.bottleneck && (
+        {(pulse.isError || pulse.data) && (
+          <p className={pulse.isError || (pulse.data && !pulse.data.posted && pulse.data.error) ? "text-sm text-destructive" : "text-sm"}>
+            {pulse.isError
+              ? pulse.error.message
+              : pulse.data?.posted
+                ? "Posted."
+                : pulse.data?.error || pulse.data?.skipped || "Nothing was posted."}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {x.data?.loop?.running ? "Loop running." : x.data?.loop?.enabled ? "Loop armed." : "Loop idle."}
+          {" "}
+          Next post:{" "}
+          {auto?.on === false
+            ? "paused"
+            : (auto?.today ?? 0) >= (auto?.originalCap ?? 2)
+              ? "day's cap"
+              : auto?.nextIn === 0
+                ? "due now"
+                : auto?.nextIn != null
+                  ? `in ${auto.nextIn}m`
+                  : "—"}
+        </p>
+        <ul className="divide-y divide-border border-y border-border">
+          {limits.map((row) => {
+            const value = limitValue(row.key, row.value);
+            return (
+              <li key={row.key} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{row.label}</p>
+                  <p className="text-xs text-muted-foreground">Today {row.today}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-10 text-right text-lg font-semibold tabular-nums">{row.value}</span>
+                  <input
+                    id={row.key}
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`${row.label} limit`}
+                    min={row.min}
+                    max={row.max}
+                    value={value}
+                    onChange={(e) => setEdits((d) => ({ ...d, [row.key]: e.target.value.replace(/[^\d]/g, "") }))}
+                    className="h-10 w-20 rounded-md border border-stone bg-background px-2 text-center text-base font-semibold text-ink"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={save.isPending || value.trim() === ""}
+                    onClick={() => save.mutate({ key: row.key, value })}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
+          {(
+            [
+              ["x_auto_replies_on_our_posts", "Reply when someone writes to us", auto?.autoReplies !== false],
+              ["x_auto_follows", "Follow accounts scored 4 or 5", auto?.autoFollows !== false],
+              ["x_auto_quotes", "Send quotes", auto?.autoQuotes !== false],
+            ] as const
+          ).map(([key, label, on]) => (
+            <label key={key} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+              <span>{label}</span>
+              <Switch
+                checked={on}
+                onCheckedChange={(v) => save.mutate({ key, value: v ? "true" : "false" })}
+                disabled={save.isPending || !x.data}
+              />
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Posts use one link, https://zenzen.fun. The old domain is not written.
+        </p>
+        {(auto?.bottleneck || auto?.note) && (
           <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bottleneck</p>
-            <p className="mt-1 break-words [overflow-wrap:anywhere]">{auto.bottleneck}</p>
+            {auto.bottleneck && (
+              <>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bottleneck</p>
+                <p className="mt-1 break-words [overflow-wrap:anywhere]">{auto.bottleneck}</p>
+              </>
+            )}
             {auto.strategy && (
               <p className="mt-2 whitespace-pre-wrap break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
                 {auto.strategy}
@@ -275,126 +435,6 @@ function AdminMarketing() {
             )}
           </div>
         )}
-        <dl className="grid gap-3 text-xs sm:grid-cols-4">
-          <div className="rounded-lg bg-muted/60 px-3 py-2">
-            <dt className="text-muted-foreground">Session</dt>
-            <dd className="mt-0.5 font-medium">{x.data?.ready ? "live" : "not live"}</dd>
-          </div>
-          <div className="rounded-lg bg-muted/60 px-3 py-2">
-            <dt className="text-muted-foreground">Today</dt>
-            <dd className="mt-0.5 font-medium">{auto?.today ?? 0} / 8 originals</dd>
-          </div>
-          <div className="rounded-lg bg-muted/60 px-3 py-2">
-            <dt className="text-muted-foreground">Next original</dt>
-            <dd className="mt-0.5 font-medium">
-              {auto?.on === false ? "paused" : auto?.nextIn != null ? `${auto.nextIn}m` : "—"}
-            </dd>
-          </div>
-          <div className="rounded-lg bg-muted/60 px-3 py-2">
-            <dt className="text-muted-foreground">Loop</dt>
-            <dd className="mt-0.5 font-medium">
-              {x.data?.loop?.running ? "running" : x.data?.loop?.enabled ? "armed" : "preview idle"}
-            </dd>
-          </div>
-        </dl>
-        {auto?.quotas && (
-          <div className="space-y-3">
-            <dl className="grid min-w-0 gap-3 text-xs sm:grid-cols-4">
-              {(
-                [
-                  ["like", "Likes", "x_daily_likes"],
-                  ["follow", "Follows", "x_daily_follows"],
-                  ["repost", "Reposts", "x_daily_reposts"],
-                  ["comment", "Comments", "x_daily_comments"],
-                ] as const
-              ).map(([key, label, configKey]) => {
-                const row = auto.quotas[key];
-                return (
-                  <div key={key} className="min-w-0 overflow-hidden rounded-lg border border-border px-3 py-2">
-                    <dt className="text-muted-foreground">{label} today</dt>
-                    <dd className="mt-0.5 font-medium">
-                      {row.done} / {row.cap}
-                    </dd>
-                    <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full bg-stone"
-                        style={{ width: `${Math.min(100, row.cap ? (row.done / row.cap) * 100 : 0)}%` }}
-                      />
-                    </div>
-                    <Label htmlFor={`cap-${key}`} className="mt-2 block text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Daily cap
-                    </Label>
-                    <Input
-                      id={`cap-${key}`}
-                      type="number"
-                      min={0}
-                      max={80}
-                      className="mt-1 h-8"
-                      value={capValue(key)}
-                      onChange={(e) => setCapDraft((d) => ({ ...d, [key]: e.target.value }))}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 h-7 w-full"
-                      disabled={save.isPending}
-                      onClick={() => save.mutate({ key: configKey, value: capValue(key) })}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                );
-              })}
-            </dl>
-            <p className="text-[11px] text-muted-foreground">
-              Caps are 0–80 per UTC day. Maya still clamps to 8 likes, 24 follows, 12 comments, 6 reposts.
-              Originals, mention replies, quotes, and named follows send themselves. One planned like per pulse.
-            </p>
-          </div>
-        )}
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="x-auto-min">Cadence (minutes)</Label>
-            <Input
-              id="x-auto-min"
-              type="number"
-              min={20}
-              max={180}
-              className="w-28"
-              value={minutesValue}
-              onChange={(e) => setMinutesDraft(e.target.value)}
-            />
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={save.isPending}
-            onClick={() => save.mutate({ key: "x_auto_minutes", value: minutesValue })}
-          >
-            Save cadence
-          </Button>
-          <Button size="sm" variant="gold" disabled={pulse.isPending} onClick={() => pulse.mutate()}>
-            {pulse.isPending ? "Researching…" : "Run pulse now"}
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-4 text-xs">
-          {(
-            [
-              ["x_auto_replies_on_our_posts", "Auto-reply on our posts", auto?.autoReplies !== false],
-              ["x_auto_follows", "Auto-follow scored 4–5 cards", auto?.autoFollows !== false],
-              ["x_auto_quotes", "Auto-send quotes", auto?.autoQuotes !== false],
-            ] as const
-          ).map(([key, label, on]) => (
-            <label key={key} className="inline-flex items-center gap-2">
-              <Switch
-                checked={on}
-                onCheckedChange={(v) => save.mutate({ key, value: v ? "true" : "false" })}
-                disabled={save.isPending || !x.data}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
         {pulse.data?.text && (
           <pre className="max-w-full whitespace-pre-wrap break-words rounded-lg bg-muted/70 p-3 text-sm [overflow-wrap:anywhere]">
             {pulse.data.text}
@@ -463,7 +503,9 @@ function AdminMarketing() {
           </div>
         )}
       </section>
+      )}
 
+      {tab === "drafts" && (
       <form
         className="mt-6 space-y-3 rounded-xl border border-border bg-card p-4"
         onSubmit={(e) => {
@@ -495,13 +537,13 @@ function AdminMarketing() {
           </div>
         )}
       </form>
+      )}
 
-      {radar.data?.posts && radar.data.posts.length > 0 && (
-        <section className="mt-8">
+      {tab === "watch" && radar.data?.posts && radar.data.posts.length > 0 && (
+        <section className="mt-6">
           <h2 className="text-lg font-semibold">River watch</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Live mentions of @{radar.data.handle} and $ZNZF. Maya watches this river plus rotating pad-weather searches.
-            First-touch replies wait in the queue. Questions at us can auto-reply.
+            Mentions of @{radar.data.handle} and $ZNZF. A question can be answered. A cold first message waits.
           </p>
           <ul className="mt-3 space-y-2">
             {radar.data.posts.map((p) => (
@@ -525,6 +567,8 @@ function AdminMarketing() {
         </section>
       )}
 
+      {tab === "drafts" && (
+      <>
       {posts.length === 0 && <p className="mt-6 text-sm text-muted-foreground">No drafts yet. Nothing is invented here.</p>}
       <ul className="mt-6 space-y-3">
         {posts.map((p) => (
@@ -554,7 +598,7 @@ function AdminMarketing() {
                   Publish to @ZenzeFun
                 </Button>
               )}
-              <Button size="sm" variant="outline" disabled={rewrite.isPending} onClick={() => rewrite.mutate(p.id)}>
+              <Button size="sm" variant="outline" disabled={rewrite.isPending || p.status === "posted"} onClick={() => rewrite.mutate(p.id)}>
                 Rewrite
               </Button>
               <Button size="sm" variant="ghost" onClick={() => mark.mutate({ id: p.id, status: "posted" })}>
@@ -575,6 +619,8 @@ function AdminMarketing() {
           </li>
         ))}
       </ul>
+      </>
+      )}
     </div>
   );
 }

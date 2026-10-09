@@ -202,7 +202,7 @@ export function DocsShell({ doc, children }: { doc: DocsDoc; children?: ReactNod
         <aside className="hidden w-56 shrink-0 lg:block">
           <div className="sticky top-20 space-y-4">
             <div>
-              <p className="font-display text-lg font-semibold">Zenze docs</p>
+              <p className="font-display text-lg font-semibold">Zenzen docs</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">{DOCS_VERSION}</p>
             </div>
             <div className="relative">
@@ -215,7 +215,7 @@ export function DocsShell({ doc, children }: { doc: DocsDoc; children?: ReactNod
         <article className="min-w-0 flex-1">
           <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
             <div>
-              <p className="font-display text-lg font-semibold">Zenze docs</p>
+              <p className="font-display text-lg font-semibold">Zenzen docs</p>
               <p className="text-[11px] text-muted-foreground">{DOCS_VERSION}</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
@@ -234,7 +234,7 @@ export function DocsShell({ doc, children }: { doc: DocsDoc; children?: ReactNod
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[min(100%,20rem)]">
-          <SheetTitle className="mb-4">Zenze docs</SheetTitle>
+          <SheetTitle className="mb-4">Zenzen docs</SheetTitle>
           <div className="relative mb-4">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="h-9 pl-8 text-sm" />

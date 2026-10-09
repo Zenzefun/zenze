@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
+import { inviteUrl } from "@/lib/referral";
 import { isHexAddress } from "@/lib/intent";
 import { operatorMiddleware } from "@/lib/operator-middleware";
-import { znzfTradePath } from "@/lib/token-path";
 
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
@@ -18,27 +18,31 @@ function codeFor(wallet: string) {
 
 async function db() {
   const sql = await getSql();
-  await sql`
-    create table if not exists referral_codes (
-      code text primary key,
-      wallet text not null unique,
-      created_at timestamptz not null default now()
-    )
-  `;
-  await sql`
-    create table if not exists referral_events (
-      id bigserial primary key,
-      code text not null,
-      kind text not null,
-      wallet text not null,
-      created_at timestamptz not null default now()
-    )
-  `;
-  await sql`
-    create unique index if not exists referral_visit_once
-      on referral_events (code, wallet)
-      where kind = 'visit'
-  `;
+  try {
+    await sql`
+      create table if not exists referral_codes (
+        code text primary key,
+        wallet text not null unique,
+        created_at timestamptz not null default now()
+      )
+    `;
+    await sql`
+      create table if not exists referral_events (
+        id bigserial primary key,
+        code text not null,
+        kind text not null,
+        wallet text not null,
+        created_at timestamptz not null default now()
+      )
+    `;
+    await sql`
+      create unique index if not exists referral_visit_once
+        on referral_events (code, wallet)
+        where kind = 'visit'
+    `;
+  } catch {
+    // The tables already exist. This role cannot recreate them.
+  }
   return sql;
 }
 
@@ -49,7 +53,7 @@ export const myReferralCode = createServerFn({ method: "POST" })
     if (!isHexAddress(wallet)) return { ok: false as const, error: "Connect a wallet first." };
     const sql = await db();
     const existing = await sql<{ code: string }>`select code from referral_codes where wallet = ${wallet} limit 1`;
-    if (existing[0]) return { ok: true as const, code: existing[0].code, url: `https://zenze.fun${znzfTradePath()}?ref=${existing[0].code}` };
+    if (existing[0]) return { ok: true as const, code: existing[0].code, url: inviteUrl(existing[0].code) };
     let code = codeFor(wallet);
     for (let i = 0; i < 5; i += 1) {
       const clash = await sql<{ wallet: string }>`select wallet from referral_codes where code = ${code} limit 1`;
@@ -62,7 +66,7 @@ export const myReferralCode = createServerFn({ method: "POST" })
     `;
     const row = await sql<{ code: string }>`select code from referral_codes where wallet = ${wallet} limit 1`;
     const saved = row[0]?.code ?? code;
-    return { ok: true as const, code: saved, url: `https://zenze.fun${znzfTradePath()}?ref=${saved}` };
+    return { ok: true as const, code: saved, url: inviteUrl(saved) };
   });
 
 export const recordReferral = createServerFn({ method: "POST" })
@@ -90,16 +94,20 @@ export const referralDesk = createServerFn({ method: "GET" })
   .middleware([operatorMiddleware])
   .handler(async () => {
     const sql = await db();
-    const rows = await sql<{ code: string; wallet: string; visits: number; launches: number; buys: number }>`
-      select c.code, c.wallet,
-             count(e.id) filter (where e.kind = 'visit')::int as visits,
-             count(e.id) filter (where e.kind = 'launch')::int as launches,
-             count(e.id) filter (where e.kind = 'buy')::int as buys
-      from referral_codes c
-      left join referral_events e on e.code = c.code
-      group by c.code, c.wallet
-      order by buys desc, launches desc, visits desc
-      limit 30
-    `;
-    return rows;
+    try {
+      const rows = await sql<{ code: string; wallet: string; visits: number; launches: number; buys: number }>`
+        select c.code, c.wallet,
+               count(e.id) filter (where e.kind = 'visit')::int as visits,
+               count(e.id) filter (where e.kind = 'launch')::int as launches,
+               count(e.id) filter (where e.kind = 'buy')::int as buys
+        from referral_codes c
+        left join referral_events e on e.code = c.code
+        group by c.code, c.wallet
+        order by buys desc, launches desc, visits desc
+        limit 30
+      `;
+      return rows;
+    } catch {
+      return [];
+    }
   });

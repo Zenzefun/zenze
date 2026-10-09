@@ -10,7 +10,7 @@ export function shareUrl(path: string) {
 export function xIntent(text: string, _path: string) {
   const u = new URL("https://x.com/intent/tweet");
   u.searchParams.set("text", neutralizeBareDomain(text));
-  u.searchParams.set("url", "https://linktr.ee/zenzefun");
+  u.searchParams.set("url", shareUrl(_path || "/"));
   return u.toString();
 }
 

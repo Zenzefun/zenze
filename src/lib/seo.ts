@@ -1,11 +1,11 @@
 import { isZnzfRef } from "./token-path";
 
 export const SITE = {
-  name: "Zenze.fun",
-  url: "https://zenze.fun",
-  tagline: "Buy earlier. Pay less.",
+  name: "Zenzen",
+  url: "https://zenzen.fun",
+  tagline: "Launch a token. Trade it back.",
   description:
-    "Buy $ZNZF earlier and you pay less than the next buyer. You can sell it back into the same pool. The trade takes 2%.",
+    "Name a token on Robinhood Chain or Arc, then buy and sell it in the same pool. The rules are in the docs.",
   x: "https://x.com/ZenzeFun",
   handle: "@ZenzeFun",
 };
@@ -13,6 +13,30 @@ export const SITE = {
 /** Bump when share cards or favicons change so X recrawls instead of a cached black card. */
 export const OG_VERSION = "20260924c";
 export const ASSET_VERSION = OG_VERSION;
+/** zenze.fun stays reachable. It does not redirect, and it does not name zenzen.fun as its canonical. */
+const BURNED_HOSTS = new Set(["zenze.fun", "www.zenze.fun"]);
+
+export function requestHost(): string {
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    return window.location.hostname.toLowerCase();
+  }
+  if (!import.meta.env.SSR) return "";
+  try {
+    const { getRequest } = require("@tanstack/react-start/server") as {
+      getRequest: () => { headers: Headers };
+    };
+    const headers = getRequest().headers;
+    const raw = headers.get("x-forwarded-host") || headers.get("host") || "";
+    return raw.split(",")[0]?.trim().replace(/:\d+$/, "").toLowerCase() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function publicSite(): { origin: string; burned: boolean } {
+  if (BURNED_HOSTS.has(requestHost())) return { origin: "https://zenze.fun", burned: true };
+  return { origin: SITE.url, burned: false };
+}
 
 export function cardUrl(id = "home"): string {
   const safe = id.replace(/[^a-z0-9_-]/gi, "").slice(0, 80) || "home";
@@ -88,24 +112,28 @@ export function pageHead(opts: {
   image?: string;
   imageAlt?: string;
 }) {
+  const site = publicSite();
   const stealth = opts.index === false;
+  const hidden = stealth || site.burned;
   const title = opts.title ? pageTitle(opts.title) : pageTitle();
   const description = stealth ? SITE.description : opts.description;
   const image = stealth ? DEFAULT_OG : opts.image || cardUrl(cardIdFromPath(opts.path));
   const imageAlt = opts.imageAlt || `${SITE.name} — ${SITE.tagline}`;
-  const url = stealth ? SITE.url : `${SITE.url}${opts.path === "/" ? "/" : opts.path}`;
+  const origin = site.burned ? site.origin : SITE.url;
+  const url = `${origin}${opts.path === "/" ? "/" : opts.path}`;
+  const shareImage = site.burned ? image.replaceAll(SITE.url, origin) : image;
   const meta: Array<Record<string, string>> = [
     { title: stealth && !opts.title ? SITE.name : title },
     { name: "description", content: description },
-    { name: "robots", content: stealth ? "noindex,nofollow,noarchive,nosnippet,noimageindex" : "index,follow" },
+    { name: "robots", content: hidden ? "noindex,nofollow,noarchive,nosnippet,noimageindex" : "index,follow" },
     { property: "og:type", content: "website" },
     { property: "og:locale", content: "en_US" },
     { property: "og:site_name", content: SITE.name },
     { property: "og:title", content: stealth ? SITE.name : title },
     { property: "og:description", content: description },
     { property: "og:url", content: url },
-    { property: "og:image", content: image },
-    { property: "og:image:secure_url", content: image },
+    { property: "og:image", content: shareImage },
+    { property: "og:image:secure_url", content: shareImage },
     { property: "og:image:alt", content: imageAlt },
     { property: "og:image:width", content: "1200" },
     { property: "og:image:height", content: "630" },
@@ -115,13 +143,13 @@ export function pageHead(opts: {
     { name: "twitter:creator", content: SITE.handle },
     { name: "twitter:title", content: stealth ? SITE.name : title },
     { name: "twitter:description", content: description },
-    { name: "twitter:image", content: image },
+    { name: "twitter:image", content: shareImage },
     { name: "twitter:image:alt", content: imageAlt },
   ];
   return {
     meta,
-    links: stealth ? [] : [{ rel: "canonical", href: url }],
-    scripts: stealth
+    links: hidden ? [] : [{ rel: "canonical", href: url }],
+    scripts: hidden
       ? []
       : [
           {

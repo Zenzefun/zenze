@@ -52,7 +52,7 @@ Maksimal 160 karakter, termasuk tautan. Satu tautan. Tanpa baris baru dan tanpa 
 
 Untuk kanal berbahasa Inggris.
 
-1. Launch a token on Zenze. You pick the pair and who gets the creator share. https://zenze.fun/launch
+1. Launch a token on Zenze. You pick the pair and who receives your fee slice. https://zenze.fun/launch
 2. New tokens trade on a public curve. Open a pool and decide for yourself. https://zenze.fun/explore
 3. Zenze is where you launch a token and trade it. Start at the site. https://zenze.fun/
 
@@ -60,7 +60,7 @@ Untuk kanal berbahasa Inggris.
 
 Hanya untuk kanal berbahasa Indonesia. Jangan dipakai di kanal Inggris.
 
-1. Luncurkan token di Zenze. Kamu pilih pasangan dan siapa yang menerima bagian kreator. https://zenze.fun/launch
+1. Luncurkan token di Zenze. Kamu pilih pasangan dan siapa yang menerima bagian fee-mu. https://zenze.fun/launch
 2. Token baru diperdagangkan di kurva publik. Buka pool, lalu putuskan sendiri. https://zenze.fun/explore
 3. Zenze tempat meluncurkan token dan memperdagangkannya. Mulai di situs. https://zenze.fun/
 

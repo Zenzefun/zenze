@@ -16,10 +16,10 @@ export function sessionMessage(input: {
   chainId: number | null;
 }): string {
   return [
-    "Zenze.fun wants you to sign in.",
+    "Zenzen wants you to sign in.",
     "This proves you own the wallet. It does not send a transaction or spend gas.",
     `Wallet: ${input.wallet.toLowerCase()}`,
-    `URI: https://zenze.fun`,
+    `URI: https://zenzen.fun`,
     `Version: 1`,
     input.chainId != null ? `Chain ID: ${input.chainId}` : null,
     `Nonce: ${input.nonce}`,

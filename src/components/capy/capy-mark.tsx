@@ -6,7 +6,7 @@ export function CapyMark({ className }: { className?: string }) {
   return (
     <SmartImage
       src="/brand/capy-mark-64.png?v=20260924b"
-      alt="Zenze"
+      alt="Zenzen"
       width={36}
       height={36}
       priority
@@ -19,7 +19,7 @@ export function CapyMark({ className }: { className?: string }) {
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn("font-display text-xl font-semibold tracking-tight text-stone", className)}>
-      Zenze<span className="text-gold">.fun</span>
+      Zenzen
     </span>
   );
 }

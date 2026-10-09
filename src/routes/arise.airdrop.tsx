@@ -31,7 +31,11 @@ function AirdropDesk() {
       <div className="max-w-md rounded-2xl border border-border p-5">
         <h1 className="text-xl font-semibold">Drop</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {q.error instanceof Error ? q.error.message : "The desk could not read the drop. Sign in again with the treasury wallet."}
+          {q.error instanceof Error
+            ? q.error.message
+            : q.data && "error" in q.data && typeof q.data.error === "string"
+              ? q.data.error
+              : "The desk could not read the drop. Sign in again with the treasury wallet."}
         </p>
         <Button className="mt-4" variant="gold" type="button" onClick={() => void q.refetch()}>
           Try again
@@ -65,6 +69,9 @@ function DeskBody({
   const setNumber = (key: keyof Omit<FormRules, "spin">, value: string) => {
     setForm((current) => ({ ...current, [key]: Number(value) }));
   };
+  const ready = data.wallets.filter((row) => row.ready);
+  const pointsIn = ready.reduce((sum, row) => sum + row.points, 0);
+  const minHold = data.rules.minHold.toLocaleString("en-US");
   const fields = [
     ["buy", "Buy $ZNZF, points"],
     ["telegram", "Telegram room, points"],
@@ -77,10 +84,10 @@ function DeskBody({
   ] as const;
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <h1 className="text-2xl font-semibold">Drop</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Steps earn points. Opening the switch splits the on-chain balance by those points. One point is one share. Closing it before anyone is paid clears the split, so the next open counts again.
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+        The public page uses this same sum. A wallet counts only after it buys $ZNZF and still holds {minHold}. Share = that wallet's points ÷ these points × today's pool balance. More points make each share smaller.
       </p>
       <ClaimGate
         enabled={data.claimsEnabled}
@@ -90,13 +97,13 @@ function DeskBody({
         onSaved={onSaved}
       />
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Funded" value={`${data.funded} $ZNZF`} />
         <Stat label="Still in the pool" value={`${data.balance} $ZNZF`} />
-        <Stat label="Claimed" value={`${data.claimed} $ZNZF`} />
+        <Stat label="In the split" value={`${ready.length} wallets`} />
+        <Stat label="Points in the split" value={pointsIn.toLocaleString("en-US")} />
         <Stat label="Contract" value={data.pool ? formatAddress(data.pool) : "Not deployed"} />
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Signer {data.signer ? "ready" : "missing"}. Follow check reads a public post. No X API key.
+        Funded {data.funded} · claimed {data.claimed}. Signer {data.signer ? "ready" : "missing"}.
         {data.paused ? " Claims are paused on the contract." : ""}
         {data.owner ? ` Owner ${formatAddress(data.owner)}.` : ""}
       </p>
@@ -156,23 +163,51 @@ function DeskBody({
         </div>
       </form>
 
-      <ul className="mt-6 divide-y divide-border">
-        {data.wallets.length === 0 ? <li className="py-3 text-sm text-muted-foreground">No wallet has bought $ZNZF for this drop yet.</li> : null}
-        {data.wallets.map((row) => (
-          <li key={row.wallet} className="flex flex-wrap items-baseline justify-between gap-2 py-3 text-sm">
-            <span className="font-mono">{formatAddress(row.wallet)}</span>
-            <span className="text-muted-foreground">
-              {row.bought ? "bought" : "no buy"} · held {row.held} · {row.referrals} referrals
-              {row.telegram ? " · room" : ""}
-              {row.x ? " · X" : ""}
-              {row.launched ? " · launch" : ""}
-            </span>
-            <span className="tabular-nums">{row.points} pts · {row.claim} $ZNZF</span>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs text-muted-foreground">
+            <tr>
+              <th className="py-2 pr-3 font-medium">Wallet</th>
+              <th className="py-2 pr-3 font-medium">Holds</th>
+              <th className="py-2 pr-3 font-medium">Points</th>
+              <th className="py-2 pr-3 font-medium">On today's balance</th>
+              <th className="py-2 pr-3 font-medium">Frozen</th>
+              <th className="py-2 font-medium">Done</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.wallets.length === 0 ? (
+              <tr>
+                <td className="py-3 text-muted-foreground" colSpan={6}>No wallet has bought $ZNZF for this drop yet.</td>
+              </tr>
+            ) : null}
+            {data.wallets.map((row) => (
+              <tr key={row.wallet} className="border-t border-border">
+                <td className="py-3 pr-3 font-mono">{formatAddress(row.wallet)}</td>
+                <td className="py-3 pr-3 tabular-nums">{row.held}</td>
+                <td className="py-3 pr-3 tabular-nums">{row.ready ? row.points : "—"}</td>
+                <td className="py-3 pr-3 tabular-nums">{row.ready ? wholeShare(row.points, pointsIn, data.balance) : "—"}</td>
+                <td className="py-3 pr-3 tabular-nums">{data.claimsOpen ? row.claim : "—"}</td>
+                <td className="py-3 text-muted-foreground">
+                  {row.ready ? "In the split" : row.bought ? "Under the hold" : "No buy"}
+                  {row.telegram ? " · room" : ""}
+                  {row.x ? " · X" : ""}
+                  {row.launched ? " · launch" : ""}
+                  {row.referrals ? ` · ${row.referrals} friends` : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
+}
+
+function wholeShare(points: number, total: number, pool: string) {
+  const left = Number(pool.replace(/,/g, "")) || 0;
+  if (points <= 0 || total <= 0 || left <= 0) return "0";
+  return Math.floor((left * points) / total).toLocaleString("en-US");
 }
 
 function toLocalInput(iso: string) {

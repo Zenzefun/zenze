@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { CapyPreloader } from "@/components/capy/capy-preloader";
@@ -8,14 +8,20 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { MaintenanceGate } from "@/components/site/maintenance-gate";
 import { ThemeProvider, useTheme } from "@/components/theme/theme-provider";
 import { AppKitRoot } from "@/components/wallet/appkit-root";
-import { ConnectModal } from "@/components/wallet/connect-modal";
 import { AuthProvider } from "@/lib/auth/provider";
-import { ASSET_VERSION, SITE, jsonLd } from "@/lib/seo";
+import { ASSET_VERSION, SITE, jsonLd, publicSite } from "@/lib/seo";
 import { CHUNK_RECOVERY_BOOT } from "@/lib/chunk-error";
 import { BOOT_CSS, THEME_BOOT } from "@/lib/capy-boot";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
+  headers: () => ({
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Permitted-Cross-Domain-Policies": "none",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+  }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -28,11 +34,11 @@ export const Route = createRootRoute({
     links: [
       { rel: "icon", href: `/brand/capy-mark-64.png?v=${ASSET_VERSION}`, type: "image/png", sizes: "64x64" },
       { rel: "icon", href: `/brand/capy-mark-64.png?v=${ASSET_VERSION}` },
-      { rel: "apple-touch-icon", href: `/brand/capy-mark-64.png?v=${ASSET_VERSION}` },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=20261001a" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "stylesheet", href: appCss },
       { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
-      { rel: "preload", href: `/brand/capy-mark-64.png?v=${ASSET_VERSION}`, as: "image" },
+      { rel: "preload", href: "/brand/capy-mark-512.webp?v=20261001a", as: "image" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -45,6 +51,11 @@ export const Route = createRootRoute({
   notFoundComponent: PublicNotFound,
 });
 
+function RouteProgress() {
+  const pending = useRouterState({ select: (s) => s.status === "pending" });
+  if (!pending) return null;
+  return <div className="route-progress" role="progressbar" aria-label="Loading" />;
+}
 function AppToaster() {
   const { theme } = useTheme();
   return (
@@ -58,6 +69,7 @@ function AppToaster() {
 }
 
 function RootDocument() {
+  const site = publicSite();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -81,16 +93,19 @@ function RootDocument() {
           <style>{`#capy-boot{display:none!important}`}</style>
         </noscript>
         <HeadContent />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        {site.burned ? null : (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        )}
       </head>
       <body>
         <div id="capy-boot" aria-hidden="true" suppressHydrationWarning>
           <div className="capy-boot-frame">
             <span className="capy-boot-skel" />
-            <img src="/brand/capy-mark-64.png?v=20260924b" alt="" width={112} height={112} decoding="sync" suppressHydrationWarning />
+            <img src="/brand/capy-mark-512.webp?v=20261001a" alt="" width={112} height={112} decoding="sync" suppressHydrationWarning />
           </div>
         </div>
         <PreviewHostBridge />
+        <RouteProgress />
         <ThemeProvider>
           <AuthProvider>
             <QueryClientProvider client={queryClient}>
@@ -99,7 +114,6 @@ function RootDocument() {
                 <MaintenanceGate>
                   <Outlet />
                 </MaintenanceGate>
-                <ConnectModal />
               </AppKitRoot>
               <AppToaster />
             </QueryClientProvider>

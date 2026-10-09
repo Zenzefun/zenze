@@ -18,7 +18,7 @@ export function MaintenancePage({ message }: { message?: string }) {
         />
         <h1 className="mt-6 font-display text-3xl font-semibold stagger-item">The onsen is closed</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground stagger-item" style={{ animationDelay: "80ms" }}>
-          {message?.trim() || "Capy is soaking. Zenze.fun will open again when the water settles."}
+          {message?.trim() || "Capy is soaking. Zenzen will open again when the water settles."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3 stagger-item" style={{ animationDelay: "160ms" }}>
           <HomeButton />

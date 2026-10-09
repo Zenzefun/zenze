@@ -1,8 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /arise
-Disallow: /admin
-Disallow: /login
-Disallow: /api/
-
-Sitemap: https://zenze.fun/sitemap.xml
