@@ -7,7 +7,7 @@ function stamp(response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
   headers.set("x-content-type-options", "nosniff");
-  headers.set("x-frame-options", "SAMEORIGIN");
+  headers.set("x-frame-options", "DENY");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   headers.set("cross-origin-opener-policy", "same-origin-allow-popups");
@@ -23,6 +23,12 @@ export default async function securityHeaders(
   _event: SecurityEvent,
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
-  const result = await next();
-  return result instanceof Response ? stamp(result) : result;
+  try {
+    const result = await next();
+    return result instanceof Response ? stamp(result) : result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/aborted|ECONNRESET/i.test(message)) return new Response(null, { status: 499 });
+    throw err;
+  }
 }
