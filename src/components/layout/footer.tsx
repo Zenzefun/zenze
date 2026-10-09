@@ -53,7 +53,7 @@ export function Footer() {
         </p>
       </div>
       <div className="border-t border-border/70 py-4 text-center text-xs text-muted-foreground">
-        © 2026 Zenzen · $ZNZF · v2.10.5
+        © 2026 Zenzen · $ZNZF · v2.10.7
       </div>
     </footer>
   );
