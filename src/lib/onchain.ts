@@ -1,7 +1,7 @@
 import published from "./onchain.json";
 
 /** Canonical treasury / deployer. Always on the desk allowlist. */
-export const TREASURY_WALLET = "0x426b74d42607ae5484909dabfd3deb76db480f8e";
+export const TREASURY_WALLET = "0x6878719902a11148815e521fead2d2c9fa81dacc";
 
 /**
  * Drained contracts. The supply was taken. These addresses must never be
