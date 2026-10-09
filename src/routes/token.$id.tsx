@@ -104,7 +104,7 @@ function TokenPage() {
       }),
     enabled: isHexAddress(holderAddress),
     staleTime: 30_000,
-    refetchInterval: (query) => (query.state.data?.holders != null && !query.state.data?.pending ? 60_000 : 2_000),
+    refetchInterval: (query) => (query.state.data?.holders != null && !query.state.data?.pending ? 60_000 : 15_000),
   });
 
   if (q.isPending) {

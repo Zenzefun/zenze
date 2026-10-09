@@ -31,6 +31,7 @@ import { mergeTradeRows } from "@/lib/chart-window";
 import { announceListing } from "@/lib/server/listing-promo";
 import { migrateCurveIfReady } from "@/lib/server/auto-migrate";
 import { activeLiquidityUsd, ethPerToken, ethPoolId, parseDexPool, pickUniswapV4Pool, traderSwap, v4EthPrice, v4SwapCall, NATIVE_ETH, V4_ETH_TIERS, tokenUnits } from "@/lib/dex-swap";
+import { readEarlierWalletSwap, readRecentSwaps, resolveListedPool } from "@/lib/server/dex.server";
 
 export type EnrichedToken = Record<string, any>;
 
@@ -308,7 +309,8 @@ function scheduleTradeRefresh(row, dex) {
 	const now = Date.now();
 	if (now - (tradeRefreshAt.get(key) ?? 0) < 20_000) return;
 	tradeRefreshAt.set(key, now);
-	void readRecentSwaps(dex, row.contract_address)
+	void Promise.resolve()
+		.then(() => readRecentSwaps(dex, row.contract_address))
 		.then(async (live) => {
 			if (!live.length) return;
 			await rememberTrades(await getSql(), row.id, live);

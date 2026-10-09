@@ -5,7 +5,7 @@ interface SecurityEvent {
 
 function stamp(response: Response): Response {
   const headers = new Headers(response.headers);
-  headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
   headers.set("x-content-type-options", "nosniff");
   headers.set("x-frame-options", "DENY");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");

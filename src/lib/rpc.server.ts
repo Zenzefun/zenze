@@ -303,7 +303,8 @@ export async function getLogs(
 
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const HOLDER_TTL_MS = 180_000;
-const HOLDER_SCAN = 200_000;
+const HOLDER_SCAN = 20_000;
+const HOLDER_FAIL_MS = 5 * 60_000;
 
 type HolderSnapshot = {
   at: number;
@@ -330,6 +331,11 @@ async function rawTransferLogs(chain: ChainKey, token: string, from: number, to:
   return Array.isArray(result) ? (result as TransferLog[]) : [];
 }
 
+function logsTooWide(message: string, span: number): boolean {
+  if (span <= 2_000) return false;
+  return /400|bad request|exceeds limit|more than|query returned|timed out|timeout|aborted/i.test(message);
+}
+
 async function transferLogs(chain: ChainKey, token: string, from: number, to: number, attempt = 0): Promise<TransferLog[]> {
   if (to < from) return [];
   try {
@@ -340,7 +346,7 @@ async function transferLogs(chain: ChainKey, token: string, from: number, to: nu
       await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
       return transferLogs(chain, token, from, to, attempt + 1);
     }
-    if (/exceeds limit|timed out|timeout|aborted/i.test(message) && to > from) {
+    if (logsTooWide(message, to - from) && to > from) {
       const mid = from + Math.floor((to - from) / 2);
       const left = await transferLogs(chain, token, from, mid);
       const right = await transferLogs(chain, token, mid + 1, to);
@@ -362,7 +368,7 @@ async function regionStart(chain: ChainKey, token: string, from: number, to: num
       await new Promise((resolve) => setTimeout(resolve, 400 * (stalls + 1)));
       return regionStart(chain, token, from, to, stalls + 1);
     }
-    if (/exceeds limit|timed out|timeout|aborted/i.test(message)) {
+    if (logsTooWide(message, to - from)) {
       if (to - from <= 10_000) return from;
       const mid = from + Math.floor((to - from) / 2);
       const left = await regionStart(chain, token, from, mid);
@@ -376,7 +382,7 @@ async function regionStart(chain: ChainKey, token: string, from: number, to: num
 /** First block window that contains transfers. Empty history is skipped in big steps. */
 async function firstHolderBlock(chain: ChainKey, token: string, head: number): Promise<number> {
   let start = 1;
-  const step = 4_000_000;
+  const step = 200_000;
   while (start <= head) {
     const end = Math.min(head, start + step - 1);
     const hit = await regionStart(chain, token, start, end);
@@ -456,7 +462,7 @@ export function readTokenHolders(chain: ChainKey, token: string): { pending: boo
   const key = `${chain}:${token.toLowerCase()}`;
   const cached = holderCache.get(key);
   const fresh = Boolean(cached?.done && Date.now() - cached.at < HOLDER_TTL_MS);
-  const failedRecently = Date.now() - (holderFailedAt.get(key) ?? 0) < 20_000;
+  const failedRecently = Date.now() - (holderFailedAt.get(key) ?? 0) < HOLDER_FAIL_MS;
   if (!fresh && !failedRecently && !holderFlight.has(key)) {
     const job = scanHolders(key, chain, token.toLowerCase())
       .then(() => holderFailedAt.delete(key))
