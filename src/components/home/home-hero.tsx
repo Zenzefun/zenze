@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Rocket } from "lucide-react";
+import { ArrowRight, GraduationCap, Rocket, Sparkles, TrendingUp } from "lucide-react";
 import { ZnzfHero } from "@/components/capy/znzf-hero";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,18 +36,19 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
           when the curve fills it graduates to Uniswap.
         </p>
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <Button asChild variant="gold" size="lg" className="rounded-full">
+          <Button asChild variant="gold" size="lg" className="h-14 rounded-full px-7 text-base sm:text-lg">
             <Link to="/launch">
-              <Rocket aria-hidden />
-              Launch a token
+              <Rocket aria-hidden className="size-5" />
+              Launch a token in 60s
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="rounded-full bg-card/70">
+          <Button asChild variant="outline" size="lg" className="h-14 rounded-full bg-card/70 px-6">
             <Link to="/token/$id" params={{ id: znzfLaunchpadId() }}>
               Buy $ZNZF
             </Link>
           </Button>
         </div>
+        <HowItWorks />
         <dl className="mt-6 grid max-w-xl grid-cols-3 gap-3">
           <HeroStat label="Tokens" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
           <HeroStat
@@ -61,6 +62,30 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
         <ZnzfHero />
       </div>
     </section>
+  );
+}
+
+const STEPS = [
+  { icon: Sparkles, title: "Create", detail: "Name, ticker, image" },
+  { icon: TrendingUp, title: "Trade", detail: "The pool opens at launch" },
+  { icon: GraduationCap, title: "Graduate", detail: "Full curve moves to Uniswap" },
+] as const;
+
+/** Create → Trade → Graduate, the whole lifecycle in one line. */
+function HowItWorks() {
+  return (
+    <ol aria-label="How it works" className="mt-5 flex max-w-xl flex-wrap items-center gap-x-2 gap-y-2 text-sm">
+      {STEPS.map((step, i) => (
+        <li key={step.title} className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/80 px-3 py-1.5">
+            <step.icon className="size-4 text-gold" aria-hidden />
+            <span className="font-medium">{step.title}</span>
+            <span className="hidden text-muted-foreground sm:inline">· {step.detail}</span>
+          </span>
+          {i < STEPS.length - 1 ? <ArrowRight className="size-4 text-muted-foreground" aria-hidden /> : null}
+        </li>
+      ))}
+    </ol>
   );
 }
 

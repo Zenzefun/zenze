@@ -1,4 +1,4 @@
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, Rocket } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChainMark } from "@/components/chains/chain-mark";
@@ -225,5 +225,43 @@ function TokenRow({ token }: { token: EnrichedToken }) {
     <Link to="/token/$id" params={{ id: tokenRouteId(token) }} className={className}>
       {body}
     </Link>
+  );
+}
+
+/** Newest launches as a scrolling strip (same `listTokens` data from market.ts the board uses). */
+export function RecentLaunches({ tokens, className, limit = 12 }: { tokens: EnrichedToken[]; className?: string; limit?: number }) {
+  const recent = [...tokens]
+    .filter((t) => tokenBoardKind(t) !== "protocol" && laneOf(t) !== "listed")
+    .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+    .slice(0, limit);
+  if (recent.length === 0) return null;
+  const items = (dup: boolean) =>
+    recent.map((token) => (
+      <li key={`${dup ? "dup-" : ""}${token.id}`} aria-hidden={dup || undefined} className="shrink-0">
+        <Link
+          to="/token/$id"
+          params={{ id: tokenRouteId(token as never) }}
+          tabIndex={dup ? -1 : undefined}
+          className="flex items-center gap-1.5 rounded-full px-1 text-xs whitespace-nowrap hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <TokenImage src={token.image_url} alt="" size={20} seed={token.id} className="size-5" />
+          <span className="font-medium">${token.symbol}</span>
+          <span className="text-muted-foreground">{age(token.created_at)}</span>
+        </Link>
+      </li>
+    ));
+  return (
+    <section aria-label="Recent launches" className={cn("stone-card flex min-w-0 items-center gap-3 overflow-hidden rounded-full py-2 pr-2 pl-3", className)}>
+      <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-stone">
+        <Rocket className="size-3.5 text-gold" aria-hidden />
+        New
+      </span>
+      <div className="ticker-mask min-w-0 flex-1 overflow-hidden">
+        <ul className={cn("flex w-max gap-5 pr-5", recent.length > 3 && "ticker-track")}>
+          {items(false)}
+          {recent.length > 3 ? items(true) : null}
+        </ul>
+      </div>
+    </section>
   );
 }

@@ -23,3 +23,10 @@ export function pickAboutToGraduate(tokens: EnrichedToken[]): EnrichedToken | nu
     (a, b) => (b.progress ?? 0) - (a.progress ?? 0) || +new Date(b.created_at) - +new Date(a.created_at),
   )[0];
 }
+
+/** Newest curve token (protocol pool excluded), for the Featured slot when nothing is close to graduating. */
+export function pickNewestCurve(tokens: EnrichedToken[]): EnrichedToken | null {
+  const curve = tokens.filter((t) => tokenBoardKind(t) === "curve" && !isZnzfRef(t.id) && (t.progress ?? 0) < 100);
+  if (curve.length === 0) return null;
+  return [...curve].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))[0];
+}

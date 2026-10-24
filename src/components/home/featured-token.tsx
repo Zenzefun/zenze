@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Star } from "lucide-react";
 import { ChainMark } from "@/components/chains/chain-mark";
 import { TokenImage } from "@/components/media/smart-image";
 import { formatUsdCompact } from "@/lib/format";
@@ -8,13 +8,30 @@ import { curveStage } from "@/lib/token-stage";
 import { cn } from "@/lib/utils";
 import type { EnrichedToken } from "@/lib/server/market";
 
-export function FeaturedToken({ token, className }: { token: EnrichedToken; className?: string }) {
+export type FeaturedReason = "graduating" | "quest" | "new";
+
+const REASON_LABEL: Record<FeaturedReason, string> = {
+  graduating: "About to graduate",
+  quest: "Featured · Creator Quest",
+  new: "Featured · New launch",
+};
+
+export function FeaturedToken({
+  token,
+  className,
+  reason = "graduating",
+}: {
+  token: EnrichedToken;
+  className?: string;
+  reason?: FeaturedReason;
+}) {
+  const Icon = reason === "graduating" ? GraduationCap : Star;
   const stage = curveStage(token);
   const fresh = stage.progress < 1;
   return (
     <Link
       to="/token/$id"
-      params={{ id: tokenRouteId(token) }}
+      params={{ id: tokenRouteId(token as never) }}
       className={cn(
         "stone-card group flex min-w-0 flex-col gap-3 rounded-2xl p-4 transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:gap-5 sm:p-5",
         className,
@@ -24,8 +41,8 @@ export function FeaturedToken({ token, className }: { token: EnrichedToken; clas
         <TokenImage src={token.image_url} alt="" size={56} seed={token.id} className="size-14 shrink-0" />
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-gold uppercase">
-            <GraduationCap className="size-4" aria-hidden />
-            About to graduate
+            <Icon className="size-4" aria-hidden />
+            {REASON_LABEL[reason]}
           </p>
           <p className="truncate text-lg font-semibold">
             {token.name} <span className="text-muted-foreground">${token.symbol}</span>
