@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Check, ChevronDown, Fuel, Plus, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { parseUnits } from "viem";
@@ -16,9 +16,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CHAINS, DEFAULT_CREATOR_TAX_BPS, TRADE_FEE_BPS, type ChainKey } from "@/lib/chains";
 import { curveBuyCalldata, erc20ApproveCalldata, launchCalldata, setMigratorCalldata } from "@/lib/contracts";
-import { InviteLink } from "@/components/share/invite-link";
 import { storedRef } from "@/lib/referral";
-import { recordReferral } from "@/lib/server/referral";
+import { myReferralCode, recordReferral } from "@/lib/server/referral";
+import { draftLaunchDescription, launchAssistReady } from "@/lib/server/ai";
+import { defaultTokenArt } from "@/lib/default-art";
 import { quoteBuy, quoteBuyWithSnipe } from "@/lib/curve";
 import { boundCreatorTaxDraft, clampCreatorTaxBps, commitCreatorTaxDraft, formatFeePct, LAUNCH_SNIPE_START_BPS, MAX_CREATOR_TAX_PCT } from "@/lib/fee-split";
 import { NATIVE_ETH, poolFeeLabel } from "@/lib/dex-swap";
@@ -85,7 +86,6 @@ function Launch() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats() });
   const cfg = useQuery({ queryKey: ["public-config"], queryFn: () => publicConfig(), initialData: publishedConfig() });
   const wallet = useWallet();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [description, setDescription] = useState("");
@@ -101,6 +101,18 @@ function Launch() {
   const [creatorTaxPct, setCreatorTaxPct] = useState(String(DEFAULT_CREATOR_TAX_BPS / 100));
   const [snipeExempt, setSnipeExempt] = useState<string[]>([""]);
   const fees = useQuery({ queryKey: ["fee-quote", chain], queryFn: () => feeQuote({ data: { chain } }) });
+  const assist = useQuery({ queryKey: ["launch-assist"], queryFn: () => launchAssistReady(), staleTime: 300_000, retry: false });
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [launched, setLaunched] = useState<{ id: string; symbol: string; name: string } | null>(null);
+  const draft = useMutation({
+    mutationFn: async () => {
+      const res = await draftLaunchDescription({ data: { name, symbol, hint: description } });
+      if (!res.ok) throw new Error(res.error);
+      return res.text;
+    },
+    onSuccess: (text) => setDescription(text),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "That draft is not available right now."),
+  });
 
   const factory = cfg.data?.[factoryKey(chain)];
   const znzf = cfg.data?.[znzfKey(chain)];
@@ -135,11 +147,18 @@ function Launch() {
   const buyer = (wallet.address || "").toLowerCase();
   const buyerExempt = Boolean(buyer) && snipeExempt.some((addr) => addr.trim().toLowerCase() === buyer);
 
+  const onChain = wallet.connected && wallet.chainId === CHAINS[chain].id;
+  const needNative = fees.data ? Number(fees.data.launchNative) * 1.2 + (quoteAsset.native && devAmt > 0 ? devAmt : 0) : 0;
+  const lowGas = onChain && needNative > 0 && Number(wallet.native) < needNative;
+  const step1Ok = parseTokenMeta(name, symbol).ok;
+  const step2Ok = description.trim().length > 0;
+
   const mut = useMutation({
     mutationFn: async () => {
       const meta = parseTokenMeta(name, symbol);
       if (!meta.ok) throw new Error(meta.error);
-      if (!isTokenArt(imageUrl)) throw new Error("Upload a token image first.");
+      const artInput = isTokenArt(imageUrl) ? imageUrl : defaultTokenArt(meta.symbol, meta.name);
+      if (!isTokenArt(artInput)) throw new Error("Upload a token image first.");
       if (!factoryLive) throw new Error("Launch is not open on this chain right now.");
       if (creatorWallet.trim() && !isHexAddress(creatorWallet.trim())) {
         throw new Error("Creator wallet must be a real address, or leave it blank.");
@@ -150,7 +169,7 @@ function Launch() {
       }
       if (!wallet.connected || !wallet.address) await wallet.connect();
       if (wallet.chainId !== CHAINS[chain].id) await wallet.switchChain(chain);
-      const pinned = await pinLaunchArt({ data: { imageUrl } });
+      const pinned = await pinLaunchArt({ data: { imageUrl: artInput } });
       if (!pinned.ok) throw new Error(pinned.error);
       const art = pinned.url;
       const quoteFees = fees.data ?? (await feeQuote({ data: { chain } }));
@@ -262,10 +281,18 @@ function Launch() {
       const from = wallet.address;
       if (code && from) void recordReferral({ data: { code, kind: "launch", wallet: from } });
       toast.success("Token launched. You are the recorded creator.");
-      navigate({ to: "/token/$id", params: { id: token.id } });
+      setLaunched({ id: token.id, symbol: cleanTokenSymbol(symbol), name: name.trim() });
     },
     onError: (err) => toast.error(publicWalletError(err)),
   });
+
+  if (launched) {
+    return (
+      <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
+        <LaunchDone token={launched} wallet={wallet.address} />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
@@ -273,88 +300,141 @@ function Launch() {
         <div>
           <h1 className="text-3xl font-semibold">Create a token</h1>
           <p className="mt-2 text-muted-foreground">
-            Name it, pick the pair, and launch.{" "}
+            Three steps.{" "}
             <Link to="/docs" className="font-medium text-stone underline-offset-2 hover:underline">
               Fee rules
             </Link>{" "}
             are in the docs.
           </p>
-          <div className="mt-4">
-            <InviteLink />
-          </div>
+          <ol className="mt-6 grid grid-cols-3 gap-2 text-xs" aria-label="Launch steps">
+            {(["Name", "Describe", "Deploy"] as const).map((label, i) => {
+              const n = (i + 1) as 1 | 2 | 3;
+              const done = n < step;
+              const reachable = n === 1 || (n === 2 && step1Ok) || (n === 3 && step1Ok && step2Ok);
+              return (
+                <li key={label}>
+                  <button
+                    type="button"
+                    disabled={!reachable}
+                    onClick={() => setStep(n)}
+                    aria-current={n === step ? "step" : undefined}
+                    className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-2 font-medium transition-colors ${n === step ? "border-gold bg-card text-foreground" : "border-border text-muted-foreground"} disabled:opacity-50`}
+                  >
+                    {done ? <Check className="size-3.5" /> : <span>{n}.</span>} {label}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
           {!factoryLive && (
             <p className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm">
               Launch is not open on {CHAINS[chain].name} right now. Try the other network.
             </p>
           )}
           <form
-            className="mt-8 space-y-5"
+            className="mt-6 space-y-5"
             onSubmit={(e) => {
               e.preventDefault();
+              if (step === 1) {
+                if (step1Ok) setStep(2);
+                else {
+                  const meta = parseTokenMeta(name, symbol);
+                  toast.error(meta.ok ? "Add a name and a ticker." : meta.error);
+                }
+                return;
+              }
+              if (step === 2) {
+                if (step2Ok) setStep(3);
+                return;
+              }
               mut.mutate();
             }}
           >
-            <ArtPicker value={imageUrl} onChange={setImageUrl} size="hero" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" required minLength={2} maxLength={32} value={name} onChange={(e) => setName(e.target.value)} placeholder="Zenze" />
-                <p className="text-xs text-muted-foreground">Written on-chain as the ERC-20 name. Cannot be Unnamed Token.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="symbol">Ticker</Label>
-                <Input id="symbol" required maxLength={8} value={symbol} onChange={(e) => setSymbol(cleanTokenSymbol(e.target.value).slice(0, 8))} placeholder="TICKER" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="desc">Description</Label>
-              <Textarea id="desc" required maxLength={280} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this pool for?" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="x">X</Label>
-              <Input id="x" value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" />
-              <p className="text-xs text-muted-foreground">Shown on the token page. Website and Telegram sit in Advanced.</p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Chain</Label>
-                <ChainSelect value={chain} onChange={changeChain} />
-              </div>
-              <div className="space-y-2">
-                <Label>Paired asset</Label>
-                <PairSelect chain={chain} value={quote} onChange={setQuote} symbol={symbol || "TOKEN"} />
-                <QuotePool chain={chain} quote={quote} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="devbuy">Developer buy</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="devbuy"
-                  inputMode="decimal"
-                  value={devBuy}
-                  onChange={(e) => setDevBuy(e.target.value)}
-                  placeholder="0"
-                />
-                <span className="inline-flex h-11 shrink-0 items-center rounded-md border border-border bg-card px-3 text-sm font-medium">
-                  {quoteAsset.symbol}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Optional buy right after deploy. Leave 0 to skip. The estimate uses only the 2% fee.
-                {devOut > 0
-                  ? buyerExempt
-                    ? ` This wallet is exempt, so that is about ${formatCompact(devOut)} ${symbol || "TOKEN"}.`
-                    : ` About ${formatCompact(devOut)} ${symbol || "TOKEN"} if this wallet is exempt or the buy confirms after 3 seconds. At the launch timestamp, a 99% buy tax stays in the pool and the fill is about ${formatCompact(devOutSniped)}. That tax is not paid to you. List this wallet under exemptions if you want the larger fill.`
-                  : ""}
-              </p>
-            </div>
-            <details className="group rounded-xl border border-border">
-              <summary className="flex h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-medium">
-                Advanced
-                <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="space-y-5 border-t border-border p-4">
+            {step === 1 && (
+              <>
+                <ArtPicker value={imageUrl} onChange={setImageUrl} size="hero" />
+                <p className="text-xs text-muted-foreground">Optional. Skip it and the token gets a clean default image with its ticker.</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input id="name" required minLength={2} maxLength={32} value={name} onChange={(e) => setName(e.target.value)} placeholder="Zenze" />
+                    <p className="text-xs text-muted-foreground">Written on-chain as the ERC-20 name.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="symbol">Ticker</Label>
+                    <Input id="symbol" required maxLength={8} value={symbol} onChange={(e) => setSymbol(cleanTokenSymbol(e.target.value).slice(0, 8))} placeholder="TICKER" />
+                  </div>
+                </div>
+                <Button type="submit" variant="gold" className="w-full" disabled={!step1Ok}>
+                  Next: describe it
+                </Button>
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="desc">Description</Label>
+                    {assist.data?.text && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => draft.mutate()} disabled={draft.isPending}>
+                        <Sparkles className="size-4" />
+                        {draft.isPending ? "Writing…" : "Generate"}
+                      </Button>
+                    )}
+                  </div>
+                  <Textarea id="desc" required maxLength={280} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this token about?" />
+                  {assist.data?.text && <p className="text-xs text-muted-foreground">Generate writes a draft from the name and ticker. Edit it before you deploy.</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="x">X</Label>
+                  <Input id="x" value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" />
+                  <p className="text-xs text-muted-foreground">Optional. Website and Telegram sit in Advanced.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
+                  <Button type="submit" variant="gold" className="flex-1" disabled={!step2Ok}>
+                    Next: deploy
+                  </Button>
+                </div>
+              </>
+            )}
+            {step === 3 && (
+              <>
+                <div className="space-y-2">
+                  <Label>Chain</Label>
+                  <ChainSelect value={chain} onChange={changeChain} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="devbuy">Developer buy</Label>
+                  <div className="flex gap-2">
+                    <Input id="devbuy" inputMode="decimal" value={devBuy} onChange={(e) => setDevBuy(e.target.value)} placeholder="0" />
+                    <span className="inline-flex h-11 shrink-0 items-center rounded-md border border-border bg-card px-3 text-sm font-medium">
+                      {quoteAsset.symbol}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Optional buy right after deploy. Leave 0 to skip. The estimate uses only the 2% fee.
+                    {devOut > 0
+                      ? buyerExempt
+                        ? ` This wallet is exempt, so that is about ${formatCompact(devOut)} ${symbol || "TOKEN"}.`
+                        : ` About ${formatCompact(devOut)} ${symbol || "TOKEN"} if exempt or after 3s; about ${formatCompact(devOutSniped)} at the launch second (anti-snipe tax). Exempt your wallet in Advanced for the larger fill.`
+                      : ""}
+                  </p>
+                </div>
+                <details className="group rounded-xl border border-border">
+                  <summary className="flex h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-medium">
+                    Advanced
+                    <span className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                      {formatFeePct(shareOfFeePct)}% creator · {quoteAsset.symbol} pair
+                      <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                    </span>
+                  </summary>
+                  <div className="space-y-5 border-t border-border p-4">
+                    <div className="space-y-2">
+                      <Label>Paired asset</Label>
+                      <PairSelect chain={chain} value={quote} onChange={setQuote} symbol={symbol || "TOKEN"} />
+                      <QuotePool chain={chain} quote={quote} />
+                    </div>
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Holder fee sharing</p>
@@ -425,7 +505,8 @@ function Launch() {
                 <div className="space-y-2">
                   <Label>Launch buy-tax exemptions</Label>
                   <p className="text-xs text-muted-foreground">
-                    Buys only, for 3 seconds after the launch timestamp. The tax starts at 99% and falls in a straight line to 0% (66% after 1s, 33% after 2s). Sells are not taxed. The tax stays in the pool as liquidity. It is not paid to you. Your wallet is not exempt unless you list it. Up to 8 addresses. Locked at launch.
+                    Buys in the first 3s pay a 99%→0% tax that stays in the pool; listed wallets (up to 8) skip it.{" "}
+                    <Link to="/docs" className="underline-offset-2 hover:underline">Details</Link>
                   </p>
                   <div className="space-y-2">
                     {snipeExempt.map((addr, i) => (
@@ -493,20 +574,33 @@ function Launch() {
                   <Label htmlFor="tg">Telegram</Label>
                   <Input id="tg" value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="t.me/…" />
                 </div>
-              </div>
-            </details>
-            <p className="text-xs text-muted-foreground">
-              {fees.data
-                ? `Deploy sends ${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol} with this transaction${fees.data.legacyFactory ? " (the factory minimum, when that is above the desk quote)" : ` (about $${Number(fees.data.launchUsd).toFixed(2)} launch take)`}. Network gas is extra. This is not the 2% trade fee.`
-                : "Deploy pays the launch take (default $0.50 in the gas token) plus network gas. That is not the 2% trade fee."}
-            </p>
-            <Button type="submit" variant="gold" className="w-full" disabled={mut.isPending || !factoryLive}>
-              {mut.isPending
-                ? "Waiting on the wallet…"
-                : wallet.connected
-                  ? `Deploy ${pairLabel(symbol || "TOKEN", quoteAsset, " ")}`
-                  : "Connect wallet to launch"}
-            </Button>
+                  </div>
+                </details>
+                {lowGas && (
+                  <p className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+                    <span>Your wallet looks low on {fees.data?.nativeSymbol ?? "gas"} for this deploy.</span>
+                    <Link to="/fund" className="inline-flex shrink-0 items-center gap-1 font-medium text-gold underline-offset-2 hover:underline">
+                      <Fuel className="size-4" /> Get gas
+                    </Link>
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {fees.data
+                    ? `Deploy sends ${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol} with this transaction${fees.data.legacyFactory ? " (the factory minimum, when that is above the desk quote)" : ` (about $${Number(fees.data.launchUsd).toFixed(2)} launch take)`}. Network gas is extra. This is not the 2% trade fee.`
+                    : "Deploy pays the launch take (default $0.50 in the gas token) plus network gas. That is not the 2% trade fee."}
+                </p>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setStep(2)} disabled={mut.isPending}>Back</Button>
+                  <Button type="submit" variant="gold" className="flex-1" disabled={mut.isPending || !factoryLive}>
+                    {mut.isPending
+                      ? "Waiting on the wallet…"
+                      : wallet.connected
+                        ? `Deploy ${pairLabel(symbol || "TOKEN", quoteAsset, " ")}`
+                        : "Connect wallet to launch"}
+                  </Button>
+                </div>
+              </>
+            )}
           </form>
         </div>
         <aside className="stone-card h-fit rounded-xl p-5">
@@ -515,7 +609,7 @@ function Launch() {
             <SmartImage src={imageUrl} alt="" width={512} height={512} className="mt-3 mx-auto aspect-square w-full max-w-[280px]" rounded="full" />
           ) : (
             <div className="mt-3 mx-auto grid aspect-square w-full max-w-[280px] place-items-center rounded-full border border-dashed border-border text-sm text-muted-foreground">
-              Upload art to preview
+              A default image is used if you skip this
             </div>
           )}
           <p className="mt-3 font-display text-2xl">{name.trim() || "Your token"}</p>
@@ -536,6 +630,56 @@ function Launch() {
         </aside>
       </div>
     </AppShell>
+  );
+}
+
+function LaunchDone({ token, wallet }: { token: { id: string; symbol: string; name: string }; wallet: string | null }) {
+  const ref = useQuery({
+    queryKey: ["referral-code", wallet],
+    queryFn: () => myReferralCode({ data: { wallet: wallet ?? "" } }),
+    enabled: Boolean(wallet),
+  });
+  const refUrl = ref.data && ref.data.ok ? ref.data.url : "";
+  const tokenUrl = `https://zenzen.fun/token/${encodeURIComponent(token.id)}`;
+  const text = `I just launched $${token.symbol} on @ZenzeFun. Come trade it:`;
+  const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tokenUrl)}`;
+  return (
+    <div className="mx-auto max-w-xl px-4 py-14 text-center">
+      <p className="mx-auto grid size-12 place-items-center rounded-full bg-gold/15 text-gold"><Check className="size-6" /></p>
+      <h1 className="mt-4 text-3xl font-semibold">${token.symbol} is live</h1>
+      <p className="mt-2 text-muted-foreground">Get your first buyers. Three real buyers completes the Creator Quest.</p>
+      <div className="mt-8 grid gap-3">
+        <Button asChild variant="gold" className="h-12">
+          <a href={xUrl} target="_blank" rel="noopener noreferrer">Share on X</a>
+        </Button>
+        <Button asChild variant="outline" className="h-12">
+          <Link to="/token/$id" params={{ id: token.id }}>Open the token page</Link>
+        </Button>
+      </div>
+      <div className="mt-8 rounded-xl border border-border bg-card p-4 text-left">
+        <p className="text-sm font-medium">Your referral link</p>
+        {refUrl ? (
+          <div className="mt-2 flex gap-2">
+            <Input readOnly value={refUrl} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void navigator.clipboard.writeText(refUrl);
+                toast.success("Referral link copied.");
+              }}
+            >
+              Copy
+            </Button>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-muted-foreground">{wallet ? "Loading your link…" : "Connect a wallet to get your link."}</p>
+        )}
+      </div>
+      <p className="mt-6 text-sm">
+        <Link to="/airdrop" className="font-medium underline-offset-2 hover:underline">Track the Creator Quest →</Link>
+      </p>
+    </div>
   );
 }
 

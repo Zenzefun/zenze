@@ -373,3 +373,41 @@ BODY: <120-180 words. What should change, why the facts support it, and a measur
     const body = (bodyMatch?.[1] ?? text).trim().slice(0, 4000);
     return { ok: true as const, title, body, provider: result.provider };
   });
+
+/** True only when a text provider key is already set on the desk. Never returns the key. */
+export const launchAssistReady = createServerFn({ method: "GET" }).handler(async () => {
+  const deepseek = await configValue("deepseek_api_key");
+  const xai = await configValue("xai_api_key");
+  return { text: Boolean(deepseek || xai), image: false };
+});
+
+const draftHits: number[] = [];
+function draftAllowed() {
+  const now = Date.now();
+  while (draftHits.length && now - draftHits[0]! > 60 * 60_000) draftHits.shift();
+  if (draftHits.length >= 60) return false;
+  draftHits.push(now);
+  return true;
+}
+
+/** One short token description from the name and ticker. Uses the existing provider only. */
+export const draftLaunchDescription = createServerFn({ method: "POST" })
+  .validator((input: { name: string; symbol: string; hint?: string }) => ({
+    name: String(input?.name ?? "").slice(0, 32),
+    symbol: String(input?.symbol ?? "").slice(0, 8),
+    hint: String(input?.hint ?? "").slice(0, 200),
+  }))
+  .handler(async ({ data }) => {
+    if (!data.name.trim() || !data.symbol.trim()) return { ok: false as const, error: "Add a name and ticker first." };
+    if (!draftAllowed()) return { ok: false as const, error: "Drafts are busy. Write it yourself or try again later." };
+    const result = await chat(
+      `Write a token description for ${data.name} ($${data.symbol}).${data.hint ? ` The creator said: ${data.hint}` : ""}
+One or two plain sentences, under 240 characters. Fun, specific to the name. No price, returns, roadmap, or promises. No hashtags, no links, no emoji spam.`,
+      120,
+      "Return only the description text.",
+      "launch-draft",
+    );
+    if (!result.ok) return { ok: false as const, error: "That draft is not available right now." };
+    const text = result.text.replace(/^["'\s]+|["'\s]+$/g, "").slice(0, 280);
+    return { ok: true as const, text };
+  });
