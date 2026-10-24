@@ -338,7 +338,7 @@ function Series({
           </div>
         ))}
       </div>
-      <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
         <span>{first ? first.day.slice(5) : ""}</span>
         <span>{last ? last.day.slice(5) : ""}</span>
       </div>

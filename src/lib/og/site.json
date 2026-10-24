@@ -3,5 +3,6 @@
   "type": "website",
   "card": "custom",
   "color": "D4A545",
-  "description": "Name a token, then buy and sell it in the same pool. The rules are in the docs."
+  "description": "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
+  "image": "/og.jpg"
 }

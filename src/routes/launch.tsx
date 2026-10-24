@@ -392,7 +392,7 @@ function Launch() {
                     value={Number.isFinite(Number(creatorTaxPct)) ? Math.min(MAX_CREATOR_TAX_PCT, Math.max(0, Number(creatorTaxPct))) : 0}
                     onChange={(e) => setCreatorTaxPct(commitCreatorTaxDraft(e.target.value))}
                     aria-label="Your slice of the 2% fee, from 0 to 10. Starts at 2."
-                    className="mt-1 h-2 w-full cursor-pointer accent-gold"
+                    className="range-lg mt-1 w-full cursor-pointer accent-gold"
                   />
                   <div className="flex gap-2">
                     <Input

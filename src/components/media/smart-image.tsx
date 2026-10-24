@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AddressIdenticon } from "@/lib/identicon";
-import { displayTokenArt, isBrandTokenArt, isIpfsArt, publicTokenArt } from "@/lib/image-art";
+import { displayTokenArt, isBrandTokenArt, isIpfsArt, publicTokenArt, sizedTokenArt } from "@/lib/image-art";
 import { isProtocolToken } from "@/lib/pool";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,8 @@ type Props = {
   className?: string;
   priority?: boolean;
   rounded?: "full" | "xl" | "2xl" | "lg" | "none";
+  /** Tried once if `src` fails (e.g. a resized gateway URL). */
+  fallbackSrc?: string;
 };
 
 const ROUND = {
@@ -39,8 +41,12 @@ export function SmartImage({
   className,
   priority = false,
   rounded = "none",
+  fallbackSrc,
 }: Props) {
-  const url = src.startsWith("data:") || src.startsWith("http") || src.startsWith("/") ? src : displayTokenArt(src);
+  const primary = src.startsWith("data:") || src.startsWith("http") || src.startsWith("/") ? src : displayTokenArt(src);
+  const [failedOver, setFailedOver] = useState(false);
+  useEffect(() => setFailedOver(false), [primary]);
+  const url = failedOver && fallbackSrc ? fallbackSrc : primary;
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const ref = useRef<HTMLImageElement>(null);
   const circle = rounded === "full";
@@ -96,7 +102,13 @@ export function SmartImage({
         fetchPriority={priority ? "high" : "low"}
         draggable={false}
         onLoad={() => setStatus("ready")}
-        onError={() => setStatus("error")}
+        onError={() => {
+          if (fallbackSrc && !failedOver && fallbackSrc !== primary) {
+            setFailedOver(true);
+            return;
+          }
+          setStatus("error");
+        }}
         className={cn(
           "absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-300",
           ROUND[rounded],
@@ -135,7 +147,8 @@ export function TokenImage({
   }
   return (
     <SmartImage
-      src={url}
+      src={sizedTokenArt(url, size)}
+      fallbackSrc={url}
       alt={alt}
       width={size}
       height={size}

@@ -44,3 +44,10 @@ export function readSocial(
   if (!value) return { ok: false, error: `${SOCIAL_LABEL[kind]} is not a valid link.` };
   return { ok: true, value };
 }
+
+/** Zenzen's own public links. */
+export const ZENZEN_LINKS = {
+  x: "https://x.com/ZenzeFun",
+  telegram: "https://t.me/zenzefun",
+  github: "https://github.com/Zenzefun/zenze",
+} as const;

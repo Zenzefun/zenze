@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { openAppKitModalWhenReady } from "@/lib/appkit-bridge";
+import { openAppKitModalWhenReady, requestAppKitLoad } from "@/lib/appkit-bridge";
 import { formatAddress } from "@/lib/format";
 import { AddressIdenticon } from "@/lib/identicon";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,9 @@ export function ConnectWalletButton({ className }: { className?: string }) {
   return (
     <button
       type="button"
+      onPointerEnter={requestAppKitLoad}
+      onTouchStart={requestAppKitLoad}
+      onFocus={requestAppKitLoad}
       onClick={() => {
         void openAppKitModalWhenReady(connected ? "Account" : "Connect").then((opened) => {
           if (!opened) toast.error("Wallet is still loading. Try again.");
@@ -36,7 +39,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
       disabled={connecting}
       className={cn(
         "inline-flex h-11 max-w-[8.5rem] shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 text-xs font-medium sm:max-w-none",
-        connected ? "border border-border bg-card hover:bg-muted" : "bg-gold text-ink hover:opacity-92",
+        "border border-border bg-card hover:bg-muted",
         className,
       )}
     >

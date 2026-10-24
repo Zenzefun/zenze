@@ -58,7 +58,7 @@ function Explore() {
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
       <div className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-3xl font-semibold">Explore</h1>
-        <p className="mt-2 max-w-xl text-muted-foreground">Same board as the front page. Search, then filter by chain.</p>
+        <p className="mt-2 max-w-xl text-muted-foreground">Every pool on Zenzen. Search by name or ticker, then narrow it to one chain.</p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Input
             value={q}
@@ -69,7 +69,7 @@ function Explore() {
           />
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => (
-              <Button key={f.id} size="sm" variant={chain === f.id ? "gold" : "outline"} onClick={() => setChain(f.id)}>
+              <Button key={f.id} size="sm" className="h-11 sm:h-9" aria-pressed={chain === f.id} variant={chain === f.id ? "gold" : "outline"} onClick={() => setChain(f.id)}>
                 {f.id !== "all" && <ChainMark chain={f.id} className="size-3.5" />}
                 {f.label}
               </Button>

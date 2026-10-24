@@ -5,7 +5,7 @@ import type { ChainKey } from "@/lib/chains";
 export { QuoteMark } from "./quote-mark";
 
 const CHAIN_LOGO: Record<ChainKey, { src: string; alt: string }> = {
-  robinhood: { src: "/chains/robinhood.jpg", alt: "Robinhood Chain" },
+  robinhood: { src: "/chains/robinhood-80.webp", alt: "Robinhood Chain" },
   arc: { src: "/chains/arc.svg", alt: "Arc" },
 };
 
@@ -14,7 +14,7 @@ export function ChainMark({ chain, className }: { chain: ChainKey; className?: s
   const logo = CHAIN_LOGO[chain];
   return (
     <SmartImage
-      src={`${logo.src}?v=3`}
+      src={`${logo.src}?v=4`}
       alt=""
       width={40}
       height={40}

@@ -83,3 +83,16 @@ export async function fileToTokenArt(file: File): Promise<string> {
   if (out.length > MAX_CHARS) throw new Error("That image is still too large after compression. Try a simpler photo.");
   return out;
 }
+
+const PINATA_DEDICATED_HOST = /^https:\/\/[a-z0-9-]+\.mypinata\.cloud\/ipfs\//i;
+
+/**
+ * Token art on our dedicated Pinata gateway is often the full-size upload (the $ZNZF disc is a
+ * 422 KB PNG shown at 40 px). The gateway can resize and re-encode on the fly, so ask for WebP at
+ * twice the rendered size. Other hosts and data URLs pass through untouched.
+ */
+export function sizedTokenArt(url: string, cssPx: number): string {
+  if (!PINATA_DEDICATED_HOST.test(url) || url.includes("?")) return url;
+  const px = Math.min(512, Math.max(64, Math.ceil((cssPx * 2) / 32) * 32));
+  return `${url}?img-width=${px}&img-height=${px}&img-fit=cover&img-format=webp`;
+}

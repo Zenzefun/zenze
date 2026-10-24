@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { Footer } from "./footer";
-import { Header } from "./header";
+import { Header, MobileActionBar } from "./header";
 import { installWalletErrorGuard, useWallet } from "@/lib/wallet";
 import { captureRef, storedRef } from "@/lib/referral";
 import { recordReferral } from "@/lib/server/referral";
@@ -24,6 +24,7 @@ export function AppShell({ children, znzfPrice }: { children: ReactNode; znzfPri
       <Header znzfPrice={znzfPrice} />
       <main className="page-swap min-w-0 flex-1">{children}</main>
       <Footer />
+      <MobileActionBar />
     </div>
   );
 }

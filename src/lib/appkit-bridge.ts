@@ -10,6 +10,30 @@ let disconnectFn: DisconnectFn | null = null;
 let connectWalletFn: ConnectWalletFn | null = null;
 const closeListeners = new Set<() => void>();
 const readyListeners = new Set<() => void>();
+const loadListeners = new Set<() => void>();
+let loadRequested = false;
+
+/**
+ * Ask the shell to download Reown AppKit. It is ~500 KB of JS, so it loads on wallet intent
+ * (tap/hover/focus on Wallet, or any connect call) instead of on every first paint.
+ */
+export function requestAppKitLoad() {
+  if (loadRequested) return;
+  loadRequested = true;
+  for (const fn of [...loadListeners]) fn();
+  loadListeners.clear();
+}
+
+export function onAppKitLoadRequest(fn: () => void): () => void {
+  if (loadRequested) {
+    fn();
+    return () => undefined;
+  }
+  loadListeners.add(fn);
+  return () => {
+    loadListeners.delete(fn);
+  };
+}
 
 export function registerAppKit(handlers: {
   open: OpenFn;
@@ -32,9 +56,10 @@ export function isAppKitRegistered(): boolean {
   return Boolean(openFn);
 }
 
-export function waitForAppKit(ms = 8_000): Promise<boolean> {
+export function waitForAppKit(ms = 15_000): Promise<boolean> {
   if (openFn) return Promise.resolve(true);
   if (typeof window === "undefined") return Promise.resolve(false);
+  requestAppKitLoad();
   return new Promise((resolve) => {
     const finish = (ok: boolean) => {
       readyListeners.delete(onReady);

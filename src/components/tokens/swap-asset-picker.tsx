@@ -198,7 +198,7 @@ export function SwapAssetPicker({
           </div>
           <div className="max-h-44 overflow-y-auto p-1">
             {filtered.pairs.length > 0 && (
-              <p className="px-2.5 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-2.5 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Quote pairs
               </p>
             )}
@@ -206,7 +206,7 @@ export function SwapAssetPicker({
               <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} onPick={pick} />
             ))}
             {filtered.launched.length > 0 && (
-              <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-2.5 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Live curves
               </p>
             )}
@@ -214,7 +214,7 @@ export function SwapAssetPicker({
               <Row key={a.graphId} asset={a} active={a.graphId === value.graphId} onPick={pick} />
             ))}
             {filtered.listed.length > 0 && (
-              <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-2.5 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Listed
               </p>
             )}

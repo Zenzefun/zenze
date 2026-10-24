@@ -31,10 +31,10 @@ function ZnzfCoin({ className, priority = false }: { className?: string; priorit
         {!ready && <span className="znzf-coin-face animate-pulse bg-muted" aria-hidden />}
         <img
           ref={ref}
-          src="/brand/capy-mark-512.webp"
+          src="/brand/capy-mark-320.webp?v=20261009a"
           alt=""
-          width={512}
-          height={512}
+          width={320}
+          height={320}
           decoding={priority ? "sync" : "async"}
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "low"}

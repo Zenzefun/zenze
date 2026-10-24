@@ -1,17 +1,35 @@
 {
   "name": "Zenzen",
   "short_name": "Zenzen",
-  "description": "Zenzen is a token launch page. $ZNZF is the protocol token.",
+  "description": "Zenzen — Launch a token. Trade it back. $ZNZF is the protocol token.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#FDF6E3",
-  "theme_color": "#D4A545",
+  "theme_color": "#FDF6E3",
   "icons": [
     {
       "src": "/brand/capy-mark-64.png?v=20260924b",
       "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/capy-mark-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/capy-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png?v=20261001a",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     }

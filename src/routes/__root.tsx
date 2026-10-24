@@ -38,7 +38,7 @@ export const Route = createRootRoute({
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "stylesheet", href: appCss },
       { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
-      { rel: "preload", href: "/brand/capy-mark-512.webp?v=20261001a", as: "image" },
+      { rel: "preload", href: "/brand/capy-mark-320.webp?v=20261009a", as: "image", type: "image/webp" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -101,7 +101,7 @@ function RootDocument() {
         <div id="capy-boot" aria-hidden="true" suppressHydrationWarning>
           <div className="capy-boot-frame">
             <span className="capy-boot-skel" />
-            <img src="/brand/capy-mark-512.webp?v=20261001a" alt="" width={112} height={112} decoding="sync" suppressHydrationWarning />
+            <img src="/brand/capy-mark-320.webp?v=20261009a" alt="" width={112} height={112} decoding="sync" suppressHydrationWarning />
           </div>
         </div>
         <PreviewHostBridge />

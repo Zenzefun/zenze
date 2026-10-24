@@ -160,7 +160,7 @@ function NavList({
     <nav className="space-y-6">
       {groups.map((g) => (
         <div key={g.group}>
-          <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{g.group}</p>
+          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{g.group}</p>
           <ul className="space-y-0.5">
             {g.items.map((it) => {
               const on = active === it.slug;
@@ -203,7 +203,7 @@ export function DocsShell({ doc, children }: { doc: DocsDoc; children?: ReactNod
           <div className="sticky top-20 space-y-4">
             <div>
               <p className="font-display text-lg font-semibold">Zenzen docs</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{DOCS_VERSION}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{DOCS_VERSION}</p>
             </div>
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -216,7 +216,7 @@ export function DocsShell({ doc, children }: { doc: DocsDoc; children?: ReactNod
           <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
             <div>
               <p className="font-display text-lg font-semibold">Zenzen docs</p>
-              <p className="text-[11px] text-muted-foreground">{DOCS_VERSION}</p>
+              <p className="text-xs text-muted-foreground">{DOCS_VERSION}</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
               <Menu className="size-4" />

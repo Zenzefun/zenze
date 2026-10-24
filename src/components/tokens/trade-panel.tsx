@@ -576,7 +576,7 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
                     </button>
                   ))}
                 </div>
-                <label className="mt-2 block text-[10px] text-muted-foreground">
+                <label className="mt-2 block text-xs text-muted-foreground">
                   Custom %
                   <input
                     inputMode="decimal"
@@ -767,7 +767,7 @@ function SwapLeg({
           {onMax && (
             <>
               <span className="tabular-nums">{formatAmount(available, 6)} available</span>
-              <button type="button" onClick={onMax} className="rounded-full bg-[#c8f54a] px-2 py-0.5 text-[10px] font-semibold text-[#111]">
+              <button type="button" onClick={onMax} className="rounded-full bg-[#c8f54a] px-2 py-0.5 text-xs font-semibold text-[#111]">
                 Max
               </button>
             </>

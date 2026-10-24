@@ -6,6 +6,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { TokenBoard } from "@/components/tokens/token-board";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FeaturedToken } from "@/components/home/featured-token";
+import { HomeHero } from "@/components/home/home-hero";
+import { TradeTicker } from "@/components/home/trade-ticker";
+import { TrustStrip } from "@/components/site/trust-strip";
+import { pickAboutToGraduate } from "@/lib/token-stage";
 import { listTokens, protocolStats } from "@/lib/server/market";
 
 export const Route = createFileRoute("/")({
@@ -17,7 +22,7 @@ export const Route = createFileRoute("/")({
   head: () =>
     pageHead({
       description:
-        "Name a token on Robinhood Chain or Arc, then buy and sell it in the same pool. The rules are in the docs.",
+        "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
       path: "/",
     }),
 });
@@ -27,10 +32,19 @@ function Home() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats(), initialData: initial.stats, refetchInterval: 15_000 });
   const tokens = useQuery({ queryKey: ["tokens"], queryFn: () => listTokens(), initialData: initial.tokens, refetchInterval: 15_000 });
   const board = tokens.data ?? [];
+  const featured = pickAboutToGraduate(board);
 
   return (
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mx-auto max-w-6xl px-4 pt-6 pb-2 sm:pt-10">
+        <HomeHero stats={stats.data} tokens={board} />
+        {board.length > 0 && <TradeTicker tokens={board} className="mt-6" />}
+        {featured && <FeaturedToken token={featured} className="mt-4" />}
+      </div>
+      <section className="mx-auto max-w-6xl px-4 py-6" aria-labelledby="board-title">
+        <h2 id="board-title" className="mb-3 text-xl font-semibold sm:text-2xl">
+          Tokens
+        </h2>
         {tokens.isPending && <div className="grid gap-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>}
         <TokenBoard tokens={board} />
         {!tokens.isPending && board.length === 0 && (
@@ -42,6 +56,7 @@ function Home() {
             </Button>
           </div>
         )}
+        <TrustStrip className="mt-8" />
       </section>
     </AppShell>
   );

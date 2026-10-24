@@ -207,9 +207,25 @@ export function readGrokProjectId() {
   return String(fromProcess ?? "").trim();
 }
 
+/**
+ * The "Created with Grok" banner script sets a third-party cookie and costs Best Practices on the
+ * live site, so production leaves it out unless VITE_GROK_EXTENSIONS=1 opts back in. Preview/dev
+ * keep the old default (on unless "0").
+ */
 export function readGrokExtensionsEnabled() {
-  const fromProcess = typeof process !== "undefined" ? process.env?.VITE_GROK_EXTENSIONS : "";
-  return String(fromProcess ?? "").trim() !== "0";
+  const env = typeof process !== "undefined" ? process.env : undefined;
+  const flag = String(env?.VITE_GROK_EXTENSIONS ?? "").trim();
+  if (flag === "0") return false;
+  if (flag === "1") return true;
+  return env?.NODE_ENV !== "production";
+}
+
+/** The app already ships its own share card (pageHead emits og:url + twitter:image). */
+export function documentOwnsShareMeta(html) {
+  return (
+    /<meta\b[^>]*\bproperty\s*=\s*["']og:url["'][^>]*>/i.test(html) &&
+    /<meta\b[^>]*\bproperty\s*=\s*["']og:image["'][^>]*>/i.test(html)
+  );
 }
 
 export function readXCreator() {
@@ -445,21 +461,25 @@ export function injectGrokPwaHead(html, ctx = {}) {
     host,
     documentTitle,
   );
-  let next = stripShareMetaTags(html);
+  const ownsShare = documentOwnsShareMeta(html);
+  let next = ownsShare ? html : stripShareMetaTags(html);
   if (!readGrokExtensionsEnabled()) next = stripGrokExtensionsScript(next);
 
+  const hasRel = (rel) => new RegExp(`<link\\b[^>]*\\brel\\s*=\\s*["']${rel}["']`, "i").test(next);
   const missing = grokPwaHeadTags(appName)
     .filter(([key]) => {
-      if (key === "manifest") return !next.includes('href="/__grok/manifest.webmanifest"');
-      if (key === "apple-touch-icon") return !next.includes('href="/__grok/icon-180.png"');
+      if (key === "manifest") return !hasRel("manifest") && !next.includes('href="/__grok/manifest.webmanifest"');
+      if (key === "apple-touch-icon") return !hasRel("apple-touch-icon") && !next.includes('href="/__grok/icon-180.png"');
       return !next.includes(`name="${key}"`);
     })
     .map(([, tag]) => tag);
 
-  next = insertAfterHeadOpen(
-    next,
-    grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
-  );
+  if (!ownsShare) {
+    next = insertAfterHeadOpen(
+      next,
+      grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
+    );
+  }
 
   if (readGrokExtensionsEnabled() && !next.includes("/grok-app-builder/extensions.js")) {
     missing.push(...grokExtensionsHeadTags(projectId));

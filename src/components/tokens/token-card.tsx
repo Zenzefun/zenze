@@ -7,6 +7,7 @@ import { pairLabel } from "@/lib/pairs";
 import { TokenImage } from "@/components/media/smart-image";
 import { hasQuotedPool, tokenBoardKind } from "@/lib/pool";
 import { isZnzfRef, tokenRouteId } from "@/lib/token-path";
+import { tokenVolumeUsd } from "@/lib/token-volume";
 import type { EnrichedToken } from "@/lib/server/market";
 
 type Enriched = EnrichedToken;
@@ -32,8 +33,7 @@ export function TokenCard({ token, showDescription = true }: { token: Enriched; 
 
 function TokenCardBody({ token, showDescription }: { token: Enriched; showDescription: boolean }) {
   const volNative = asNumber(token.volume_24h);
-  const volUsd =
-    token.quote.key === "eth" ? (token.ethUsd != null ? volNative * token.ethUsd : null) : volNative;
+  const volUsd = tokenVolumeUsd(token);
   const live = hasQuotedPool(token);
   const kind = tokenBoardKind(token);
   const onCurve = kind === "curve" || kind === "protocol";
@@ -71,13 +71,15 @@ function TokenCardBody({ token, showDescription }: { token: Enriched; showDescri
       </div>
       <div className="mt-3">
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>{onCurve ? "Filled" : "Uniswap"}</span>
-          <span className="tabular-nums">{onCurve ? `${progress.toFixed(0)}%` : "Live"}</span>
+          <span>{kind === "protocol" ? "Protocol pool" : onCurve ? (progress < 1 ? "Fresh curve" : "Filled") : "Uniswap"}</span>
+          <span className="tabular-nums">
+            {kind === "protocol" || !onCurve ? "Live" : progress < 1 ? "Just opened" : `${progress.toFixed(0)}%`}
+          </span>
         </div>
         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className={`fill-bar h-full rounded-full ${onCurve ? "bg-moss" : "bg-foreground/35"}`}
-            style={{ width: `${Math.max(progress, onCurve ? 2 : 100)}%` }}
+            style={{ width: `${Math.max(progress, onCurve ? 3 : 100)}%` }}
           />
         </div>
       </div>

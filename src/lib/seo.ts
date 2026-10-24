@@ -5,13 +5,13 @@ export const SITE = {
   url: "https://zenzen.fun",
   tagline: "Launch a token. Trade it back.",
   description:
-    "Name a token on Robinhood Chain or Arc, then buy and sell it in the same pool. The rules are in the docs.",
+    "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
   x: "https://x.com/ZenzeFun",
   handle: "@ZenzeFun",
 };
 
 /** Bump when share cards or favicons change so X recrawls instead of a cached black card. */
-export const OG_VERSION = "20260924c";
+export const OG_VERSION = "20261009a";
 export const ASSET_VERSION = OG_VERSION;
 /** zenze.fun stays reachable. It does not redirect, and it does not name zenzen.fun as its canonical. */
 const BURNED_HOSTS = new Set(["zenze.fun", "www.zenze.fun"]);
@@ -38,9 +38,14 @@ export function publicSite(): { origin: string; burned: boolean } {
   return { origin: SITE.url, burned: false };
 }
 
+/**
+ * Share card for a page. The dynamic /cards/<id> renderer needs scripts/render-og-card.py, which
+ * production does not ship (every /cards/* URL 404s), so pages point at the static branded cards.
+ */
 export function cardUrl(id = "home"): string {
   const safe = id.replace(/[^a-z0-9_-]/gi, "").slice(0, 80) || "home";
-  return `${SITE.url}/cards/${safe}?v=${OG_VERSION}`;
+  const file = safe.toLowerCase() === "znzf" ? "znzf-og.jpg" : "og.jpg";
+  return `${SITE.url}/${file}?v=${OG_VERSION}`;
 }
 
 export const DEFAULT_OG = cardUrl("home");
@@ -148,7 +153,7 @@ export function pageHead(opts: {
   ];
   return {
     meta,
-    links: hidden ? [] : [{ rel: "canonical", href: url }],
+    links: stealth ? [] : [{ rel: "canonical", href: `${SITE.url}${opts.path === "/" ? "/" : opts.path}` }],
     scripts: hidden
       ? []
       : [

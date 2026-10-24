@@ -37,7 +37,7 @@ export const Route = createFileRoute("/znzf")({
     });
     return {
       ...head,
-      links: [...(head.links ?? []), { rel: "preload", href: "/brand/capy-mark-512.webp", as: "image" }],
+      links: [...(head.links ?? []), { rel: "preload", href: "/brand/capy-mark-320.webp?v=20261009a", as: "image", type: "image/webp" }],
     };
   },
 });
@@ -225,7 +225,7 @@ function ContractRow({
       <Badge variant="steam">{label}</Badge>
       {address ? (
         <a
-          className="break-all font-mono text-stone underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center break-all rounded-md px-1 font-mono text-stone underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           href={`${explorer}/address/${address}`}
           target="_blank"
           rel="noopener noreferrer"

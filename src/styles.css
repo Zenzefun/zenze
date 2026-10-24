@@ -660,3 +660,62 @@ html.dark .capy-boot-skel {
     animation: none;
   }
 }
+
+/* v2.10.8: home trades ticker */
+@keyframes ticker-run {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-mask {
+  mask-image: linear-gradient(90deg, transparent, #000 4% 96%, transparent);
+}
+.ticker-track {
+  animation: ticker-run 60s linear infinite;
+}
+.ticker-mask:hover .ticker-track,
+.ticker-mask:focus-within .ticker-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-mask { overflow-x: auto; }
+  .ticker-track { animation: none; }
+}
+
+/* v2.10.8: thumb-sized range input (launch form) */
+input[type="range"].range-lg {
+  appearance: none;
+  background: transparent;
+  height: 2.75rem;
+}
+input[type="range"].range-lg::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-gold) 30%, var(--color-muted, #eee));
+}
+input[type="range"].range-lg::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-gold) 30%, var(--color-muted, #eee));
+}
+input[type="range"].range-lg::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.625rem;
+  border-radius: 9999px;
+  border: 3px solid #fff;
+  background: var(--color-gold);
+  box-shadow: 0 1px 4px rgb(60 40 10 / 0.35);
+}
+input[type="range"].range-lg::-moz-range-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  border: 3px solid #fff;
+  background: var(--color-gold);
+  box-shadow: 0 1px 4px rgb(60 40 10 / 0.35);
+}
+input[type="range"].range-lg:focus-visible { outline: none; }
+input[type="range"].range-lg:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-gold) 45%, transparent);
+}
