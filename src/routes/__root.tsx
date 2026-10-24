@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { CapyPreloader } from "@/components/capy/capy-preloader";
 import { PublicNotFound } from "@/components/not-found-public";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { CommunityFooter } from "@/components/site/community-footer";
 import { MaintenanceGate } from "@/components/site/maintenance-gate";
 import { ThemeProvider, useTheme } from "@/components/theme/theme-provider";
 import { AppKitRoot } from "@/components/wallet/appkit-root";
@@ -115,6 +116,7 @@ function RootDocument() {
                   <Outlet />
                 </MaintenanceGate>
               </AppKitRoot>
+              <CommunityFooter />
               <AppToaster />
             </QueryClientProvider>
           </AuthProvider>

@@ -719,3 +719,8 @@ input[type="range"].range-lg:focus-visible { outline: none; }
 input[type="range"].range-lg:focus-visible::-webkit-slider-thumb {
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-gold) 45%, transparent);
 }
+
+/* v2.11.0: slim Telegram/GitHub bar on pages without the full AppShell footer */
+body:has(.shell-foot) .community-foot {
+  display: none;
+}
