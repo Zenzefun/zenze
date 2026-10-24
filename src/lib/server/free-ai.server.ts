@@ -3,6 +3,16 @@ import { getRequest } from "@tanstack/react-start/server";
 /** Free, keyless endpoints only. Nothing here costs money or needs a secret. */
 const IMAGE_BASE = "https://image.pollinations.ai/prompt/";
 const TEXT_BASE = "https://text.pollinations.ai/";
+/** Keyed API (enter.pollinations.ai account). Token goes only in the Authorization header, never in a URL. */
+const GEN_IMAGE = "https://gen.pollinations.ai/image/";
+const GEN_TEXT = "https://gen.pollinations.ai/text/";
+const GEN_IMAGE_MODEL = "black-forest-labs/flux.1-schnell";
+const GEN_TEXT_MODEL = "openai/gpt-oss-20b";
+
+function pollinationsToken(): string {
+  const t = (process.env.POLLINATIONS_TOKEN ?? "").trim();
+  return /^[A-Za-z0-9_.-]{8,200}$/.test(t) ? t : "";
+}
 export const IMAGE_MAX_BYTES = 4 * 1024 * 1024;
 const TEXT_MAX_CHARS = 4000;
 
@@ -59,11 +69,13 @@ export function allowFreeAi(kind: keyof typeof LIMITS, wallet?: string): boolean
   return true;
 }
 
-async function fetchWithTimeout(url: string, ms: number) {
+async function fetchWithTimeout(url: string, ms: number, token = "") {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
+  const headers: Record<string, string> = { "user-agent": "zenzen.fun launch helper" };
+  if (token) headers.authorization = `Bearer ${token}`;
   try {
-    return await fetch(url, { signal: ctrl.signal, redirect: "follow", headers: { "user-agent": "zenzen.fun launch helper" } });
+    return await fetch(url, { signal: ctrl.signal, redirect: "follow", headers });
   } finally {
     clearTimeout(timer);
   }
@@ -76,6 +88,37 @@ export function imagePrompt(name: string, symbol: string, description: string) {
 
 /** Returns a data URI of the image, or an error. Caller re-runs it through the upload path. */
 export async function pollinationsImage(prompt: string): Promise<{ ok: true; dataUrl: string } | { ok: false; error: string }> {
+  const token = pollinationsToken();
+  if (token) {
+    const keyed = await keyedImage(prompt, token);
+    if (keyed.ok) return keyed;
+  }
+  return anonymousImage(prompt);
+}
+
+async function readImage(res: Response): Promise<{ ok: true; dataUrl: string } | { ok: false; error: string }> {
+  if (!res.ok) return { ok: false, error: `Image service answered ${res.status}.` };
+  const type = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+  if (!/^image\/(jpeg|png|webp)$/.test(type)) return { ok: false, error: "Image service did not return an image." };
+  const len = Number(res.headers.get("content-length") ?? 0);
+  if (len > IMAGE_MAX_BYTES) return { ok: false, error: "Image was too large." };
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length === 0 || buf.length > IMAGE_MAX_BYTES) return { ok: false, error: "Image was empty or too large." };
+  return { ok: true, dataUrl: `data:${type};base64,${buf.toString("base64")}` };
+}
+
+async function keyedImage(prompt: string, token: string): Promise<{ ok: true; dataUrl: string } | { ok: false; error: string }> {
+  const seed = Math.floor(Math.random() * 1_000_000);
+  const url = `${GEN_IMAGE}${encodeURIComponent(prompt)}?model=${encodeURIComponent(GEN_IMAGE_MODEL)}&width=512&height=512&nologo=true&seed=${seed}`;
+  try {
+    return await readImage(await fetchWithTimeout(url, 20_000, token));
+  } catch (err) {
+    const aborted = err instanceof Error && err.name === "AbortError";
+    return { ok: false, error: aborted ? "Image service timed out." : "Image service is not reachable." };
+  }
+}
+
+async function anonymousImage(prompt: string): Promise<{ ok: true; dataUrl: string } | { ok: false; error: string }> {
   const seed = Math.floor(Math.random() * 1_000_000);
   const url = `${IMAGE_BASE}${encodeURIComponent(prompt)}?width=512&height=512&nologo=true&seed=${seed}`;
   try {
@@ -120,8 +163,17 @@ export function sanitizeDescription(raw: string, max = 240): string {
 }
 
 export async function pollinationsText(prompt: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const token = pollinationsToken();
+  if (token) {
+    const keyed = await textFrom(`${GEN_TEXT}${encodeURIComponent(prompt.slice(0, 900))}?model=${encodeURIComponent(GEN_TEXT_MODEL)}`, token);
+    if (keyed.ok) return keyed;
+  }
+  return textFrom(`${TEXT_BASE}${encodeURIComponent(prompt.slice(0, 900))}`, "");
+}
+
+async function textFrom(url: string, token: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   try {
-    const res = await fetchWithTimeout(`${TEXT_BASE}${encodeURIComponent(prompt.slice(0, 900))}`, 25_000);
+    const res = await fetchWithTimeout(url, 25_000, token);
     if (!res.ok) return { ok: false, error: `Text service answered ${res.status}.` };
     const type = (res.headers.get("content-type") ?? "").toLowerCase();
     if (type && !type.startsWith("text/") && !type.includes("json")) return { ok: false, error: "Text service sent something else." };
