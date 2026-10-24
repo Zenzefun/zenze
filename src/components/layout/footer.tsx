@@ -50,7 +50,7 @@ export function Footer() {
             <li><Link to="/launch">Launch</Link></li>
             <li><Link to="/list">List a token</Link></li>
             <li><Link to="/znzf">$ZNZF</Link></li>
-            <li><Link to="/airdrop">Airdrop</Link></li>
+            <li><Link to="/airdrop">Creator Quest</Link></li>
             <li><Link to="/staking">Stake</Link></li>
             <li><Link to="/governance">Governance</Link></li>
             <li><Link to="/analytics">Analytics</Link></li>

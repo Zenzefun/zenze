@@ -16,7 +16,7 @@ const NAV = [
   { to: "/launch", label: "Launch", sheetOnly: true },
   { to: "/znzf", label: "$ZNZF" },
   { to: "/staking", label: "Stake" },
-  { to: "/airdrop", label: "Airdrop" },
+  { to: "/airdrop", label: "Creator Quest" },
 ] as const;
 
 export function Header({ znzfPrice }: { znzfPrice?: number | null }) {

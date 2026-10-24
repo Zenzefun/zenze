@@ -54,12 +54,12 @@ export function announcementText(index: number, znzfUrl: string) {
   const posts = [
     "Your token can have a pool today.\n\nYou name it. You pick the pair.\n\nThen it trades in public.\n\nhttps://zenzen.fun/launch",
     `You can buy $ZNZF and sell it back into the same pool.\n\nThe pool sets the price.\n\n${znzfUrl}`,
-    "Points are counting now.\n\nWhen the pool opens, one point is the same share as any other.\n\nhttps://zenzen.fun/airdrop",
+    "Creator Quest: launch a token and get 3 real buyers.\n\nFinish it and your token gets a Featured slot and a shoutout.\n\nhttps://zenzen.fun/airdrop",
     "The bridge locks $ZNZF on Robinhood and releases the same amount on Arc.\n\nIt is not a second coin.\n\nhttps://zenzen.fun/bridge",
     "Stake locks the vote.\n\nA balance that is not locked does not speak.\n\nhttps://zenzen.fun/staking",
     "Open the board and read the pools that are already trading.\n\nLook before you launch.\n\nhttps://zenzen.fun/explore",
     "A token that already exists can still be listed here.\n\nThe page is short.\n\nhttps://zenzen.fun/list",
-    "A friend who buys $ZNZF can add points, up to ten.\n\nThe invite appears after you connect.\n\nhttps://zenzen.fun/airdrop",
+    "Your buyers have to be real wallets, not ones you funded.\n\nThree of them finish the Creator Quest.\n\nhttps://zenzen.fun/airdrop",
     "Arc gas is USDC.\n\nIt stays in your wallet. It is not a payment to Zenze.\n\nhttps://zenzen.fun/fund",
     "Name a token. The pool opens when the launch lands.\n\nYou can sell it back into that same pool.\n\nhttps://zenzen.fun/launch",
   ];

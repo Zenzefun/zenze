@@ -6,7 +6,7 @@ import { cleanNote } from "@/lib/server/telegram-posts";
 import { configValue } from "@/lib/server/secrets";
 
 export const NOTE =
-  "Write one Telegram announcement for Zenzen. Four short lines. Line 1 is the result. Name one product: a pool, a token, $ZNZF, points, the bridge, or a vote. No question. No fee percentage. No contract address. No wallet. No seed phrase. No hashtags. Points live at https://zenzen.fun/airdrop. There is no /points page. Stake is https://zenzen.fun/staking. If a link is needed, use exactly one of those real paths on its own line.";
+  "Write one Telegram announcement for Zenzen. Four short lines. Line 1 is the result. Name one product: a pool, a token, $ZNZF, the Creator Quest, the bridge, or a vote. No question. No fee percentage. No contract address. No wallet. No seed phrase. No hashtags. The Creator Quest lives at https://zenzen.fun/airdrop; its reward is a Featured slot and a shoutout, never money or tokens. There is no /points page. Stake is https://zenzen.fun/staking. If a link is needed, use exactly one of those real paths on its own line.";
 
 export { cleanNote };
 

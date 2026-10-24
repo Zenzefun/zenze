@@ -50,6 +50,14 @@ async function db() {
       frozen_at timestamptz not null default now()
     )
   `);
+  await step(sql`
+    create table if not exists creator_quest_completions (
+      wallet text primary key,
+      token_id text not null,
+      buyers integer not null,
+      completed_at timestamptz not null default now()
+    )
+  `);
   return sql;
 }
 
@@ -813,3 +821,132 @@ export const saveDropRules = createServerFn({ method: "POST" })
     `;
     return { ok: true as const };
   });
+
+/* ------------------------------------------------------------------------------------------------
+ * Creator Quest
+ *
+ * Replaces the $ZNZF points drop on /airdrop. No buy or hold of $ZNZF is needed. The task is to
+ * launch a token and get QUEST_MIN_BUYERS unique buyers that pass the anti-sybil checks in
+ * creator-quest.server.ts. The reward is a Featured slot on the home page and a shoutout from
+ * @ZenzeFun. There is no cash or token payout. The old drop server functions above stay for the
+ * operator desk and for wallets that already hold a frozen share.
+ * ---------------------------------------------------------------------------------------------- */
+
+export const QUEST_DEFAULTS = { minBuyers: 3, minWalletAgeDays: 7, featuredDays: 7 } as const;
+
+async function questRules() {
+  const desk = await loadDeskConfig();
+  const int = (key: string, fallback: number, min: number, max: number) => {
+    const n = Number(desk[key]);
+    return Number.isInteger(n) && n >= min && n <= max ? n : fallback;
+  };
+  return {
+    minBuyers: int("quest_min_buyers", QUEST_DEFAULTS.minBuyers, 1, 100),
+    minWalletAgeDays: int("quest_min_wallet_age_days", QUEST_DEFAULTS.minWalletAgeDays, 0, 365),
+    featuredDays: int("quest_featured_days", QUEST_DEFAULTS.featuredDays, 1, 60),
+  };
+}
+
+type QuestBuyer = { wallet: string; ok: boolean; reason: string };
+
+export const creatorQuestStatus = createServerFn({ method: "POST" })
+  .validator((input: { wallet?: string }) => input)
+  .handler(async ({ data }) => {
+    const rules = await questRules();
+    const wallet = (data.wallet ?? "").toLowerCase();
+    const base = {
+      ok: true as const,
+      rules,
+      launched: false,
+      token: null as null | { id: string; symbol: string; name: string; chain: string },
+      buyers: [] as QuestBuyer[],
+      counted: 0,
+      completed: false,
+      completedAt: "",
+      featuredUntil: "",
+    };
+    if (!isHexAddress(wallet)) return base;
+    const sql = await db();
+    const launches = await sql<{ id: string; symbol: string; name: string; chain: string; created_at: string }>`
+      select id, symbol, name, chain, created_at::text
+      from tokens
+      where lower(creator_wallet) = ${wallet} and id <> 'znzf'
+      order by created_at desc
+      limit 5
+    `;
+    if (!launches.length) return base;
+    const done = await sql<{ token_id: string; completed_at: string; buyers: number }>`
+      select token_id, completed_at::text, buyers from creator_quest_completions where wallet = ${wallet} limit 1
+    `;
+    const { checkBuyer } = await import("@/lib/server/creator-quest.server");
+    let best: { launch: (typeof launches)[number]; buyers: QuestBuyer[]; counted: number } | null = null;
+    for (const launch of launches) {
+      const rows = await sql<{ wallet: string; first_at: string }>`
+        select lower(wallet) as wallet, min(created_at)::text as first_at
+        from trades
+        where token_id = ${launch.id} and side = 'buy' and lower(wallet) <> ${wallet}
+        group by lower(wallet)
+        order by min(created_at) asc
+        limit 25
+      `;
+      const launchedAt = Math.floor(Date.parse(launch.created_at) / 1000) || Math.floor(Date.now() / 1000);
+      const chain = (launch.chain === "arc" ? "arc" : "robinhood") as "arc" | "robinhood";
+      const buyers: QuestBuyer[] = [];
+      for (const row of rows) {
+        const v = await checkBuyer({
+          chain,
+          creator: wallet,
+          buyer: row.wallet,
+          minAgeDays: rules.minWalletAgeDays,
+          // Funding usually lands shortly before the buy; look back 30 days from the launch.
+          fundingFromUnix: launchedAt - 30 * 86_400,
+        });
+        buyers.push({ wallet: v.wallet, ok: v.ok, reason: v.reason });
+        if (buyers.filter((b) => b.ok).length >= rules.minBuyers) break;
+      }
+      const counted = buyers.filter((b) => b.ok).length;
+      if (!best || counted > best.counted) best = { launch, buyers, counted };
+      if (counted >= rules.minBuyers) break;
+    }
+    const pick = best ?? { launch: launches[0], buyers: [], counted: 0 };
+    let completedAt = done[0]?.completed_at ?? "";
+    if (!completedAt && pick.counted >= rules.minBuyers) {
+      const saved = await sql<{ completed_at: string }>`
+        insert into creator_quest_completions (wallet, token_id, buyers)
+        values (${wallet}, ${pick.launch.id}, ${pick.counted})
+        on conflict (wallet) do nothing
+        returning completed_at::text
+      `.catch(() => [] as { completed_at: string }[]);
+      completedAt = saved[0]?.completed_at ?? new Date().toISOString();
+    }
+    const featuredToken = done[0]?.token_id ?? pick.launch.id;
+    const tokenRow = launches.find((l) => l.id === featuredToken) ?? pick.launch;
+    const until = completedAt ? new Date(Date.parse(completedAt) + rules.featuredDays * 86_400_000).toISOString() : "";
+    return {
+      ...base,
+      launched: true,
+      token: { id: tokenRow.id, symbol: tokenRow.symbol, name: tokenRow.name, chain: tokenRow.chain },
+      buyers: pick.buyers.map((b) => ({ ...b, wallet: `${b.wallet.slice(0, 6)}…${b.wallet.slice(-4)}` })),
+      counted: Math.max(pick.counted, done[0]?.buyers ?? 0),
+      completed: Boolean(completedAt),
+      completedAt,
+      featuredUntil: until,
+    };
+  });
+
+/** Token ids from recent quest completions, newest first, for the home Featured slot. */
+export const creatorQuestFeatured = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const rules = await questRules();
+    const sql = await db();
+    const rows = await sql<{ token_id: string }>`
+      select token_id from creator_quest_completions
+      where completed_at > now() - make_interval(days => ${rules.featuredDays})
+      order by completed_at desc
+      limit 10
+    `;
+    return rows.map((r) => r.token_id);
+  } catch {
+    return [] as string[];
+  }
+});

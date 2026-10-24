@@ -29,7 +29,7 @@ describe("plannerFacts", () => {
     assert.match(text, /End an original with one link/);
     assert.match(text, /https:\/\/zenzen\.fun\/znzf/);
     assert.equal(/zenze\.fun/i.test(text.replace(/DEAD MILL[\s\S]*?(?:\n|$)/g, "")), false);
-    assert.match(text, /points share it/);
+    assert.match(text, /Creator Quest/);
     assert.match(text, /Not a second coin/);
     assert.match(text, /Weekly rival tape/);
     assert.match(text, /Never paste a rival number/);

@@ -176,8 +176,8 @@ Products. Pick the one that matches today's arc. One product, one link, never th
 - Explore: newest pools.
 - Bridge: lock on Robinhood, the same amount released on Arc. Not a second coin.
 - Stake: the lock is the vote.
-- Points: points count now. When the pool opens, those points share it. One point is the same share. Do not print the point table.
-- A friend who buys $ZNZF can add points, up to ten. The invite appears after they connect. There is no /points page. Do not invent a code. The link is the airdrop page.
+- Creator Quest: launch a token and get 3 real buyers. The reward is a Featured slot on the home page and a shoutout from @ZenzeFun. No cash, token, or points payout. It does not need $ZNZF. Never promise money, tokens, or price.
+- There is no points program and no /points page. The Creator Quest link is the airdrop page.
 - Arc gas: USDC stays in the buyer's wallet. It is not a payment to Zenze.
 - Guide: how to start.
 

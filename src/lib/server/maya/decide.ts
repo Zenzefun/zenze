@@ -86,7 +86,7 @@ function userPrompt(obs: ObservePack, extra = "") {
   const mentionDue = obs.mentions.length > 0;
   return `Handle: @${obs.handle}
 Today's arc: ${obs.theme.name} — ${obs.theme.intent} (job ${obs.theme.job})
-Do not write the old domain. There is no /points page and no /stake page. Points are https://zenzen.fun/airdrop. The lock is https://zenzen.fun/staking.
+Do not write the old domain. There is no /points page and no /stake page. The Creator Quest is https://zenzen.fun/airdrop (no points, no payout). The lock is https://zenzen.fun/staking.
 Memory that says "no link" or "no URL" is retired. An original ends with one https://zenzen.fun link.
 Original due: ${originalDue ? "YES, after any waiting person" : "NO"} (${obs.originalsToday}/${obs.originalCap} originals, ${Math.round(obs.minutesSinceOriginal)}m since last)
 Someone is waiting on a reply: ${mentionDue ? "YES — item 1 must be a reply that answers them. No promo." : "no"}

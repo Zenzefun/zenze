@@ -12,11 +12,16 @@ import { TradeTicker } from "@/components/home/trade-ticker";
 import { TrustStrip } from "@/components/site/trust-strip";
 import { pickAboutToGraduate, pickNewestCurve } from "@/lib/token-stage";
 import { listTokens, protocolStats } from "@/lib/server/market";
+import { creatorQuestFeatured } from "@/lib/server/airdrop";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [stats, tokens] = await Promise.all([protocolStats(), listTokens().catch(() => [])]);
-    return { stats, tokens };
+    const [stats, tokens, questIds] = await Promise.all([
+      protocolStats(),
+      listTokens().catch(() => []),
+      creatorQuestFeatured().catch(() => [] as string[]),
+    ]);
+    return { stats, tokens, questIds };
   },
   component: Home,
   head: () =>
@@ -32,9 +37,11 @@ function Home() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats(), initialData: initial.stats, refetchInterval: 15_000 });
   const tokens = useQuery({ queryKey: ["tokens"], queryFn: () => listTokens(), initialData: initial.tokens, refetchInterval: 15_000 });
   const board = tokens.data ?? [];
-  const graduating = pickAboutToGraduate(board);
-  const featured = graduating ?? pickNewestCurve(board);
-  const featuredReason = graduating ? "graduating" : "new";
+  // Featured slot: a Creator Quest finisher first, then the pool closest to graduating, then the newest.
+  const questToken = (initial.questIds ?? []).map((id) => board.find((t: { id: unknown }) => String(t.id) === id)).find(Boolean) ?? null;
+  const graduating = questToken ? null : pickAboutToGraduate(board);
+  const featured = questToken ?? graduating ?? pickNewestCurve(board);
+  const featuredReason = questToken ? "quest" : graduating ? "graduating" : "new";
 
   return (
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
