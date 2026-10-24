@@ -374,40 +374,56 @@ BODY: <120-180 words. What should change, why the facts support it, and a measur
     return { ok: true as const, title, body, provider: result.provider };
   });
 
-/** True only when a text provider key is already set on the desk. Never returns the key. */
+/** Generate is always available: free keyless services back it when no key is set. Never returns a key. */
 export const launchAssistReady = createServerFn({ method: "GET" }).handler(async () => {
-  const deepseek = await configValue("deepseek_api_key");
-  const xai = await configValue("xai_api_key");
-  return { text: Boolean(deepseek || xai), image: false };
+  return { text: true, image: true };
 });
 
-const draftHits: number[] = [];
-function draftAllowed() {
-  const now = Date.now();
-  while (draftHits.length && now - draftHits[0]! > 60 * 60_000) draftHits.shift();
-  if (draftHits.length >= 60) return false;
-  draftHits.push(now);
-  return true;
-}
+const DRAFT_PROMPT = (name: string, symbol: string, hint: string) =>
+  `Write a token description for ${name} ($${symbol}).${hint ? ` The creator said: ${hint}` : ""}
+One or two plain sentences, under 240 characters. Fun, specific to the name. No price, returns, roadmap, or promises. No hashtags, no links, no emoji spam. Return only the description text.`;
 
-/** One short token description from the name and ticker. Uses the existing provider only. */
+/** One short token description. Existing DeepSeek/xAI key first; otherwise free Pollinations text. */
 export const draftLaunchDescription = createServerFn({ method: "POST" })
-  .validator((input: { name: string; symbol: string; hint?: string }) => ({
+  .validator((input: { name: string; symbol: string; hint?: string; wallet?: string }) => ({
     name: String(input?.name ?? "").slice(0, 32),
     symbol: String(input?.symbol ?? "").slice(0, 8),
     hint: String(input?.hint ?? "").slice(0, 200),
+    wallet: String(input?.wallet ?? "").slice(0, 42),
   }))
   .handler(async ({ data }) => {
     if (!data.name.trim() || !data.symbol.trim()) return { ok: false as const, error: "Add a name and ticker first." };
-    if (!draftAllowed()) return { ok: false as const, error: "Drafts are busy. Write it yourself or try again later." };
-    const result = await chat(
-      `Write a token description for ${data.name} ($${data.symbol}).${data.hint ? ` The creator said: ${data.hint}` : ""}
-One or two plain sentences, under 240 characters. Fun, specific to the name. No price, returns, roadmap, or promises. No hashtags, no links, no emoji spam.`,
-      120,
-      "Return only the description text.",
-      "launch-draft",
-    );
-    if (!result.ok) return { ok: false as const, error: "That draft is not available right now." };
-    const text = result.text.replace(/^["'\s]+|["'\s]+$/g, "").slice(0, 280);
-    return { ok: true as const, text };
+    const free = await import("./free-ai.server");
+    if (!free.allowFreeAi("text", data.wallet)) return { ok: false as const, error: "Too many drafts this hour. Write it yourself or try later." };
+    const prompt = DRAFT_PROMPT(data.name, data.symbol, data.hint);
+    const quick = (key: string) =>
+      Promise.race([configValue(key).catch(() => undefined), new Promise<undefined>((r) => setTimeout(() => r(undefined), 3000))]);
+    const [deepseek, xai] = await Promise.all([quick("deepseek_api_key"), quick("xai_api_key")]);
+    if (deepseek || xai) {
+      const result = await chat(prompt, 120, "Return only the description text.", "launch-draft");
+      if (result.ok) {
+        const text = free.sanitizeDescription(result.text);
+        if (text.length >= 8) return { ok: true as const, text, source: "desk" };
+      }
+    }
+    const res = await free.pollinationsText(prompt);
+    if (!res.ok) return { ok: false as const, error: "That draft is not available right now." };
+    return { ok: true as const, text: res.text, source: "pollinations" };
+  });
+
+/** Token art from free Pollinations. Returns raw image bytes as a data URI; the client runs it through the upload path. */
+export const generateLaunchImage = createServerFn({ method: "POST" })
+  .validator((input: { name: string; symbol: string; description?: string; wallet?: string }) => ({
+    name: String(input?.name ?? "").slice(0, 32),
+    symbol: String(input?.symbol ?? "").slice(0, 8),
+    description: String(input?.description ?? "").slice(0, 280),
+    wallet: String(input?.wallet ?? "").slice(0, 42),
+  }))
+  .handler(async ({ data }) => {
+    if (!data.name.trim() || !data.symbol.trim()) return { ok: false as const, error: "Add a name and ticker first." };
+    const free = await import("./free-ai.server");
+    if (!free.allowFreeAi("image", data.wallet)) return { ok: false as const, error: "Too many images this hour. Upload one or try later." };
+    const res = await free.pollinationsImage(free.imagePrompt(data.name, data.symbol, data.description));
+    if (!res.ok) return { ok: false as const, error: res.error };
+    return { ok: true as const, dataUrl: res.dataUrl };
   });

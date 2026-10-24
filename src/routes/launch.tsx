@@ -18,13 +18,13 @@ import { CHAINS, DEFAULT_CREATOR_TAX_BPS, TRADE_FEE_BPS, type ChainKey } from "@
 import { curveBuyCalldata, erc20ApproveCalldata, launchCalldata, setMigratorCalldata } from "@/lib/contracts";
 import { storedRef } from "@/lib/referral";
 import { myReferralCode, recordReferral } from "@/lib/server/referral";
-import { draftLaunchDescription, launchAssistReady } from "@/lib/server/ai";
+import { draftLaunchDescription, generateLaunchImage } from "@/lib/server/ai";
 import { defaultTokenArt } from "@/lib/default-art";
 import { quoteBuy, quoteBuyWithSnipe } from "@/lib/curve";
 import { boundCreatorTaxDraft, clampCreatorTaxBps, commitCreatorTaxDraft, formatFeePct, LAUNCH_SNIPE_START_BPS, MAX_CREATOR_TAX_PCT } from "@/lib/fee-split";
 import { NATIVE_ETH, poolFeeLabel } from "@/lib/dex-swap";
 import { formatAddress, formatAmount, formatCompact, formatUsd } from "@/lib/format";
-import { isTokenArt } from "@/lib/image-art";
+import { fileToTokenArt, isTokenArt } from "@/lib/image-art";
 import { isHexAddress } from "@/lib/intent";
 import { defaultQuote, pairLabel, quoteOf, type QuoteKey } from "@/lib/pairs";
 import { publishedConfig } from "@/lib/onchain";
@@ -101,17 +101,40 @@ function Launch() {
   const [creatorTaxPct, setCreatorTaxPct] = useState(String(DEFAULT_CREATOR_TAX_BPS / 100));
   const [snipeExempt, setSnipeExempt] = useState<string[]>([""]);
   const fees = useQuery({ queryKey: ["fee-quote", chain], queryFn: () => feeQuote({ data: { chain } }) });
-  const assist = useQuery({ queryKey: ["launch-assist"], queryFn: () => launchAssistReady(), staleTime: 300_000, retry: false });
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [launched, setLaunched] = useState<{ id: string; symbol: string; name: string } | null>(null);
   const draft = useMutation({
     mutationFn: async () => {
-      const res = await draftLaunchDescription({ data: { name, symbol, hint: description } });
+      const res = await draftLaunchDescription({ data: { name, symbol, hint: description, wallet: wallet.address ?? "" } });
       if (!res.ok) throw new Error(res.error);
       return res.text;
     },
     onSuccess: (text) => setDescription(text),
     onError: (err) => toast.error(err instanceof Error ? err.message : "That draft is not available right now."),
+  });
+  const genImage = useMutation({
+    mutationFn: async () => {
+      const meta = parseTokenMeta(name, symbol);
+      if (!meta.ok) throw new Error(meta.error);
+      try {
+        const res = await generateLaunchImage({ data: { name: meta.name, symbol: meta.symbol, description, wallet: wallet.address ?? "" } });
+        if (!res.ok) throw new Error(res.error);
+        // Same path as a user upload: square crop, compress, validate.
+        const file = dataUrlToFile(res.dataUrl, `${meta.symbol.toLowerCase()}.img`);
+        const art = await fileToTokenArt(file);
+        if (!isTokenArt(art)) throw new Error("Generated image did not pass the upload check.");
+        return { art, fallback: false };
+      } catch (err) {
+        const art = defaultTokenArt(meta.symbol, meta.name);
+        if (!art) throw err;
+        return { art, fallback: true, reason: err instanceof Error ? err.message : "" };
+      }
+    },
+    onSuccess: (r) => {
+      setImageUrl(r.art);
+      if (r.fallback) toast.message(`Image generator unavailable${r.reason ? ` (${r.reason})` : ""}. Using the default image.`);
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not make an image."),
   });
 
   const factory = cfg.data?.[factoryKey(chain)];
@@ -353,7 +376,13 @@ function Launch() {
             {step === 1 && (
               <>
                 <ArtPicker value={imageUrl} onChange={setImageUrl} size="hero" />
-                <p className="text-xs text-muted-foreground">Optional. Skip it and the token gets a clean default image with its ticker.</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="button" variant="outline" size="sm" onClick={() => genImage.mutate()} disabled={genImage.isPending || !step1Ok}>
+                    <Sparkles className="size-4" />
+                    {genImage.isPending ? "Generating… (up to 20s)" : "Generate image"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Optional. {step1Ok ? "Generate from the name and ticker, or skip" : "Add a name and ticker to generate, or skip"} for a default image.</p>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="name">Name</Label>
@@ -375,7 +404,7 @@ function Launch() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="desc">Description</Label>
-                    {assist.data?.text && (
+                    {(
                       <Button type="button" variant="outline" size="sm" onClick={() => draft.mutate()} disabled={draft.isPending}>
                         <Sparkles className="size-4" />
                         {draft.isPending ? "Writing…" : "Generate"}
@@ -383,7 +412,7 @@ function Launch() {
                     )}
                   </div>
                   <Textarea id="desc" required maxLength={280} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this token about?" />
-                  {assist.data?.text && <p className="text-xs text-muted-foreground">Generate writes a draft from the name and ticker. Edit it before you deploy.</p>}
+                  {<p className="text-xs text-muted-foreground">Generate writes a draft from the name and ticker. Edit it before you deploy.</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="x">X</Label>
@@ -681,6 +710,15 @@ function LaunchDone({ token, wallet }: { token: { id: string; symbol: string; na
       </p>
     </div>
   );
+}
+
+function dataUrlToFile(dataUrl: string, name: string): File {
+  const m = /^data:(image\/[a-z]+);base64,(.+)$/.exec(dataUrl);
+  if (!m) throw new Error("Generated image was not readable.");
+  const bin = atob(m[2]!);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new File([bytes], name, { type: m[1] });
 }
 
 async function developerBuy(input: {
