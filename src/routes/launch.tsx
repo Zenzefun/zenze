@@ -188,7 +188,7 @@ function Launch() {
       }
       const exempt = snipeExempt.map((a) => a.trim()).filter(Boolean);
       for (const addr of exempt) {
-        if (!isHexAddress(addr)) throw new Error("Snipe exemption wallets must be real addresses.");
+        if (!isHexAddress(addr)) throw new Error("One of the wallets in Advanced → Early-buy protection isn't a valid address. Fix it or remove it, then try again.");
       }
       if (!wallet.connected || !wallet.address) await wallet.connect();
       if (wallet.chainId !== CHAINS[chain].id) await wallet.switchChain(chain);
@@ -281,7 +281,7 @@ function Launch() {
             if (armedReceipt.status !== "success") throw new Error("Migrator was not set.");
           }
         } catch {
-          toast.error("Token launched. The Uniswap move could not be armed yet.");
+          toast.message("Your token is live. It trades normally. One optional extra (automatic Uniswap listing later) didn't switch on. Ask us on Telegram (t.me/zenzefun) and we'll help.");
         }
       }
       if (Number.isFinite(devAmt) && devAmt > 0 && isHexAddress(token.curve_address)) {
@@ -294,7 +294,7 @@ function Launch() {
             wallet,
           });
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Token launched. Developer buy did not confirm.");
+          toast.error(`Your token is live, but your first buy didn't go through. ${publicWalletError(err)} You can buy it any time from your token page.`);
         }
       }
       return token;
@@ -323,7 +323,11 @@ function Launch() {
         <div>
           <h1 className="text-3xl font-semibold">Create a token</h1>
           <p className="mt-2 text-muted-foreground">
-            Three steps.{" "}
+            Three steps. New to crypto?{" "}
+            <Link to="/start" className="font-medium text-gold underline-offset-2 hover:underline">
+              Launch your first token in 2 minutes
+            </Link>
+            .{" "}
             <Link to="/docs" className="font-medium text-stone underline-offset-2 hover:underline">
               Fee rules
             </Link>{" "}
@@ -434,7 +438,7 @@ function Launch() {
                   <ChainSelect value={chain} onChange={changeChain} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="devbuy">Developer buy</Label>
+                  <Label htmlFor="devbuy">Buy some yourself (optional)</Label>
                   <div className="flex gap-2">
                     <Input id="devbuy" inputMode="decimal" value={devBuy} onChange={(e) => setDevBuy(e.target.value)} placeholder="0" />
                     <span className="inline-flex h-11 shrink-0 items-center rounded-md border border-border bg-card px-3 text-sm font-medium">
@@ -442,41 +446,41 @@ function Launch() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Optional buy right after deploy. Leave 0 to skip. The estimate uses only the 2% fee.
+                    Leave 0 to skip. If you enter an amount, you buy right after your token goes live.
                     {devOut > 0
                       ? buyerExempt
                         ? ` This wallet is exempt, so that is about ${formatCompact(devOut)} ${symbol || "TOKEN"}.`
-                        : ` About ${formatCompact(devOut)} ${symbol || "TOKEN"} if exempt or after 3s; about ${formatCompact(devOutSniped)} at the launch second (anti-snipe tax). Exempt your wallet in Advanced for the larger fill.`
+                        : ` About ${formatCompact(devOut)} ${symbol || "TOKEN"} if exempt or after 3s; about ${formatCompact(devOutSniped)} in the first seconds (early-buy protection). Add your wallet in Advanced to skip it.`
                       : ""}
                   </p>
                 </div>
                 <details className="group rounded-xl border border-border">
                   <summary className="flex h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-medium">
-                    Advanced
+                    Advanced (optional)
                     <span className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
-                      {formatFeePct(shareOfFeePct)}% creator · {quoteAsset.symbol} pair
+                      Defaults are fine for most people
                       <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
                     </span>
                   </summary>
                   <div className="space-y-5 border-t border-border p-4">
                     <div className="space-y-2">
-                      <Label>Paired asset</Label>
+                      <Label>Trade it against</Label>
                       <PairSelect chain={chain} value={quote} onChange={setQuote} symbol={symbol || "TOKEN"} />
                       <QuotePool chain={chain} quote={quote} />
                     </div>
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">Holder fee sharing</p>
+                    <p className="text-sm font-medium">Share your earnings with holders</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {holderSharing
-                        ? "Holders claim your share of the fee. Locked at launch."
-                        : "The creator wallet receives your share of the fee. Turn this on before launch if holders should claim it instead. Locked at launch."}
+                        ? "Holders claim your earnings instead of you. This can't be changed after launch."
+                        : "Off: your earnings go to you. Can't be changed after launch."}
                     </p>
                   </div>
-                  <Switch checked={holderSharing} onCheckedChange={(v) => setHolderSharing(v === true)} aria-label="Holder fee sharing" />
+                  <Switch checked={holderSharing} onCheckedChange={(v) => setHolderSharing(v === true)} aria-label="Share your earnings with holders" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="creator-wallet">Creator wallet</Label>
+                  <Label htmlFor="creator-wallet">Send my earnings to</Label>
                   <Input
                     id="creator-wallet"
                     value={creatorWallet}
@@ -491,7 +495,7 @@ function Launch() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="creator-tax">Your slice of the fee</Label>
+                  <Label htmlFor="creator-tax">How much you earn from trades</Label>
                   <input
                     id="creator-tax-range"
                     type="range"
@@ -532,9 +536,9 @@ function Launch() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Launch buy-tax exemptions</Label>
+                  <Label>Early-buy protection: skip list</Label>
                   <p className="text-xs text-muted-foreground">
-                    Buys in the first 3s pay a 99%→0% tax that stays in the pool; listed wallets (up to 8) skip it.{" "}
+                    Your token is protected from bots in its first seconds. Wallets you add here (up to 8) are not slowed down by that protection.{" "}
                     <Link to="/docs" className="underline-offset-2 hover:underline">Details</Link>
                   </p>
                   <div className="space-y-2">
@@ -607,7 +611,7 @@ function Launch() {
                 </details>
                 {lowGas && (
                   <p className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
-                    <span>Your wallet looks low on {fees.data?.nativeSymbol ?? "gas"} for this deploy.</span>
+                    <span>Your wallet needs a little more {fees.data?.nativeSymbol ?? "gas"} to launch. <Link to="/start" hash="gas" className="underline">How to get it</Link></span>
                     <Link to="/fund" className="inline-flex shrink-0 items-center gap-1 font-medium text-gold underline-offset-2 hover:underline">
                       <Fuel className="size-4" /> Get gas
                     </Link>
@@ -615,8 +619,8 @@ function Launch() {
                 )}
                 <p className="text-xs text-muted-foreground">
                   {fees.data
-                    ? `Deploy sends ${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol} with this transaction${fees.data.legacyFactory ? " (the factory minimum, when that is above the desk quote)" : ` (about $${Number(fees.data.launchUsd).toFixed(2)} launch take)`}. Network gas is extra. This is not the 2% trade fee.`
-                    : "Deploy pays the launch take (default $0.50 in the gas token) plus network gas. That is not the 2% trade fee."}
+                    ? `Deploy sends ${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol} with this transaction as the launch fee. A small network fee (gas) is added by your wallet.`
+                    : "Deploy pays a small launch fee plus a network fee (gas) from your wallet."}
                 </p>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} disabled={mut.isPending}>Back</Button>

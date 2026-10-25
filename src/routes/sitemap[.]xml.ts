@@ -18,6 +18,7 @@ const STATIC = [
   "/bridge",
   "/fund",
   "/guide",
+  "/start",
   "/airdrop",
   "/docs",
   "/legal",

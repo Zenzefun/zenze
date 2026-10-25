@@ -108,13 +108,25 @@ export function publicWalletError(err: unknown): string {
   }
   const raw = flattenWalletError(err);
   if (/insufficient funds|insufficient gas|gas required exceeds|max fee per gas less|replacement transaction underpriced/i.test(raw)) {
-    return "Not enough native token for this transaction. Top up a little more ETH on Robinhood, or USDC on Arc, then retry.";
+    return "Not enough gas in your wallet. Add a little ETH (Robinhood Chain) or USDC (Arc), then try again. How: zenze.fun/start#gas";
   }
   if (/user rejected|rejected the request|denied transaction|action_rejected/i.test(raw)) {
-    return "Transaction was rejected in the wallet.";
+    return "You cancelled it in your wallet. Nothing was sent. Tap the button again when you're ready.";
+  }
+  if (/chain mismatch|wrong network|unsupported chain|does not match the target chain|switch.*chain|unrecognized chain|chain id/i.test(raw)) {
+    return "Your wallet is on a different network. Switch it to Robinhood Chain or Arc (your wallet will ask), then try again.";
+  }
+  if (/no wallet|not connected|connector not found|provider not found|no provider/i.test(raw)) {
+    return "No wallet connected. Tap Wallet at the top, connect, then try again. New to wallets? See zenze.fun/start.";
+  }
+  if (/timeout|timed out|network error|failed to fetch|fetch failed|rate limit|429/i.test(raw)) {
+    return "The network is slow right now. Wait a few seconds and try again.";
+  }
+  if (/execution reverted|revert/i.test(raw)) {
+    return "The network refused this transaction, so nothing was spent except maybe a tiny gas fee. Check your inputs and try again, or ask us on Telegram (t.me/zenzefun).";
   }
   if (err instanceof Error && err.message.trim()) return err.message;
-  return "Wallet connection was rejected.";
+  return "The wallet didn't respond. Open your wallet app, then try again.";
 }
 
 function flattenWalletError(err: unknown): string {

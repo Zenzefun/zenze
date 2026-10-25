@@ -31,6 +31,7 @@ import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StakingRouteImport } from './routes/staking'
+import { Route as StartRouteImport } from './routes/start'
 import { Route as ZnzfRouteImport } from './routes/znzf'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiXPulseRouteImport } from './routes/api/x-pulse'
@@ -160,6 +161,11 @@ const StakingRoute = StakingRouteImport.update({
   path: '/staking',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StartRoute = StartRouteImport.update({
+  id: '/start',
+  path: '/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZnzfRoute = ZnzfRouteImport.update({
   id: '/znzf',
   path: '/znzf',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/staking': typeof StakingRoute
+  '/start': typeof StartRoute
   '/znzf': typeof ZnzfRoute
   '/api/health': typeof ApiHealthRoute
   '/api/x-pulse': typeof ApiXPulseRoute
@@ -314,6 +321,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/staking': typeof StakingRoute
+  '/start': typeof StartRoute
   '/znzf': typeof ZnzfRoute
   '/api/health': typeof ApiHealthRoute
   '/api/x-pulse': typeof ApiXPulseRoute
@@ -357,6 +365,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/staking': typeof StakingRoute
+  '/start': typeof StartRoute
   '/znzf': typeof ZnzfRoute
   '/api/health': typeof ApiHealthRoute
   '/api/x-pulse': typeof ApiXPulseRoute
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/staking'
+    | '/start'
     | '/znzf'
     | '/api/health'
     | '/api/x-pulse'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/staking'
+    | '/start'
     | '/znzf'
     | '/api/health'
     | '/api/x-pulse'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/staking'
+    | '/start'
     | '/znzf'
     | '/api/health'
     | '/api/x-pulse'
@@ -526,6 +538,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StakingRoute: typeof StakingRoute
+  StartRoute: typeof StartRoute
   ZnzfRoute: typeof ZnzfRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiXPulseRoute: typeof ApiXPulseRoute
@@ -689,6 +702,13 @@ declare module '@tanstack/react-router' {
       path: '/staking'
       fullPath: '/staking'
       preLoaderRoute: typeof StakingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/start': {
+      id: '/start'
+      path: '/start'
+      fullPath: '/start'
+      preLoaderRoute: typeof StartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/znzf': {
@@ -881,6 +901,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StakingRoute: StakingRoute,
+  StartRoute: StartRoute,
   ZnzfRoute: ZnzfRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiXPulseRoute: ApiXPulseRoute,

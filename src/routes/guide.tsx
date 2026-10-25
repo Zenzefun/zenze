@@ -22,6 +22,12 @@ function Guide() {
       <article className="mx-auto max-w-3xl px-4 py-10">
         <h1 className="text-3xl font-semibold">Guide</h1>
         <p className="mt-2 text-muted-foreground">Buy $ZNZF, launch your own, or list one you already have.</p>
+        <p className="mt-3 text-sm">
+          New here?{" "}
+          <Link to="/start" className="font-medium text-gold underline">
+            Launch your first token in 2 minutes
+          </Link>
+        </p>
 
         <h2 className="mt-10 text-2xl font-semibold">1. Connect</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">

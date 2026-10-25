@@ -48,6 +48,13 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
             </Link>
           </Button>
         </div>
+        <p className="mt-3 text-sm text-muted-foreground">
+          First time?{" "}
+          <Link to="/start" className="font-medium text-gold underline-offset-2 hover:underline">
+            Launch your first token in 2 minutes
+          </Link>
+          : wallet, gas, and the 3 steps.
+        </p>
         <HowItWorks />
         <dl className="mt-6 grid max-w-xl grid-cols-3 gap-3">
           <HeroStat label="Tokens" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
