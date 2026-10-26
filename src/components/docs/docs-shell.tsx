@@ -200,7 +200,7 @@ export function DocsShell({ doc, children }: { doc: DocsDoc; children?: ReactNod
     <AppShell>
       <div className="mx-auto flex w-full max-w-6xl gap-8 px-3 py-8 sm:px-4 lg:py-10">
         <aside className="hidden w-56 shrink-0 lg:block">
-          <div className="sticky top-20 space-y-4">
+          <div className="sticky top-28 space-y-4">
             <div>
               <p className="font-display text-lg font-semibold">Zenzen docs</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{DOCS_VERSION}</p>

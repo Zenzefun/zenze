@@ -321,8 +321,8 @@ function Launch() {
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
       <div className="mx-auto grid max-w-5xl gap-10 px-4 py-10 md:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <h1 className="text-3xl font-semibold">Create a token</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="max-w-[680px] text-3xl font-semibold text-balance sm:text-4xl">Create a token</h1>
+          <p className="mt-3 max-w-[680px] text-pretty text-muted-foreground">
             Three steps. New to crypto?{" "}
             <Link to="/start" className="font-medium text-gold underline-offset-2 hover:underline">
               Launch your first token in 2 minutes
@@ -345,7 +345,7 @@ function Launch() {
                     disabled={!reachable}
                     onClick={() => setStep(n)}
                     aria-current={n === step ? "step" : undefined}
-                    className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-2 font-medium transition-colors ${n === step ? "border-gold bg-card text-foreground" : "border-border text-muted-foreground"} disabled:opacity-50`}
+                    className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${n === step ? "border-gold bg-card text-foreground" : "border-border text-muted-foreground hover:bg-muted"} disabled:opacity-50`}
                   >
                     {done ? <Check className="size-3.5" /> : <span>{n}.</span>} {label}
                   </button>
@@ -458,8 +458,8 @@ function Launch() {
                   <summary className="flex h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-medium">
                     Advanced (optional)
                     <span className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
-                      Defaults are fine for most people
-                      <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                      Skip this on a first launch
+                      <ChevronDown className="size-4 transition-transform duration-500 ease-soft group-open:rotate-180" />
                     </span>
                   </summary>
                   <div className="space-y-5 border-t border-border p-4">

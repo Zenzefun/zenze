@@ -3,11 +3,11 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChainMark } from "@/components/chains/chain-mark";
 import { AppShell } from "@/components/layout/app-shell";
-import { SmartImage } from "@/components/media/smart-image";
 import { TokenBoard } from "@/components/tokens/token-board";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TokenListSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/site/empty-state";
 import type { ChainKey } from "@/lib/chains";
 import { protocolStats, listTokens } from "@/lib/server/market";
 import { pageHead } from "@/lib/seo";
@@ -57,8 +57,8 @@ function Explore() {
   return (
     <AppShell znzfPrice={stats.data?.znzfPriceUsd}>
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-3xl font-semibold">Explore</h1>
-        <p className="mt-2 max-w-xl text-muted-foreground">Every pool on Zenzen. Search by name or ticker, then narrow it to one chain.</p>
+        <h1 className="max-w-[680px] text-3xl font-semibold sm:text-4xl">Explore</h1>
+        <p className="mt-2 max-w-[680px] text-pretty text-muted-foreground">Every pool on Zenzen. Search by name or ticker, then narrow it to one chain.</p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Input
             value={q}
@@ -77,21 +77,27 @@ function Explore() {
           </div>
         </div>
         <div className="mt-8">
-          {tokens.isPending && <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>}
+          {tokens.isPending && <TokenListSkeleton rows={6} />}
           <TokenBoard tokens={list} showDescription={false} />
         </div>
         {tokens.isError && <QueryError onRetry={() => void tokens.refetch()} />}
         {!tokens.isPending && !tokens.isError && list.length === 0 && (
-          <div className="mx-auto mt-12 max-w-sm text-center">
-            <SmartImage src="/brand/capy-sleep.webp" alt="" width={160} height={160} className="mx-auto w-40 rounded-xl" rounded="xl" />
-            <p className="mt-4 text-muted-foreground">The pool is still. Launch the first token.</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              <HomeButton />
-              <Button asChild variant="gold">
-                <Link to="/launch">Launch a token</Link>
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            title={(tokens.data ?? []).length === 0 ? "No tokens yet" : "No tokens match"}
+            body={
+              (tokens.data ?? []).length === 0
+                ? "Be the first to open a pool. Name a token and it can trade the moment it launches."
+                : "Nothing matches that name, ticker, or chain. Clear the filters, or launch a token."
+            }
+            actions={
+              <>
+                <HomeButton variant="outline" />
+                <Button asChild variant="gold">
+                  <Link to="/launch">Launch a token</Link>
+                </Button>
+              </>
+            }
+          />
         )}
       </div>
     </AppShell>

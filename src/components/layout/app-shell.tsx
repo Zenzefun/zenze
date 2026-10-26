@@ -20,9 +20,12 @@ export function AppShell({ children, znzfPrice }: { children: ReactNode; znzfPri
   }, [address]);
 
   return (
-    <div className="flex min-h-dvh min-w-0 flex-col overflow-x-hidden steam-veil">
+    <div className="relative flex min-h-dvh min-w-0 flex-col overflow-x-hidden steam-veil">
+      <a href="#content" className="skip-link">
+        Skip to content
+      </a>
       <Header znzfPrice={znzfPrice} />
-      <main className="page-swap min-w-0 flex-1">{children}</main>
+      <main id="content" className="page-swap min-w-0 flex-1">{children}</main>
       <Footer />
       <MobileActionBar />
     </div>

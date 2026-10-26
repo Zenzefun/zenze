@@ -23,6 +23,11 @@ import { publicWalletError, txGas, useWallet } from "@/lib/wallet";
 
 export { hasQuotedPool, hasTradablePool };
 
+const TRADE_TAB =
+  "rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]";
+const TRADE_TAB_ON = `${TRADE_TAB} bg-gold text-ink`;
+const TRADE_TAB_OFF = `${TRADE_TAB} text-muted-foreground hover:text-foreground`;
+
 function parseAmt(raw: string): number {
   const n = Number(raw.replace(/,/g, ""));
   return Number.isFinite(n) ? n : 0;
@@ -540,7 +545,7 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
             role="tab"
             aria-selected={order === "market"}
             onClick={() => chooseOrder("market")}
-            className={order === "market" ? "rounded-full bg-[#c8f54a] px-3 py-1 text-[#111]" : "rounded-full px-3 py-1 text-muted-foreground"}
+            className={order === "market" ? TRADE_TAB_ON : TRADE_TAB_OFF}
           >
             Market
           </button>
@@ -549,14 +554,14 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
             role="tab"
             aria-selected={order === "limit"}
             onClick={() => chooseOrder("limit")}
-            className={order === "limit" ? "rounded-full bg-[#c8f54a] px-3 py-1 text-[#111]" : "rounded-full px-3 py-1 text-muted-foreground"}
+            className={order === "limit" ? TRADE_TAB_ON : TRADE_TAB_OFF}
           >
             Limit
           </button>
         </div>
         {order === "market" && (
           <div className="relative">
-            <button type="button" onClick={() => setSlipOpen((open) => !open)} className="text-xs text-muted-foreground">
+            <button type="button" onClick={() => setSlipOpen((open) => !open)} className="rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors duration-300 ease-soft hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Slippage {slipLabel(slippageBps)} <span className="font-semibold text-foreground">Adjust</span>
             </button>
             {slipOpen && (
@@ -570,7 +575,7 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
                         setSlippageBps(bps);
                         setSlipOpen(false);
                       }}
-                      className={`h-8 rounded-full text-xs font-medium ${slippageBps === bps ? "bg-[#c8f54a] text-[#111]" : "border border-border"}`}
+                      className={`h-8 rounded-full text-xs font-semibold transition-colors duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] ${slippageBps === bps ? "bg-gold text-ink" : "border border-border"}`}
                     >
                       {slipLabel(bps)}
                     </button>
@@ -667,7 +672,7 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
             key={p}
             type="button"
             onClick={() => fillPct(p)}
-            className="h-9 rounded-full border border-border bg-card text-xs font-medium hover:bg-muted"
+            className="h-9 rounded-full border border-border bg-card text-xs font-semibold transition-colors duration-300 ease-soft hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
           >
             {p === 100 ? "Max" : `${p}%`}
           </button>
@@ -675,7 +680,8 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
       </div>
       {feeNote ? <p className="text-center text-xs text-muted-foreground">{feeNote}</p> : null}
       <Button
-        className="h-12 w-full rounded-full bg-[#c8f54a] text-base font-semibold text-[#111] hover:opacity-90"
+        variant="gold"
+        className="w-full rounded-full"
         disabled={busy || (wallet.connected && (!route.ok || sellBlocked || limitBlocked || quoting))}
         onClick={() => {
           if (!wallet.connected) {
@@ -686,7 +692,7 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
         }}
       >
         {!wallet.connected
-          ? "Connect Wallet"
+          ? "Connect wallet"
           : busy
             ? "Waiting on the wallet…"
             : quoting
@@ -767,7 +773,7 @@ function SwapLeg({
           {onMax && (
             <>
               <span className="tabular-nums">{formatAmount(available, 6)} available</span>
-              <button type="button" onClick={onMax} className="rounded-full bg-[#c8f54a] px-2 py-0.5 text-xs font-semibold text-[#111]">
+              <button type="button" onClick={onMax} className="rounded-full bg-gold px-3 py-1 text-xs font-semibold text-ink transition-colors duration-300 ease-soft hover:bg-gold/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]">
                 Max
               </button>
             </>

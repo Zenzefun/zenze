@@ -1,14 +1,15 @@
 import { pageHead } from "@/lib/seo";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { SmartImage } from "@/components/media/smart-image";
 import { AppShell } from "@/components/layout/app-shell";
 import { RecentLaunches, TokenBoard } from "@/components/tokens/token-board";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TokenListSkeleton } from "@/components/ui/skeleton";
 import { FeaturedToken } from "@/components/home/featured-token";
 import { HomeHero } from "@/components/home/home-hero";
+import { TaglineReveal } from "@/components/home/tagline-reveal";
 import { TradeTicker } from "@/components/home/trade-ticker";
+import { EmptyState } from "@/components/site/empty-state";
 import { TrustStrip } from "@/components/site/trust-strip";
 import { pickAboutToGraduate, pickNewestCurve } from "@/lib/token-stage";
 import { listTokens, protocolStats } from "@/lib/server/market";
@@ -51,20 +52,23 @@ function Home() {
         {board.length > 0 && <TradeTicker tokens={board} className="mt-3" />}
         {featured && <FeaturedToken token={featured} reason={featuredReason} className="mt-4" />}
       </div>
+      <TaglineReveal />
       <section className="mx-auto max-w-6xl px-4 py-6" aria-labelledby="board-title">
-        <h2 id="board-title" className="mb-3 text-xl font-semibold sm:text-2xl">
+        <h2 id="board-title" className="mb-4 text-2xl font-semibold">
           Tokens
         </h2>
-        {tokens.isPending && <div className="grid gap-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>}
+        {tokens.isPending && <TokenListSkeleton />}
         <TokenBoard tokens={board} />
         {!tokens.isPending && board.length === 0 && (
-          <div className="mx-auto mt-10 max-w-md text-center">
-            <SmartImage src="/brand/capy-sleep.webp" alt="" width={160} height={160} className="mx-auto w-40 rounded-xl" rounded="xl" />
-            <p className="mt-4 text-muted-foreground">No tokens yet.</p>
-            <Button asChild className="mt-4" variant="gold">
-              <Link to="/launch">Launch a token</Link>
-            </Button>
-          </div>
+          <EmptyState
+            title="No tokens yet"
+            body="Be the first to open a pool. Name a token and it can trade the moment it launches."
+            actions={
+              <Button asChild variant="gold">
+                <Link to="/launch">Launch a token</Link>
+              </Button>
+            }
+          />
         )}
         <TrustStrip className="mt-8" />
       </section>

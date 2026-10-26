@@ -23,7 +23,7 @@ function Ext({ href, children }: { href: string; children: React.ReactNode }) {
 
 function Step({ n, title, children, id }: { n: number; title: string; children: React.ReactNode; id?: string }) {
   return (
-    <section id={id} className="stone-card mt-6 scroll-mt-24 rounded-xl p-5">
+    <section id={id} className="stone-card mt-6 scroll-mt-28 rounded-2xl p-6">
       <h2 className="flex items-center gap-3 text-xl font-semibold">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-black">{n}</span>
         {title}
@@ -37,14 +37,17 @@ function Start() {
   return (
     <AppShell>
       <article className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="text-3xl font-semibold">Launch your first token in 2 minutes</h1>
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="max-w-[680px] text-3xl font-semibold text-balance sm:text-4xl">Launch your first token in 2 minutes</h1>
+        <p className="mt-3 max-w-[680px] text-pretty text-muted-foreground">
           Never done this before? No problem. You need two things: a wallet, and a little gas to pay the network. Then it's 3 short
           steps.
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 max-w-[680px] text-xs text-pretty text-muted-foreground">
           The 2 minutes is the launch itself. Getting gas the first time can take longer, depending on where your crypto is now.
         </p>
+        <Button asChild variant="gold" className="mt-6">
+          <Link to="/launch">Start my token</Link>
+        </Button>
 
         <Step n={1} title="Get a wallet">
           <p>A wallet is an app that holds your crypto and signs for you. Pick one and install it:</p>

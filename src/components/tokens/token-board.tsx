@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { ChainMark } from "@/components/chains/chain-mark";
 import { TokenImage } from "@/components/media/smart-image";
 import { TokenCard } from "@/components/tokens/token-card";
+import { EmptyState } from "@/components/site/empty-state";
 import { Button } from "@/components/ui/button";
 import { asNumber, formatCompact, formatMcap, formatUsdCompact, formatUsdMaybe } from "@/lib/format";
 import { pairLabel } from "@/lib/pairs";
@@ -143,7 +144,21 @@ export function TokenBoard({ tokens }: { tokens: EnrichedToken[]; showDescriptio
       <p className="mt-3 text-sm text-muted-foreground">{NOTES[lane]}</p>
       <div id="token-board-rows" role="tabpanel" aria-labelledby={`lane-${lane}`}>
         {rows.length === 0 ? (
-          <p className="mt-8 text-sm text-muted-foreground">Nothing in this filter yet.</p>
+          <EmptyState
+            image={false}
+            title="Nothing in this filter"
+            body="This stage has no tokens right now. Show every pool, or launch one."
+            actions={
+              <>
+                <Button variant="gold" onClick={() => setLane("all")}>
+                  Show all tokens
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to="/launch">Launch a token</Link>
+                </Button>
+              </>
+            }
+          />
         ) : view === "grid" ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rows.map((token) => (
@@ -169,7 +184,7 @@ function TokenRow({ token }: { token: EnrichedToken }) {
   const stage = curveStage(token);
   const protocol = tokenBoardKind(token) === "protocol";
   const body = (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 transition-colors hover:bg-muted/60 sm:grid-cols-[auto_minmax(0,1.4fr)_auto_auto_auto] sm:gap-4 sm:px-4">
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 transition-colors duration-300 ease-soft hover:bg-muted/60 sm:grid-cols-[auto_minmax(0,1.4fr)_auto_auto_auto] sm:gap-4 sm:px-4">
       <TokenImage src={token.image_url} alt="" size={44} seed={token.id} protocol={protocol} className="size-11 sm:size-10" />
       <div className="min-w-0">
         <p className="truncate font-medium">
@@ -204,10 +219,10 @@ function TokenRow({ token }: { token: EnrichedToken }) {
           <span>{stage.label}</span>
           <span className="tabular-nums">{stage.value}</span>
         </div>
-        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className={cn("h-full rounded-full", stage.onCurve ? "bg-moss" : "bg-gold", stage.onCurve && stage.progress < 1 && "animate-pulse")}
-            style={{ width: `${Math.max(stage.onCurve ? stage.progress : 100, 3)}%` }}
+            className={cn("fill-bar h-full w-full origin-left rounded-full", stage.onCurve ? "bg-moss" : "bg-gold", stage.onCurve && stage.progress < 1 && "animate-pulse")}
+            style={{ transform: `scaleX(${Math.max(stage.onCurve ? stage.progress : 100, 3) / 100})` }}
           />
         </div>
       </div>

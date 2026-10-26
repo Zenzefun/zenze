@@ -19,12 +19,13 @@ import { ZERO_ADDRESS } from "@/lib/chains";
 import { asNumber, formatAddress, formatCompact, formatEth, formatMcap, formatUsd, formatUsdCompact, formatUsdTiny, timeAgo } from "@/lib/format";
 import { ogDescriptionForToken, ogTitleForToken, tokenSharePath, tweetForToken } from "@/lib/og-copy";
 import { pairLabel } from "@/lib/pairs";
-import { SmartImage, TokenImage } from "@/components/media/smart-image";
+import { TokenImage } from "@/components/media/smart-image";
 import { HomeButton } from "@/components/site/home-button";
 import { hasDexPool, hasQuotedPool, hasTradablePool, isGraduatedPool, isProtocolToken, tokenStatMode, tokenSwapReady } from "@/lib/pool";
 import { getToken, onchainHolders, protocolStats } from "@/lib/server/market";
 import { cardUrl, pageHead } from "@/lib/seo";
 import { QueryError } from "@/components/site/query-error";
+import { EmptyState } from "@/components/site/empty-state";
 import { PublicNotFound } from "@/components/not-found-public";
 import { isHexAddress } from "@/lib/intent";
 import { isZnzfRef, znzfLaunchpadId } from "@/lib/token-path";
@@ -110,8 +111,19 @@ function TokenPage() {
   if (q.isPending) {
     return (
       <AppShell>
-        <div className="mx-auto max-w-6xl px-3 py-8 sm:px-4">
-          <Skeleton className="h-72 rounded-xl" />
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-3 py-8 sm:px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]" aria-busy="true" aria-label="Loading token">
+          <div>
+            <div className="flex items-start gap-4">
+              <Skeleton className="size-20 shrink-0 rounded-full sm:size-28" />
+              <div className="min-w-0 flex-1 space-y-3 pt-2">
+                <Skeleton className="h-8 w-48 max-w-full" />
+                <Skeleton className="h-4 w-64 max-w-full" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+            </div>
+            <Skeleton className="mt-6 h-64 rounded-xl" />
+          </div>
+          <Skeleton className="h-80 rounded-2xl" />
         </div>
       </AppShell>
     );
@@ -126,16 +138,18 @@ function TokenPage() {
   if (!q.data) {
     return (
       <AppShell>
-        <div className="mx-auto max-w-sm px-4 py-16 text-center">
-          <SmartImage src="/brand/capy-sleep.webp" alt="" width={192} height={192} className="mx-auto w-48 rounded-xl" rounded="xl" />
-          <p className="mt-4">This pool is empty.</p>
-          <div className="mt-4 flex flex-wrap justify-center gap-3">
-            <HomeButton />
-            <Button asChild variant="outline">
-              <Link to="/explore">Back to explore</Link>
-            </Button>
-          </div>
-        </div>
+        <EmptyState
+          title="This token is not listed"
+          body="The link may be old. Go home or browse live tokens."
+          actions={
+            <>
+              <HomeButton />
+              <Button asChild variant="outline">
+                <Link to="/explore">Back to explore</Link>
+              </Button>
+            </>
+          }
+        />
       </AppShell>
     );
   }
@@ -277,7 +291,7 @@ function TokenPage() {
           </div>
         </div>
 
-        <aside id="swap" className="min-w-0 scroll-mt-24 space-y-4 lg:sticky lg:top-20 lg:row-span-4 lg:self-start">
+        <aside id="swap" className="min-w-0 scroll-mt-28 space-y-4 lg:sticky lg:top-28 lg:row-span-4 lg:self-start">
           {live ? (
             <>
               {curveLive || graduated ? (

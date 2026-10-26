@@ -118,7 +118,7 @@ function AppKitTree({ projectId, children }: { projectId: string; children: Reac
       themeMode={theme === "dark" ? "dark" : "light"}
       themeVariables={{
         "--apkt-accent": "#d4a545",
-        "--apkt-font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "--apkt-font-family": "Geist, ui-sans-serif, system-ui, sans-serif",
         "--apkt-border-radius-master": "12px",
         "--apkt-z-index": 12000,
       }}

@@ -76,10 +76,10 @@ function TokenCardBody({ token, showDescription }: { token: Enriched; showDescri
             {kind === "protocol" || !onCurve ? "Live" : progress < 1 ? "Just opened" : `${progress.toFixed(0)}%`}
           </span>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className={`fill-bar h-full rounded-full ${onCurve ? "bg-moss" : "bg-foreground/35"}`}
-            style={{ width: `${Math.max(progress, onCurve ? 3 : 100)}%` }}
+            className={`fill-bar h-full w-full origin-left rounded-full ${onCurve ? "bg-moss" : "bg-foreground/35"}`}
+            style={{ transform: `scaleX(${Math.max(progress, onCurve ? 3 : 100) / 100})` }}
           />
         </div>
       </div>

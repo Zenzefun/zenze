@@ -8,7 +8,7 @@ import { publishedContractLinks } from "@/lib/contract-links";
 import { formatAddress } from "@/lib/format";
 
 const LINKS =
-  "mt-1 grid grid-cols-2 gap-x-4 text-sm text-muted-foreground sm:mt-3 sm:block sm:space-y-2 [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:rounded-sm [&_a]:transition-colors [&_a]:duration-200 [&_a]:hover:text-foreground [&_a]:focus-visible:outline-none [&_a]:focus-visible:ring-2 [&_a]:focus-visible:ring-ring sm:[&_a]:inline-flex sm:[&_a]:min-h-0";
+  "mt-1 grid grid-cols-2 gap-x-4 text-sm text-muted-foreground sm:mt-3 sm:block sm:space-y-2 [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:rounded-lg [&_a]:transition-colors [&_a]:duration-300 [&_a]:ease-soft [&_a]:hover:text-foreground [&_a]:focus-visible:outline-none [&_a]:focus-visible:ring-2 [&_a]:focus-visible:ring-ring sm:[&_a]:inline-flex sm:[&_a]:min-h-0";
 
 export function Footer() {
   return (
@@ -75,7 +75,7 @@ export function Footer() {
         </p>
       </div>
       <div className="border-t border-border/70 py-4 text-center text-xs text-muted-foreground">
-        © 2026 Zenzen · $ZNZF · v2.11.2
+        © 2026 Zenzen · $ZNZF · v2.11.4
       </div>
     </footer>
   );

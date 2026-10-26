@@ -26,7 +26,7 @@ export function PublicNotFound() {
       <StealthHead />
       <div className="steam-veil pointer-events-none absolute inset-0" />
       <div className="relative max-w-md page-enter">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone stagger-item">404</p>
+        <p className="text-sm font-semibold text-stone stagger-item">Page not found</p>
         <SmartImage
           src="/brand/capy-zen.webp"
           alt="Capy sitting on a river rock"
@@ -36,13 +36,13 @@ export function PublicNotFound() {
           rounded="2xl"
         />
         <h1 className="mt-6 font-display text-3xl font-semibold stagger-item" style={{ animationDelay: "80ms" }}>
-          This pool ran dry
+          This page is not here
         </h1>
         <p
-          className="mt-3 text-sm leading-relaxed text-muted-foreground stagger-item"
+          className="mt-3 text-sm text-pretty text-muted-foreground stagger-item"
           style={{ animationDelay: "160ms" }}
         >
-          That path is not on Zenzen. The river still runs — head home or pick a live pool.
+          That link does not match a page on Zenzen. Go home or open a live token.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3 stagger-item" style={{ animationDelay: "240ms" }}>
           <HomeButton />

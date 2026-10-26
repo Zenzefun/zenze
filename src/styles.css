@@ -31,18 +31,11 @@
   --color-cream: #fdf6e3;
   --color-ink: #2b2b2b;
   --color-stone: #6b4f3a;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.75rem;
-  --radius-2xl: 2rem;
-  --radius: 0.75rem;
-  --ease-soft: cubic-bezier(0.2, 0, 0, 1);
-  --animate-leaf-sway: leaf-sway 3.6s ease-in-out infinite;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-leaf-sway: leaf-sway 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 html.dark {
@@ -143,9 +136,8 @@ html.dark {
   h2,
   h3 {
     font-family: var(--font-display);
+    font-weight: 600;
     text-wrap: balance;
-    letter-spacing: -0.03em;
-    line-height: 1.15;
   }
 
   p {
@@ -159,20 +151,12 @@ html.dark {
   }
 
   .steam-veil {
-    background:
-      radial-gradient(ellipse 80% 50% at 20% 0%, color-mix(in oklab, var(--color-steam) 28%, transparent), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 90% 10%, color-mix(in oklab, var(--color-sand) 45%, transparent), transparent 55%);
-  }
-
-  html.dark .steam-veil {
-    background:
-      radial-gradient(ellipse 80% 50% at 20% 0%, color-mix(in oklab, var(--color-steam) 16%, transparent), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 90% 10%, color-mix(in oklab, var(--color-gold) 8%, transparent), transparent 55%);
+    background: var(--color-background);
   }
 
   .leaf-sway {
     transform-origin: 17px 8px;
-    animation: leaf-sway 3.6s ease-in-out infinite;
+    animation: leaf-sway 3.6s var(--ease-soft) infinite;
   }
 
   .stone-card,
@@ -185,10 +169,10 @@ html.dark {
       inset 0 1px 0 color-mix(in oklab, white 70%, transparent),
       0 16px 40px -24px color-mix(in oklab, var(--color-stone) 32%, transparent);
     transition:
-      transform 200ms var(--ease-soft),
-      box-shadow 200ms var(--ease-soft),
-      border-color 200ms var(--ease-soft),
-      background-color 200ms var(--ease-soft);
+      transform 500ms var(--ease-soft),
+      box-shadow 500ms var(--ease-soft),
+      border-color 300ms var(--ease-soft),
+      background-color 300ms var(--ease-soft);
   }
 
   a.stone-card:hover,
@@ -282,7 +266,7 @@ html.dark {
   }
 
   .capy-bob {
-    animation: capy-bob 3.2s ease-in-out infinite;
+    animation: capy-bob 3.2s var(--ease-soft) infinite;
   }
 
   @keyframes capy-pop {
@@ -297,11 +281,11 @@ html.dark {
   }
 
   .capy-pop {
-    animation: capy-pop 0.45s ease-out both;
+    animation: capy-pop 0.5s var(--ease-soft) both;
   }
 
   .page-enter {
-    animation: page-enter 0.5s ease-out both;
+    animation: page-enter 0.5s var(--ease-soft) both;
   }
 
   html:not(.capy-ready) .page-enter,
@@ -310,7 +294,7 @@ html.dark {
   }
 
   .stagger-item {
-    animation: stagger-in 0.52s ease-out both;
+    animation: stagger-in 0.5s var(--ease-soft) both;
   }
 
   .znzf-stage {
@@ -334,7 +318,7 @@ html.dark {
     inset: 0;
     z-index: 0;
     overflow: hidden;
-    border-radius: 1.25rem;
+    border-radius: 1rem;
     background:
       radial-gradient(ellipse 80% 55% at 50% 88%, rgba(212, 165, 69, 0.28), transparent 62%),
       radial-gradient(circle at 30% 20%, rgba(168, 197, 214, 0.16), transparent 42%),
@@ -371,7 +355,7 @@ html.dark {
     top: 26%;
     width: 56%;
     transform: rotateY(-22deg) rotateX(14deg) rotateZ(-6deg);
-    animation: znzf-float-a 5.6s ease-in-out infinite;
+    animation: znzf-float-a 5.6s var(--ease-soft) infinite;
   }
 
   .znzf-coin-b {
@@ -379,7 +363,7 @@ html.dark {
     top: 12%;
     width: 52%;
     transform: rotateY(20deg) rotateX(10deg) rotateZ(5deg);
-    animation: znzf-float-b 6.4s ease-in-out infinite;
+    animation: znzf-float-b 6.4s var(--ease-soft) infinite;
   }
 
   .znzf-coin-3d {
@@ -494,7 +478,7 @@ html.capy-ready #capy-boot {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  transition: opacity 0.28s ease, visibility 0.28s;
+  transition: opacity 300ms var(--ease-soft), visibility 300ms var(--ease-soft);
 }
 html.capy-ready #capy-boot.is-gone,
 #capy-boot.is-gone {
@@ -517,7 +501,7 @@ html.capy-ready #capy-boot.is-gone,
   border-radius: 999px;
   background: linear-gradient(90deg, #ead9b8 0%, #f7edd8 50%, #ead9b8 100%);
   background-size: 200% 100%;
-  animation: capy-skel 1.2s ease-in-out infinite;
+  animation: capy-skel 1.2s linear infinite;
 }
 html.dark .capy-boot-skel {
   background: linear-gradient(90deg, #2a221c 0%, #3a2f27 50%, #2a221c 100%);
@@ -552,14 +536,14 @@ html.dark .capy-boot-skel {
 }
 .rise-in {
   transform: translate(-50%, -50%);
-  animation: rise-in 0.28s ease-out both;
+  animation: rise-in 0.5s var(--ease-soft) both;
 }
 @keyframes veil-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 .veil-in {
-  animation: veil-in 0.2s ease-out both;
+  animation: veil-in 0.3s var(--ease-soft) both;
 }
 @keyframes capy-skel {
   0% { background-position: 100% 0; }
@@ -602,7 +586,7 @@ html.dark .capy-boot-skel {
   width: 40%;
   pointer-events: none;
   background: var(--color-gold);
-  animation: route-progress 0.9s ease-in-out infinite;
+  animation: route-progress 0.9s linear infinite;
 }
 @keyframes route-progress {
   0% { transform: translateX(-120%); }
@@ -629,10 +613,10 @@ html.dark .capy-boot-skel {
   animation: none;
 }
 ::view-transition-old(page) {
-  animation: 140ms var(--ease-soft) both vt-fade-out;
+  animation: 300ms var(--ease-soft) both vt-fade-out;
 }
 ::view-transition-new(page) {
-  animation: 220ms var(--ease-soft) both vt-fade-in;
+  animation: 500ms var(--ease-soft) both vt-fade-in;
 }
 @keyframes vt-fade-out {
   to { opacity: 0; }
@@ -641,14 +625,15 @@ html.dark .capy-boot-skel {
   from { opacity: 0; transform: translateY(6px); }
 }
 .sheet-panel {
-  animation: sheet-in 220ms var(--ease-soft);
+  animation: sheet-in 500ms var(--ease-soft);
 }
 @keyframes sheet-in {
   from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: none; }
 }
 .fill-bar {
-  transition: width 420ms var(--ease-soft);
+  transform-origin: left center;
+  transition: transform 500ms var(--ease-soft);
 }
 @media (prefers-reduced-motion: reduce) {
   .route-progress,
@@ -718,6 +703,80 @@ input[type="range"].range-lg::-moz-range-thumb {
 input[type="range"].range-lg:focus-visible { outline: none; }
 input[type="range"].range-lg:focus-visible::-webkit-slider-thumb {
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-gold) 45%, transparent);
+}
+
+.hero-title {
+  max-width: 680px;
+  background-image: linear-gradient(90deg, #000000, #666666);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+html.dark .hero-title {
+  background-image: linear-gradient(90deg, #ffffff, #9b9b9b);
+}
+
+.tagline-word {
+  color: color-mix(in oklab, var(--color-foreground) 30%, transparent);
+  transition: color 500ms var(--ease-soft);
+}
+
+.tagline-word.is-on {
+  color: var(--color-foreground);
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 80;
+  transform: translateY(-150%);
+  border-radius: 0.5rem;
+  background: var(--color-gold);
+  color: var(--color-ink);
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: transform 300ms var(--ease-soft);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.nav-link-in {
+  animation: nav-link-in 500ms var(--ease-soft) both;
+}
+
+@keyframes nav-link-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-sonner-toast] {
+  font-family: var(--font-sans) !important;
+  border-radius: 0.75rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tagline-word {
+    color: var(--color-foreground);
+    transition: none;
+  }
+  .nav-link-in,
+  .skip-link {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* v2.11.0: slim Telegram/GitHub bar on pages without the full AppShell footer */

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function QueryError({
   onRetry,
-  message = "The river could not be reached. Try again.",
+  message = "Could not load this page. Check your connection and try again.",
 }: {
   onRetry?: () => void;
   message?: string;
