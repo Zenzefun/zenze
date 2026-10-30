@@ -254,7 +254,7 @@ function TokenPage() {
                 label="Add to wallet"
               />
             ) : null}
-            <ShareX text={tweetForToken(token)} path={tokenSharePath(token.id, token.contract_address)} size="sm" />
+            <ShareX text={tweetForToken(token)} path={tokenSharePath(token.id, token.contract_address)} size="sm" variant="gold" label="Share on X 🌿" />
             {token.website ? (
               <Button asChild variant="outline" size="sm">
                 <a href={token.website} target="_blank" rel="noopener noreferrer">
@@ -349,7 +349,7 @@ function TokenPage() {
               }
             />
           </div>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <dl className={`grid grid-cols-2 gap-3 ${statMode === "listed" || statMode === "curve" ? "sm:grid-cols-5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1" : "sm:grid-cols-3 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1"}`}>
             {statMode === "listed" ? (
               <>
                 <Metric label="Market cap" value={formatUsdCompact(token.mcap)} />

@@ -41,12 +41,12 @@ export function TaglineReveal({ className }: { className?: string }) {
   }, []);
 
   return (
-    <section ref={ref} aria-label="Why Zenzen" className={cn("mx-auto max-w-[680px] px-4 py-16 sm:py-20", className)}>
+    <section ref={ref} aria-label="Why Zenzen" className={cn("mx-auto max-w-[680px] px-4 py-10 sm:py-20", className)}>
       {LINES.map((line, lineIndex) => {
         const offset = LINES.slice(0, lineIndex).reduce((count, item) => count + item.split(" ").length, 0);
         const words = line.split(" ");
         return (
-          <p key={line} className={cn("text-4xl font-semibold text-balance sm:text-5xl", lineIndex > 0 && "mt-3")}>
+          <p key={line} className={cn("text-2xl font-semibold text-balance sm:text-5xl", lineIndex > 0 && "mt-3")}>
             {words.map((word, wordIndex) => (
               <span
                 key={`${lineIndex}-${wordIndex}`}
