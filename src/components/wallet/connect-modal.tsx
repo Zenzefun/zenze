@@ -16,7 +16,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
         onClick={() => void ensureSession().catch(() => undefined)}
         disabled={signing}
         className={cn(
-          "inline-flex h-11 max-w-[8.5rem] shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-gold px-3 text-xs font-medium text-ink hover:opacity-92 sm:max-w-none",
+          "inline-flex h-11 max-w-[8.5rem] shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-gold px-3 text-xs font-medium text-on-gold hover:opacity-92 sm:max-w-none",
           className,
         )}
       >

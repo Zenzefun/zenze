@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function ZnzfMark({ className }: { className?: string }) {
   return (
     <SmartImage
-      src="/brand/capy-mark-64.png"
+      src="/brand/znzf-token-256.png"
       alt="$ZNZF"
       width={128}
       height={128}

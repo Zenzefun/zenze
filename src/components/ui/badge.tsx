@@ -8,11 +8,11 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-primary/10 text-primary",
-        gold: "bg-gold/20 text-stone",
+        gold: "border border-gold/30 bg-gold/10 text-foreground",
         moss: "bg-moss/15 text-moss",
-        steam: "bg-steam/40 text-stone",
-        sand: "bg-sand text-stone",
-        blossom: "bg-blossom/25 text-destructive",
+        steam: "bg-muted text-foreground",
+        sand: "bg-muted text-foreground",
+        blossom: "bg-alert/12 text-destructive",
         outline: "border border-border text-muted-foreground",
       },
     },

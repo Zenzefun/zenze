@@ -63,9 +63,9 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
         </p>
         <HowItWorks />
         <div className="mt-6 grid max-w-xl grid-cols-3 gap-3">
-          <HeroStat label="Launched on Zenzen" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
+          <HeroStat label="Launches" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
           <HeroStat
-            label="24h volume · Zenzen launches"
+            label="24h volume"
             value={volume != null && volume > 0 ? formatUsdCompact(volume) : volume === 0 ? "$0" : "—"}
           />
           <HeroStat label="Buy $ZNZF" value={formatUsdTiny(stats?.znzfPriceUsd)} buy />

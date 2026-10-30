@@ -223,6 +223,6 @@ const LOGO_EXT: Record<string, string> = { pons: "webp", slv: "svg" };
 /** One real mark per asset. ZNZF uses its own brand file. Never a shared letter circle. */
 export function quoteLogoPath(key: QuoteKey): string {
   const id = key.toLowerCase();
-  if (id === "znzf") return "/brand/capy-mark-64.png";
+  if (id === "znzf") return "/brand/znzf-token-64.png";
   return `/quotes/${id}.${LOGO_EXT[id] ?? "png"}`;
 }

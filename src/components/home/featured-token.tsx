@@ -69,7 +69,7 @@ export function FeaturedToken({
             : "When the curve reaches 100% the pool graduates to Uniswap."}
         </p>
       </div>
-      <span className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-gold px-5 text-sm font-medium text-ink group-hover:opacity-92">
+      <span className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-gold px-5 text-sm font-medium text-on-gold group-hover:opacity-92">
         Trade ${token.symbol}
       </span>
     </Link>

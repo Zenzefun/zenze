@@ -25,7 +25,7 @@ export { hasQuotedPool, hasTradablePool };
 
 const TRADE_TAB =
   "rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]";
-const TRADE_TAB_ON = `${TRADE_TAB} bg-gold text-ink`;
+const TRADE_TAB_ON = `${TRADE_TAB} bg-gold text-on-gold`;
 const TRADE_TAB_OFF = `${TRADE_TAB} text-muted-foreground hover:text-foreground`;
 
 function parseAmt(raw: string): number {
@@ -575,7 +575,7 @@ export function TradePanel({ token, onTraded }: { token: EnrichedToken; onTraded
                         setSlippageBps(bps);
                         setSlipOpen(false);
                       }}
-                      className={`h-8 rounded-full text-xs font-semibold transition-colors duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] ${slippageBps === bps ? "bg-gold text-ink" : "border border-border"}`}
+                      className={`h-8 rounded-full text-xs font-semibold transition-colors duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] ${slippageBps === bps ? "bg-gold text-on-gold" : "border border-border"}`}
                     >
                       {slipLabel(bps)}
                     </button>
@@ -773,7 +773,7 @@ function SwapLeg({
           {onMax && (
             <>
               <span className="tabular-nums">{formatAmount(available, 6)} available</span>
-              <button type="button" onClick={onMax} className="rounded-full bg-gold px-3 py-1 text-xs font-semibold text-ink transition-colors duration-300 ease-soft hover:bg-gold/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]">
+              <button type="button" onClick={onMax} className="rounded-full bg-gold px-3 py-1 text-xs font-semibold text-on-gold transition-colors duration-300 ease-soft hover:bg-gold/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]">
                 Max
               </button>
             </>

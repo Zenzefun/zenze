@@ -1016,7 +1016,7 @@ export const useWallet = create<WalletState>((set, get) => ({
           ? `https://copper-cheerful-mite-422.mypinata.cloud/ipfs/${image.slice(7)}`
           : image
         : `${origin}${image.startsWith("/") ? image : `/${image}`}`
-      : `${origin}/brand/capy-mark-64.png?v=20260924b`;
+      : `${origin}/brand/znzf-token-256.png?v=20261030a`;
     const tokenName = (name ?? "").trim() || symbol;
     const options = { address, symbol, decimals, image: imageUrl, name: tokenName };
     try {

@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><radialGradient id="g" cx="50%" cy="30%" r="75%"><stop offset="0" stop-color="#1F1F25"/><stop offset="1" stop-color="#0A0A0B"/></radialGradient></defs>
+<circle cx="256" cy="256" r="256" fill="url(#g)"/><circle cx="256" cy="256" r="246" fill="none" stroke="#E8B04A" stroke-opacity=".55" stroke-width="6"/>
+<g transform="translate(76 96) scale(0.703)"><circle cx="226" cy="186" r="38" fill="#E8B04A"/><rect x="56" y="180" width="400" height="216" rx="108" fill="#E8B04A"/><circle cx="362" cy="250" r="17" fill="#0A0A0B"/></g></svg>

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 function quoteFile(key: string): string {
-  if (key === "znzf") return "public/brand/capy-mark-64.png";
+  if (key === "znzf") return "public/brand/znzf-token-64.png";
   if (key === "pons") return "public/quotes/pons.webp";
   if (key === "slv") return "public/quotes/slv.svg";
   return `public/quotes/${key}.png`;

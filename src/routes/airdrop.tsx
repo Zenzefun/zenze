@@ -44,7 +44,7 @@ function when(iso?: string) {
 function Step({ n, title, detail, done, children }: { n: number; title: string; detail: string; done: boolean; children?: ReactNode }) {
   return (
     <li className="flex items-start gap-3 py-4">
-      <span className={cn("grid size-8 shrink-0 place-items-center rounded-full text-xs", done ? "bg-gold text-ink" : "bg-muted text-muted-foreground")}>
+      <span className={cn("grid size-8 shrink-0 place-items-center rounded-full text-xs", done ? "bg-gold text-on-gold" : "bg-muted text-muted-foreground")}>
         {done ? <Check className="size-4" /> : n}
       </span>
       <div className="min-w-0 flex-1">
