@@ -109,7 +109,7 @@ export async function renderOgCard(opts: {
 export async function cardForTokenId(id: string): Promise<Buffer> {
   const safe = id.trim().toLowerCase().slice(0, 80);
   if (!/^[a-z0-9_-]+$/.test(safe)) return renderOgCard({ kind: "home" });
-  if (safe === "znzf") return renderOgCard({ kind: "znzf", name: "Zenze", symbol: "ZNZF", chain: "Robinhood Chain" });
+  if (safe === "znzf") return renderOgCard({ kind: "znzf", name: "Zenzen", symbol: "ZNZF", chain: "Robinhood Chain" });
   try {
     const sql = await getSql();
     const rows = await sql<{ name: string; symbol: string; description: string; image_url: string; chain: string }>`

@@ -10,7 +10,7 @@ export const JOBS: Record<MayaJob, string> = {
   A1: "Awareness in the right room",
   A2: "Relationship with a launcher / trader / builder / amplifier",
   A3: "A reply when someone asks where. The only door is the Linktree.",
-  A4: "Launch or list a project on Zenze",
+  A4: "Launch or list a project on Zenzen",
   A5: "Trade / deepen a live pool",
   A6: "$ZNZF hold, stake, or governance use",
   A7: "Defend or sharpen brand in a live argument",
