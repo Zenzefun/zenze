@@ -22,7 +22,7 @@ export function SocialLinks({ className }: { className?: string }) {
     <div className={cn("flex flex-wrap gap-2", className)}>
       <a className={chip} href={ZENZEN_LINKS.x} target="_blank" rel="noopener noreferrer">
         <XMark className="size-3.5" />
-        @ZenzeFun
+        @getzenzen
       </a>
       <a className={chip} href={ZENZEN_LINKS.telegram} target="_blank" rel="noopener noreferrer">
         <Send className="size-4" aria-hidden />

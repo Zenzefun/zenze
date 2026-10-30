@@ -8,7 +8,7 @@ export function projectHandle(raw: string | null | undefined): string {
     .split(/[/?#]/)[0]
     .trim();
   if (!/^[A-Za-z0-9_]{1,15}$/.test(handle)) return "";
-  if (/^zenzefun$/i.test(handle)) return "";
+  if (/^(zenzefun|getzenzen)$/i.test(handle)) return "";
   return handle;
 }
 

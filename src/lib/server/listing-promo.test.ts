@@ -5,7 +5,7 @@ import { tweetText } from "./maya/shape.ts";
 
 test("handles are names, not links, and our own account is never tagged", () => {
   assert.equal(projectHandle("https://x.com/BunOfficial"), "BunOfficial");
-  assert.equal(projectHandle("https://x.com/ZenzeFun"), "");
+  assert.equal(projectHandle("https://x.com/getzenzen"), "");
   assert.equal(projectHandle("not a handle"), "");
 });
 

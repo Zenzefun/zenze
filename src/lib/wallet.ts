@@ -1,3 +1,4 @@
+import { ZENZEN_TELEGRAM_URL } from "@/lib/socials";
 import { create } from "zustand";
 import { encodeFunctionData, getAddress, parseAbi, toHex } from "viem";
 import { disconnectAppKit, isAppKitRegistered, onAppKitClosed, openAppKitModalWhenReady } from "./appkit-bridge";
@@ -123,7 +124,7 @@ export function publicWalletError(err: unknown): string {
     return "The network is slow right now. Wait a few seconds and try again.";
   }
   if (/execution reverted|revert/i.test(raw)) {
-    return "The network refused this transaction, so nothing was spent except maybe a tiny gas fee. Check your inputs and try again, or ask us on Telegram (t.me/zenzefun).";
+    return `The network refused this transaction, so nothing was spent except maybe a tiny gas fee. Check your inputs and try again, or ask us on Telegram (${ZENZEN_TELEGRAM_URL.replace("https://", "")})`;
   }
   if (err instanceof Error && err.message.trim()) return err.message;
   return "The wallet didn't respond. Open your wallet app, then try again.";

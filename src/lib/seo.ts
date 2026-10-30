@@ -6,8 +6,8 @@ export const SITE = {
   tagline: "Launch in a breath. Trade it the moment it is live.",
   description:
     "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
-  x: "https://x.com/ZenzeFun",
-  handle: "@ZenzeFun",
+  x: "https://x.com/getzenzen",
+  handle: "@getzenzen",
 };
 
 /** Bump when share cards or favicons change so X recrawls instead of a cached black card. */

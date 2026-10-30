@@ -577,7 +577,7 @@ export const xRadar = createServerFn({ method: "GET" })
     const handle = await xHandle();
     const [mentions, ticker] = await Promise.all([
       fetchMentions(handle),
-      searchTweets("$ZNZF OR Zenze.fun OR @ZenzeFun"),
+      searchTweets("$ZNZF OR zenzen.fun OR Zenze.fun OR @getzenzen"),
     ]);
     const seen = new Set<string>();
     const posts = [...mentions, ...ticker].filter((p) => {

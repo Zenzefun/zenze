@@ -46,7 +46,7 @@ PICK AT MOST ONE live figure. Prefer a mechanic over a print. Never paste this l
 
 Mechanics, pick one. Do not paste this list. Do not add a number that is not in Live.
 - You can buy $ZNZF and sell it back into the same pool. Do not explain the price. Do not add a percent.
-- Creator Quest: launch a token and get 3 real buyers. The reward is a Featured slot on the home page and a shoutout from @ZenzeFun. No cash, token, or points payout. It does not need $ZNZF.
+- Creator Quest: launch a token and get 3 real buyers. The reward is a Featured slot on the home page and a shoutout from @getzenzen. No cash, token, or points payout. It does not need $ZNZF.
 - A lock here releases the same amount on the other network. Not a second coin.
 - A locked $ZNZF is a vote. A balance that is not locked does not speak.
 - USDC added for Arc gas stays in that wallet. It is not a payment to Zenze.

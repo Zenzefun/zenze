@@ -684,7 +684,7 @@ function LaunchDone({ token, wallet }: { token: { id: string; symbol: string; na
   });
   const refUrl = ref.data && ref.data.ok ? ref.data.url : "";
   const tokenUrl = `https://zenzen.fun/token/${encodeURIComponent(token.id)}`;
-  const text = `I just launched $${token.symbol} on @ZenzeFun. Come trade it:`;
+  const text = `I just launched $${token.symbol} on @getzenzen. Come trade it:`;
   const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tokenUrl)}`;
   return (
     <div className="mx-auto max-w-xl px-4 py-14 text-center">

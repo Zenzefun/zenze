@@ -27,7 +27,7 @@ function Legal() {
         <h2 className="mt-10 text-2xl font-semibold">How to reach this site</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Zenzen publishes this page and{" "}
-          <a className="underline underline-offset-2" href="https://x.com/ZenzeFun">@ZenzeFun</a>.
+          <a className="underline underline-offset-2" href="https://x.com/getzenzen">@getzenzen</a>.
           There is no download and no account form.
         </p>
 

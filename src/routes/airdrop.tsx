@@ -21,7 +21,7 @@ export const Route = createFileRoute("/airdrop")({
     pageHead({
       title: "Creator Quest",
       description:
-        "Launch a token and get 3 real buyers. Finish the quest and your token gets a Featured slot on Zenzen and a shoutout from @ZenzeFun.",
+        "Launch a token and get 3 real buyers. Finish the quest and your token gets a Featured slot on Zenzen and a shoutout from @getzenzen.",
       path: "/airdrop",
     }),
 });
@@ -182,7 +182,7 @@ function CreatorQuestPage() {
                 <li className="flex gap-3">
                   <Megaphone className="mt-0.5 size-4 shrink-0 text-gold" aria-hidden />
                   <span>
-                    <span className="font-medium">A shoutout from @ZenzeFun.</span>{" "}
+                    <span className="font-medium">A shoutout from @getzenzen.</span>{" "}
                     <span className="text-muted-foreground">We post about finished quests on X.</span>
                   </span>
                 </li>

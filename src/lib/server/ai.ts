@@ -166,13 +166,13 @@ Research (facts only — never invent beyond this):
 ${research}
 
 Task:
-1. Write what the operator asked for, as a person at @ZenzeFun. Do not turn it into a four-line slogan unless they asked for that shape.
+1. Write what the operator asked for, as a person at @getzenzen. Do not turn it into a four-line slogan unless they asked for that shape.
 2. Use only the research figures. If a figure is zero or missing, say the pool is quiet.
 3. Return ONLY the post text ready to publish. No preamble, no quotes around it.
 4. Stay under 270 characters unless they asked for a thread.
 5. Mention $ZNZF at least once.`;
 
-    const drafted = await chat(prompt, 360, "You write as @ZenzeFun. A person should hear a person, not a slogan.", "marketing");
+    const drafted = await chat(prompt, 360, "You write as @getzenzen. A person should hear a person, not a slogan.", "marketing");
     if (!drafted.ok) return drafted;
 
     const text = shapePost(drafted.text.trim());

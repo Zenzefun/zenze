@@ -9,7 +9,7 @@ import { operatorMiddleware } from "@/lib/operator-middleware";
 import { configValue, invalidateDeskConfig, loadDeskConfig } from "@/lib/server/secrets";
 import { COMMUNITY_GROUP, COMMUNITY_GROUP_URL, publicRoomUrl } from "@/lib/server/telegram";
 
-const X = "https://x.com/ZenzeFun";
+const X = "https://x.com/getzenzen";
 
 type WalletRow = {
   wallet: string;
@@ -342,7 +342,7 @@ export async function recordTelegramStart(text: string, telegramUserId: string) 
 async function roomLinks() {
   const bot = await botName();
   const room = await publicRoomUrl();
-  const handle = ((await configValue("x_handle")) ?? "ZenzeFun").replace(/^@/, "");
+  const handle = ((await configValue("x_handle")) ?? "getzenzen").replace(/^@/, "");
   return { bot, room, group: COMMUNITY_GROUP_URL, xReady: true, handle };
 }
 
@@ -542,7 +542,7 @@ export const beginAirdropX = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const wallet = (data.wallet ?? "").toLowerCase();
     if (!isHexAddress(wallet)) return { ok: false as const, error: "Connect a wallet first." };
-    const handle = ((await configValue("x_handle")) ?? "ZenzeFun").replace(/^@/, "");
+    const handle = ((await configValue("x_handle")) ?? "getzenzen").replace(/^@/, "");
     const code = await xCodeFor(wallet);
     const line = `Following @${handle} ${code}`;
     return {
@@ -564,8 +564,8 @@ export const confirmAirdropX = createServerFn({ method: "POST" })
     const post = await readPublicPost(id);
     if (!post) return { ok: false as const, error: "That post could not be read. Leave it public and try the link again." };
     const handle = post.handle.replace(/^@/, "");
-    if (!post.text.toUpperCase().includes(code) || !/zenzefun/i.test(post.text)) {
-      return { ok: false as const, error: "The post has to include your line and @ZenzeFun." };
+    if (!post.text.toUpperCase().includes(code) || !/zenzefun|getzenzen/i.test(post.text)) {
+      return { ok: false as const, error: "The post has to include your line and @getzenzen." };
     }
     const sql = await db();
     const taken = await sql<{ wallet: string }>`
@@ -598,7 +598,7 @@ export const spinAirdrop = createServerFn({ method: "POST" })
     }
     const rules = await loadDropRules();
     const did = await actions(wallet, Number(rules.minHold / UNIT));
-    const secret = (await configValue("x_handle")) ?? "ZenzeFun";
+    const secret = (await configValue("x_handle")) ?? "getzenzen";
     const roll = createHash("sha256").update(`${wallet}:${secret}:spin`).digest()[0] % 100;
     const slice = spinFromRoll(roll, rules.spin);
     try {
@@ -828,7 +828,7 @@ export const saveDropRules = createServerFn({ method: "POST" })
  * Replaces the $ZNZF points drop on /airdrop. No buy or hold of $ZNZF is needed. The task is to
  * launch a token and get QUEST_MIN_BUYERS unique buyers that pass the anti-sybil checks in
  * creator-quest.server.ts. The reward is a Featured slot on the home page and a shoutout from
- * @ZenzeFun. There is no cash or token payout. The old drop server functions above stay for the
+ * @getzenzen. There is no cash or token payout. The old drop server functions above stay for the
  * operator desk and for wallets that already hold a frozen share.
  * ---------------------------------------------------------------------------------------------- */
 

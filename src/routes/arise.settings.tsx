@@ -39,7 +39,7 @@ const SECRET_FIELDS = [
   ["dune_api_key", "Dune API key", "Powers Analytics."],
   ["deepseek_api_key", "DeepSeek API key", "Used only on this desk. Visitors never see the drafts."],
   ["xai_api_key", "xAI API key", "Backup if DeepSeek is down. Desk only."],
-  ["twitterapis_key", "TwitterAPIs key", "Posts and reads as @ZenzeFun via twitterapis.com."],
+  ["twitterapis_key", "TwitterAPIs key", "Posts and reads as @getzenzen via twitterapis.com."],
   ["x_auth_token", "X auth_token cookie", "From x.com → Application → Cookies. Lets the desk publish."],
   ["x_ct0", "X ct0 cookie", "CSRF cookie paired with auth_token."],
   ["x_bearer_token", "X bearer token", "Optional official API fallback."],
@@ -289,7 +289,7 @@ function AdminSettings() {
           </Button>
         </div>
         <div className="rounded-lg bg-muted/60 p-3 text-sm">
-          <p className="font-medium">@ZenzeFun session</p>
+          <p className="font-medium">@getzenzen session</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {x.data?.note ?? "Checking TwitterAPIs…"}
             {x.data?.username ? ` · @${x.data.username}` : ""}
