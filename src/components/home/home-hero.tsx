@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, GraduationCap, Rocket, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, GraduationCap, Lock, Rocket, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { tokenBoardKind } from "@/lib/pool";
 import { ZnzfHero } from "@/components/capy/znzf-hero";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,13 @@ type Stats = { tokens?: number | null; znzfPriceUsd?: number | null } | null | u
  * adds synced Uniswap swaps on top of the pool's own 24h volume, so it double counts listed tokens.
  */
 export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToken[] }) {
-  const known = tokens.map(tokenVolumeUsd).filter((v): v is number => v != null && Number.isFinite(v));
+  // Only tokens launched on Zenzen count here. Listed Uniswap tokens (tokenBoardKind "listed") are tradable on the
+  // board but were not launched by Zenzen creators, so they stay out of these numbers.
+  const own = tokens.filter((t) => tokenBoardKind(t) !== "listed" && tokenBoardKind(t) !== "protocol");
+  const listedCount = tokens.filter((t) => tokenBoardKind(t) === "listed").length;
+  const known = own.map(tokenVolumeUsd).filter((v): v is number => v != null && Number.isFinite(v));
   const volume = known.length > 0 ? known.reduce((a, b) => a + b, 0) : null;
-  const launched = stats?.tokens ?? (tokens.length || null);
+  const launched = own.length;
   const [lead, rest] = SITE.tagline.split(". ");
   return (
     <section aria-labelledby="home-title" className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-12">
@@ -35,17 +40,21 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
           ) : null}
         </h1>
         <p className="mt-3 max-w-[680px] text-base text-pretty text-muted-foreground sm:text-lg">
-          Name a token and its pool opens the moment you launch. Anyone can buy it or sell it back into that same pool, and
-          when the curve fills it graduates to Uniswap.
+          Your token, live in about two minutes. Anyone can trade it the moment it launches, no listing and no waiting.
         </p>
         <div className="mt-6">
           <Button asChild variant="gold" size="lg" className="rounded-full">
             <Link to="/launch">
               <Rocket aria-hidden className="size-5" />
-              Launch a token in 60s
+              Launch a token
             </Link>
           </Button>
         </div>
+        <ul aria-label="Why it is safe to try" className="mt-3 flex max-w-[680px] flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <li className="flex items-center gap-1.5"><Lock className="size-3.5 text-signal" aria-hidden />Non-custodial. Your wallet signs everything</li>
+          <li className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-signal" aria-hidden /><a href="#trust-title" className="underline-offset-2 hover:underline">Verified contracts, public code</a></li>
+          <li>Live on Robinhood Chain · Built on Arc</li>
+        </ul>
         <p className="mt-3 max-w-[680px] text-sm text-pretty text-muted-foreground">
           First launch?{" "}
           <Link to="/start" className="font-semibold text-foreground underline-offset-2 hover:underline">
@@ -54,15 +63,15 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
         </p>
         <HowItWorks />
         <div className="mt-6 grid max-w-xl grid-cols-3 gap-3">
-          <HeroStat label="Tokens" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
+          <HeroStat label="Launched on Zenzen" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
           <HeroStat
-            label="24h volume"
+            label="24h volume · Zenzen launches"
             value={volume != null && volume > 0 ? formatUsdCompact(volume) : volume === 0 ? "$0" : "—"}
           />
           <HeroStat label="Buy $ZNZF" value={formatUsdTiny(stats?.znzfPriceUsd)} buy />
         </div>
         <p className="mt-3 max-w-[680px] text-xs text-pretty text-muted-foreground">
-          Live counts from pools on the board. A launch does not promise buyers.
+          Counts only tokens launched on Zenzen{listedCount > 0 ? `. ${listedCount} listed Uniswap token${listedCount === 1 ? " is" : "s are"} tradable on the board but not counted` : ""}. A launch does not promise buyers.
         </p>
       </div>
       <div className="relative mx-auto hidden w-full max-w-[300px] lg:block">

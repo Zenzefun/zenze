@@ -27,6 +27,7 @@ export function FeaturedToken({
 }) {
   const Icon = reason === "graduating" ? GraduationCap : Star;
   const stage = curveStage(token);
+  // "Fresh" = nobody has bought yet. Then a market cap is just the starting price × supply, so we hide it.
   const fresh = stage.progress < 1;
   return (
     <Link
@@ -50,7 +51,7 @@ export function FeaturedToken({
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ChainMark chain={token.chain.key} className="size-3" />
             {token.chain.short ?? token.chain.name}
-            {token.priceUsd != null && token.mcap > 0 ? <span>· MC {formatUsdCompact(token.mcap)}</span> : null}
+            {!fresh && token.priceUsd != null && token.mcap > 0 ? <span>· MC {formatUsdCompact(token.mcap)}</span> : null}
           </p>
         </div>
       </div>
@@ -64,7 +65,7 @@ export function FeaturedToken({
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
           {fresh
-            ? "Nobody has filled this pool yet. Every buy moves it toward Uniswap."
+            ? "No trades yet. The first buyer sets the pace."
             : "When the curve reaches 100% the pool graduates to Uniswap."}
         </p>
       </div>

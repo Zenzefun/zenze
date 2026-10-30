@@ -102,6 +102,7 @@ function Launch() {
   const [snipeExempt, setSnipeExempt] = useState<string[]>([""]);
   const fees = useQuery({ queryKey: ["fee-quote", chain], queryFn: () => feeQuote({ data: { chain } }) });
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [phase, setPhase] = useState<LaunchPhase>("idle");
   const [launched, setLaunched] = useState<{ id: string; symbol: string; name: string } | null>(null);
   const draft = useMutation({
     mutationFn: async () => {
@@ -190,6 +191,7 @@ function Launch() {
       for (const addr of exempt) {
         if (!isHexAddress(addr)) throw new Error("One of the wallets in Advanced → Early-buy protection isn't a valid address. Fix it or remove it, then try again.");
       }
+      setPhase("prepare");
       if (!wallet.connected || !wallet.address) await wallet.connect();
       if (wallet.chainId !== CHAINS[chain].id) await wallet.switchChain(chain);
       const pinned = await pinLaunchArt({ data: { imageUrl: artInput } });
@@ -214,14 +216,17 @@ function Launch() {
         data: { chain, from, to: factory, data: call.data, value: call.value.toString() },
       });
       if (!prep.ok) throw new Error(prep.error);
+      setPhase("sign");
       const hash = await wallet.sendTransaction({
         to: factory,
         data: call.data,
         value: call.value,
         ...txGas(prep),
       });
+      setPhase("confirm");
       const receipt = await wallet.waitReceipt(hash);
       if (receipt.status !== "success") throw new Error("Launch transaction reverted.");
+      setPhase("index");
       let lastError = "Could not index that launch.";
       let token: {
         id: string;
@@ -303,10 +308,14 @@ function Launch() {
       const code = storedRef();
       const from = wallet.address;
       if (code && from) void recordReferral({ data: { code, kind: "launch", wallet: from } });
+      setPhase("live");
       toast.success("Token launched. You are the recorded creator.");
       setLaunched({ id: token.id, symbol: cleanTokenSymbol(symbol), name: name.trim() });
     },
-    onError: (err) => toast.error(publicWalletError(err)),
+    onError: (err) => {
+      setPhase("error");
+      toast.error(publicWalletError(err));
+    },
   });
 
   if (launched) {
@@ -622,6 +631,7 @@ function Launch() {
                     ? `Deploy sends ${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol} with this transaction as the launch fee. A small network fee (gas) is added by your wallet.`
                     : "Deploy pays a small launch fee plus a network fee (gas) from your wallet."}
                 </p>
+                <LaunchTimeline phase={phase} />
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} disabled={mut.isPending}>Back</Button>
                   <Button type="submit" variant="gold" className="flex-1" disabled={mut.isPending || !factoryLive}>
@@ -779,4 +789,41 @@ async function developerBuy(input: {
   const signed = await input.wallet.signIntent({ action: "buy", tokenId: input.token.id, amount: String(input.amount) });
   const res = await tradeToken({ data: { id: input.token.id, side: "buy", amount: input.amount, txHash: hash, ...signed } });
   if (!res.ok) throw new Error(res.error);
+}
+
+type LaunchPhase = "idle" | "prepare" | "sign" | "confirm" | "index" | "live" | "error";
+
+const LAUNCH_STEPS: { key: Exclude<LaunchPhase, "idle" | "error">; label: string; hint: string }[] = [
+  { key: "prepare", label: "Preparing", hint: "Wallet, network and image" },
+  { key: "sign", label: "Sign", hint: "Approve in your wallet" },
+  { key: "confirm", label: "Confirming", hint: "Waiting for the chain" },
+  { key: "index", label: "Opening pool", hint: "Adding it to the board" },
+  { key: "live", label: "Live", hint: "Anyone can trade it" },
+];
+
+/** Narrates the launch so a wait never looks like a hang. */
+function LaunchTimeline({ phase }: { phase: LaunchPhase }) {
+  if (phase === "idle") return null;
+  const at = LAUNCH_STEPS.findIndex((s) => s.key === phase);
+  return (
+    <ol aria-label="Launch status" aria-live="polite" className="grid gap-1.5 rounded-xl border border-border bg-card p-3 text-sm">
+      {LAUNCH_STEPS.map((s, i) => {
+        const done = phase === "live" ? true : at > i;
+        const current = at === i && phase !== "live";
+        return (
+          <li key={s.key} className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className={`size-2.5 shrink-0 rounded-full ${done ? "bg-signal" : current ? "animate-pulse bg-gold" : "bg-muted"}`}
+            />
+            <span className={done || current ? "font-medium text-foreground" : "text-muted-foreground"}>{s.label}</span>
+            <span className="text-xs text-muted-foreground">· {s.hint}</span>
+          </li>
+        );
+      })}
+      {phase === "error" ? (
+        <li className="text-xs text-destructive">That didn't go through. Nothing was launched unless your wallet shows a confirmed transaction. Fix the note above and try again.</li>
+      ) : null}
+    </ol>
+  );
 }

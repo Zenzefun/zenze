@@ -3,7 +3,7 @@ import { isZnzfRef } from "./token-path";
 export const SITE = {
   name: "Zenzen",
   url: "https://zenzen.fun",
-  tagline: "Launch a token. Trade it back.",
+  tagline: "Launch in a breath. Trade it the moment it is live.",
   description:
     "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
   x: "https://x.com/ZenzeFun",
@@ -11,7 +11,7 @@ export const SITE = {
 };
 
 /** Bump when share cards or favicons change so X recrawls instead of a cached black card. */
-export const OG_VERSION = "20261009a";
+export const OG_VERSION = "20261030a";
 export const ASSET_VERSION = OG_VERSION;
 /** zenze.fun stays reachable. It does not redirect, and it does not name zenzen.fun as its canonical. */
 const BURNED_HOSTS = new Set(["zenze.fun", "www.zenze.fun"]);

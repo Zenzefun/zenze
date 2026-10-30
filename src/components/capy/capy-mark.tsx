@@ -1,25 +1,20 @@
-import { SmartImage } from "@/components/media/smart-image";
 import { cn } from "@/lib/utils";
 
-/** Photoreal capybara disc — brand mark for header/footer. No token coin beside it. */
+/** Capy mark (rebrand 2026-10): one pill head, ear, dot eye. Gold body; eye uses the page background. */
 export function CapyMark({ className }: { className?: string }) {
   return (
-    <SmartImage
-      src="/brand/capy-mark-64.png?v=20260924b"
-      alt="Zenzen"
-      width={36}
-      height={36}
-      priority
-      className={cn("token-disc size-9 bg-transparent object-cover", className)}
-      rounded="full"
-    />
+    <svg viewBox="40 130 432 280" role="img" aria-label="Zenzen" className={cn("h-9 w-auto", className)}>
+      <circle cx="226" cy="186" r="38" fill="var(--color-gold)" />
+      <rect x="56" y="180" width="400" height="216" rx="108" fill="var(--color-gold)" />
+      <circle cx="362" cy="250" r="17" fill="var(--color-background)" />
+    </svg>
   );
 }
 
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn("font-display text-xl font-semibold tracking-tight text-stone", className)}>
-      Zenzen
+    <span className={cn("font-display text-xl font-semibold tracking-[-0.03em] text-foreground", className)}>
+      zenzen
     </span>
   );
 }
