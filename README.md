@@ -4,7 +4,7 @@
 
 **A token launchpad for Arc and Robinhood Chain. Launch a token, then sell it back into the same pool.**
 
-App: https://zenze.fun (mirror https://zenzen.fun) · Docs: https://zenzen.fun/docs · X: [@ZenzeFun](https://x.com/ZenzeFun)
+App: https://zenzen.fun (alias https://zenze.fun) · Docs: https://zenzen.fun/docs · X: [@ZenzeFun](https://x.com/ZenzeFun)
 
 ---
 

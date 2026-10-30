@@ -13,8 +13,8 @@ export const SITE = {
 /** Bump when share cards or favicons change so X recrawls instead of a cached black card. */
 export const OG_VERSION = "20261030a";
 export const ASSET_VERSION = OG_VERSION;
-/** zenze.fun stays reachable. It does not redirect, and it does not name zenzen.fun as its canonical. */
-const BURNED_HOSTS = new Set(["zenze.fun", "www.zenze.fun"]);
+/** zenze.fun stays reachable as an alias (no redirect), but every canonical, OG and sitemap URL points at zenzen.fun, the primary domain since 2026-10-30. */
+const ALIAS_HOSTS = new Set(["zenze.fun", "www.zenze.fun"]);
 
 export function requestHost(): string {
   if (typeof window !== "undefined" && window.location?.hostname) {
@@ -34,7 +34,8 @@ export function requestHost(): string {
 }
 
 export function publicSite(): { origin: string; burned: boolean } {
-  if (BURNED_HOSTS.has(requestHost())) return { origin: "https://zenze.fun", burned: true };
+  // Alias hosts serve the same app but name zenzen.fun as canonical, so `burned` (noindex / 404 sitemap) is off.
+  void ALIAS_HOSTS;
   return { origin: SITE.url, burned: false };
 }
 

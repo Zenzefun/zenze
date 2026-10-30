@@ -2,7 +2,7 @@
   "title": "Zenzen",
   "type": "website",
   "card": "custom",
-  "color": "D4A545",
+  "color": "E8B04A",
   "description": "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
   "image": "/og.jpg"
 }
