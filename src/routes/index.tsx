@@ -6,6 +6,7 @@ import { RecentLaunches, TokenBoard } from "@/components/tokens/token-board";
 import { Button } from "@/components/ui/button";
 import { TokenListSkeleton } from "@/components/ui/skeleton";
 import { FeaturedToken } from "@/components/home/featured-token";
+import { FreshLaunchesFeed } from "@/components/home/fresh-launches-feed";
 import { HomeHero } from "@/components/home/home-hero";
 import { TaglineReveal } from "@/components/home/tagline-reveal";
 import { TradeTicker } from "@/components/home/trade-ticker";
@@ -52,6 +53,7 @@ function Home() {
         {board.length > 0 && <TradeTicker tokens={board} className="mt-3" />}
         {featured && <FeaturedToken token={featured} reason={featuredReason} className="mt-4" />}
       </div>
+      <FreshLaunchesFeed tokens={board} />
       <TaglineReveal />
       <section className="mx-auto max-w-6xl px-4 py-6" aria-labelledby="board-title">
         <h2 id="board-title" className="mb-4 text-2xl font-semibold">

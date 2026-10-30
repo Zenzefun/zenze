@@ -38,7 +38,9 @@
   --color-graphite: #1a1a1f;
   --color-paper: #f6f4ef;
   --color-gold-hover: #f0c063;
-  --radius-card: 14px;
+  --radius-card: 16px;
+  --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  --shadow-lift: 0 4px 12px -2px rgb(0 0 0 / 0.12), 0 2px 4px -1px rgb(0 0 0 / 0.06);
   --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
@@ -48,33 +50,35 @@
 }
 
 html.dark {
-  --color-background: #0a0a0b;
-  --color-foreground: #f6f4ef;
-  --color-card: #1a1a1f;
+  --color-background: #0a0c0b;
+  --color-foreground: #f0f4f2;
+  --color-card: #121614;
   --color-card-foreground: #f6f4ef;
-  --color-popover: #1a1a1f;
+  --color-popover: #121614;
   --color-popover-foreground: #f6f4ef;
   --color-primary: #f6f4ef;
   --color-primary-foreground: #0a0a0b;
-  --color-secondary: #232329;
+  --color-secondary: #1a1f1c;
   --color-secondary-foreground: #f6f4ef;
-  --color-muted: #232329;
-  --color-muted-foreground: #8a8a93;
+  --color-muted: #1a1f1c;
+  --color-muted-foreground: #a3aea8;
   --color-accent: #e8b04a;
   --color-accent-foreground: #0a0a0b;
   --color-destructive: #ff5c5c;
   --color-destructive-foreground: #0a0a0b;
-  --color-border: #2a2a31;
-  --color-input: #2a2a31;
+  --color-border: #252b27;
+  --color-input: #252b27;
   --color-ring: #e8b04a;
   --color-gold: #e8b04a;
-  --color-moss: #3ddc97;
+  --color-moss: #6ee7b7;
   --color-steam: #8a8a93;
   --color-blossom: #ff5c5c;
-  --color-sand: #232329;
-  --color-cream: #1a1a1f;
+  --color-sand: #1a1f1c;
+  --color-cream: #121614;
   --color-ink: #f6f4ef;
   --color-stone: #f6f4ef;
+  --color-signal: #6ee7b7;
+  --color-steam: #7d8882;
 }
 
 @keyframes leaf-sway {
