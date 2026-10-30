@@ -693,7 +693,7 @@ function LaunchDone({ token, wallet }: { token: { id: string; symbol: string; na
       <p className="mt-2 text-muted-foreground">Get your first buyers. Three real buyers completes the Creator Quest.</p>
       <div className="mt-8 grid gap-3">
         <Button asChild variant="gold" className="h-12">
-          <a href={xUrl} target="_blank" rel="noopener noreferrer">Share on X</a>
+          <a href={xUrl} target="_blank" rel="noopener noreferrer">Share your launch on X 🌿</a>
         </Button>
         <Button asChild variant="outline" className="h-12">
           <Link to="/token/$id" params={{ id: token.id }}>Open the token page</Link>

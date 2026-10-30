@@ -19,14 +19,16 @@ export function ShareX({
   path,
   label = "Share on X",
   size = "default",
+  variant = "outline",
 }: {
   text: string;
   path: string;
   label?: string;
   size?: "sm" | "default";
+  variant?: "outline" | "gold";
 }) {
   return (
-    <Button asChild variant="outline" size={size}>
+    <Button asChild variant={variant} size={size}>
       <a href={xIntent(text, path)} target="_blank" rel="noopener noreferrer">
         {label}
       </a>

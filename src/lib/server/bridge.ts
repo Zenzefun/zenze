@@ -40,7 +40,7 @@ function transport(key: ChainKey) {
   return http(CHAINS[key].rpc, {
     fetchOptions: {
       headers: {
-        "User-Agent": "Zenze.fun/1.0 (index; +https://zenze.fun)",
+        "User-Agent": "Zenzen/1.0 (index; +https://zenzen.fun)",
         Origin: "https://zenze.fun",
       },
     },

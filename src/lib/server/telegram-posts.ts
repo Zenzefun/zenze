@@ -60,7 +60,7 @@ export function announcementText(index: number, znzfUrl: string) {
     "Open the board and read the pools that are already trading.\n\nLook before you launch.\n\nhttps://zenzen.fun/explore",
     "A token that already exists can still be listed here.\n\nThe page is short.\n\nhttps://zenzen.fun/list",
     "Your buyers have to be real wallets, not ones you funded.\n\nThree of them finish the Creator Quest.\n\nhttps://zenzen.fun/airdrop",
-    "Arc gas is USDC.\n\nIt stays in your wallet. It is not a payment to Zenze.\n\nhttps://zenzen.fun/fund",
+    "Arc gas is USDC.\n\nIt stays in your wallet. It is not a payment to Zenzen.\n\nhttps://zenzen.fun/fund",
     "Name a token. The pool opens when the launch lands.\n\nYou can sell it back into that same pool.\n\nhttps://zenzen.fun/launch",
   ];
   const n = ((index % posts.length) + posts.length) % posts.length;

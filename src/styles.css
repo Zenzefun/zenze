@@ -724,7 +724,7 @@ input[type="range"].range-lg:focus-visible::-webkit-slider-thumb {
 
 
 .tagline-word {
-  color: color-mix(in oklab, var(--color-foreground) 30%, transparent);
+  color: color-mix(in oklab, var(--color-foreground) 55%, transparent);
   transition: color 500ms var(--ease-soft);
 }
 

@@ -107,7 +107,7 @@ export const PAIR_ASSETS: QuoteAsset[] = [
   core({
     key: "znzf",
     symbol: "ZNZF",
-    name: "Zenze",
+    name: "Zenzen",
     pair: "$ZNZF",
     decimals: 18,
     graduation: 1_000_000,

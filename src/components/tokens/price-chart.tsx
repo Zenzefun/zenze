@@ -47,7 +47,7 @@ export function PriceChart({
   currentPriceUsd?: number | null;
   currentMcap?: number | null;
 }) {
-  const [range, setRange] = useState<RangeId>("1h");
+  const [range, setRange] = useState<RangeId>("all");
   const [mode, setMode] = useState<"mcap" | "price">(currentMcap != null && currentPrice > 0 ? "mcap" : "price");
   const [hover, setHover] = useState<number | null>(null);
   const [drawn, setDrawn] = useState(false);

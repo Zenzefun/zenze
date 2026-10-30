@@ -38,7 +38,7 @@ async function rpc(rpcUrl: string, method: string, params: unknown[]): Promise<u
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "User-Agent": "Zenze.fun/1.0 (index; +https://zenze.fun)",
+      "User-Agent": "Zenzen/1.0 (index; +https://zenzen.fun)",
       Origin: "https://zenze.fun",
     },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),

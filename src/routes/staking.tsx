@@ -35,7 +35,7 @@ export const Route = createFileRoute("/staking")({
 });
 
 const PRESETS = [0.25, 0.5, 0.75, 1] as const;
-const TOKEN_NAME = "Zenze";
+const TOKEN_NAME = "Zenzen";
 
 function Staking() {
   const loaded = Route.useLoaderData();
@@ -366,7 +366,7 @@ function StakeForm({
           onChange={(e) => setAmt(e.target.value)}
         />
         <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-3">
-          <TokenImage src={ZNZF_IPFS_GATEWAY} alt="Zenze" size={28} protocol seed="znzf" />
+          <TokenImage src={ZNZF_IPFS_GATEWAY} alt="Zenzen" size={28} protocol seed="znzf" />
           <span className="text-sm font-medium">$ZNZF</span>
         </span>
       </div>

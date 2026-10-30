@@ -25,6 +25,7 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
   const known = own.map(tokenVolumeUsd).filter((v): v is number => v != null && Number.isFinite(v));
   const volume = known.length > 0 ? known.reduce((a, b) => a + b, 0) : null;
   const launched = own.length;
+  const latest = [...own].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))[0];
   const [lead, rest] = SITE.tagline.split(". ");
   return (
     <section aria-labelledby="home-title" className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-12">
@@ -64,11 +65,12 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
         <HowItWorks />
         <div className="mt-6 grid max-w-xl grid-cols-3 gap-3">
           <HeroStat label="Launches" value={launched != null ? Math.round(launched).toLocaleString("en-US") : "—"} />
-          <HeroStat
-            label="24h volume"
-            value={volume != null && volume > 0 ? formatUsdCompact(volume) : volume === 0 ? "$0" : "—"}
-          />
-          <HeroStat label="Buy $ZNZF" value={formatUsdTiny(stats?.znzfPriceUsd)} buy />
+          {volume != null && volume > 0 ? (
+            <HeroStat label="24h volume" value={formatUsdCompact(volume)} />
+          ) : (
+            <HeroStat label="Latest launch" value={latest ? `$${latest.symbol}` : "—"} to={latest?.id} />
+          )}
+          <HeroStat label="$ZNZF" value="Buy $ZNZF" buy />
         </div>
         <p className="mt-3 max-w-[680px] text-xs text-pretty text-muted-foreground">
           Counts only tokens launched on Zenzen{listedCount > 0 ? `. ${listedCount} listed Uniswap token${listedCount === 1 ? " is" : "s are"} tradable on the board but not counted` : ""}. A launch does not promise buyers.
@@ -105,7 +107,7 @@ function HowItWorks() {
   );
 }
 
-function HeroStat({ label, value, buy = false }: { label: string; value: string; buy?: boolean }) {
+function HeroStat({ label, value, buy = false, to }: { label: string; value: string; buy?: boolean; to?: string }) {
   const body = (
     <>
       <p className="truncate text-xs text-muted-foreground">{label}</p>
@@ -113,9 +115,9 @@ function HeroStat({ label, value, buy = false }: { label: string; value: string;
     </>
   );
   const className = "stone-card block min-w-0 rounded-xl px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-  if (!buy) return <div className={className}>{body}</div>;
+  if (!buy && !to) return <div className={className}>{body}</div>;
   return (
-    <Link to="/token/$id" params={{ id: znzfLaunchpadId() }} className={className} aria-label={`Buy $ZNZF at ${value}`}>
+    <Link to="/token/$id" params={{ id: to ?? znzfLaunchpadId() }} className={className} aria-label={buy ? "Buy $ZNZF" : `${label}: ${value}`}>
       {body}
     </Link>
   );
