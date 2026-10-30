@@ -39,7 +39,7 @@ export const Route = createRootRoute({
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "stylesheet", href: appCss },
       { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
-      { rel: "preload", href: "/brand/capy-mark-320.webp?v=20261009a", as: "image", type: "image/webp" },
+      
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

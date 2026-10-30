@@ -1,51 +1,20 @@
-import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const RIMS = 20;
-
-/** Same $ZNZF disc as the header — presented as two 3D coins, not a new drawing. */
+/** Rebrand hero: the Capy mark, gold on ink, on a soft halo with slow orbit rings. Pure SVG + CSS. */
 export function ZnzfHero({ className }: { className?: string }) {
   return (
-    <div className={cn("znzf-stage", className)} role="img" aria-label="$ZNZF — zen capybara coin">
-      <div className="znzf-stage-bg" />
-      <ZnzfCoin className="znzf-coin-a" priority />
-      <ZnzfCoin className="znzf-coin-b" />
-      <div className="znzf-stage-glow" />
-    </div>
-  );
-}
-
-function ZnzfCoin({ className, priority = false }: { className?: string; priority?: boolean }) {
-  const [ready, setReady] = useState(false);
-  const ref = useRef<HTMLImageElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (el?.complete && el.naturalWidth > 0) setReady(true);
-  }, []);
-  return (
-    <div className={cn("znzf-coin", className)}>
-      <div className="znzf-coin-3d">
-        {Array.from({ length: RIMS }, (_, i) => (
-          <span key={i} className="znzf-coin-rim" style={{ transform: `translateZ(${-i * 0.95}px)` }} />
-        ))}
-        {!ready && <span className="znzf-coin-face animate-pulse bg-muted" aria-hidden />}
-        <img
-          ref={ref}
-          src="/brand/capy-mark-320.webp?v=20261009a"
-          alt=""
-          width={320}
-          height={320}
-          decoding={priority ? "sync" : "async"}
-          loading={priority ? "eager" : "lazy"}
-          fetchPriority={priority ? "high" : "low"}
-          draggable={false}
-          onLoad={() => setReady(true)}
-          onError={() => setReady(true)}
-          className="znzf-coin-face"
-          style={{ opacity: ready ? 1 : 0, transition: "opacity 300ms" }}
-        />
-        <span className="znzf-coin-shine" />
-      </div>
+    <div className={cn("capy-hero", className)} role="img" aria-label="Zenzen capybara mark">
+      <div className="capy-hero-glow" aria-hidden />
+      <svg viewBox="0 0 400 400" className="capy-hero-rings" aria-hidden>
+        <circle cx="200" cy="200" r="150" />
+        <circle cx="200" cy="200" r="182" strokeDasharray="2 10" />
+        <circle cx="350" cy="200" r="4" className="capy-hero-dot" />
+      </svg>
+      <svg viewBox="40 130 432 280" className="capy-hero-mark" aria-hidden>
+        <circle cx="226" cy="186" r="38" fill="var(--color-gold)" />
+        <rect x="56" y="180" width="400" height="216" rx="108" fill="var(--color-gold)" />
+        <circle cx="362" cy="250" r="17" fill="#0a0a0b" className="capy-hero-eye" />
+      </svg>
     </div>
   );
 }
