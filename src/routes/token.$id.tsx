@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { getAddress } from "viem";
 import { ChainMark } from "@/components/chains/chain-mark";
 import { QuoteMark } from "@/components/chains/quote-mark";
-import { ShareX } from "@/components/share/share-x";
+import { ShareButtons } from "@/components/share/share-x";
 import { GraduationCard } from "@/components/tokens/graduation-card";
 import { CreatorFees } from "@/components/tokens/creator-fees";
 import { HolderFees } from "@/components/tokens/holder-fees";
@@ -254,7 +254,7 @@ function TokenPage() {
                 label="Add to wallet"
               />
             ) : null}
-            <ShareX text={tweetForToken(token)} path={tokenSharePath(token.id, token.contract_address)} size="sm" variant="gold" label="Share on X 🌿" />
+            <ShareButtons text={tweetForToken(token)} path={tokenSharePath(token.id, token.contract_address)} />
             {token.website ? (
               <Button asChild variant="outline" size="sm">
                 <a href={token.website} target="_blank" rel="noopener noreferrer">
