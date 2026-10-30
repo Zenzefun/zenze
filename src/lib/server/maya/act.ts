@@ -181,7 +181,7 @@ function mentionedUs(item: MayaItem, obs: ObservePack) {
   if (item.post_id && obs.mentions.some((m) => m.id === item.post_id)) return true;
   const hit = obs.weather.find((m) => m.id === item.post_id);
   if (!hit) return false;
-  return /@zenzefun|\$znzf|zenze\.fun|\bzenze\b/i.test(hit.text);
+  return /@zenzefun|@getzenzen|\$znzf|zenze\.fun|\bzenze\b/i.test(hit.text);
 }
 
 function isOurThreadReply(item: MayaItem, obs: ObservePack) {

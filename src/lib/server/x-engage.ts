@@ -161,7 +161,7 @@ export async function recordAction(input: {
 
 function skipAccount(username: string, text = "") {
   const u = username.replace(/^@/, "").toLowerCase();
-  if (!u || u === "unknown" || u === "zenzefun") return true;
+  if (!u || u === "unknown" || u === "zenzefun" || u === "getzenzen") return true;
   if (isRiverSpam(text, username)) return true;
   return false;
 }
@@ -169,7 +169,7 @@ function skipAccount(username: string, text = "") {
 export function inZenzeRiver(text: string, tickers: string[] = []) {
   if (isRiverSpam(text)) return false;
   const t = text.toLowerCase();
-  if (/\$znzf\b|zenze\.fun|@zenzefun|\bzenze\b/.test(t)) return true;
+  if (/\$znzf\b|zenze\.fun|@zenzefun|@getzenzen|\bzenze\b/.test(t)) return true;
   for (const sym of tickers) {
     const s = sym.replace(/^\$/, "").toLowerCase();
     if (!s || s.length < 2) continue;

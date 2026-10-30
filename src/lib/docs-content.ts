@@ -209,7 +209,7 @@ const pairs: DocsDoc = {
     },
     {
       type: "p",
-      text: "The pair is one asset. The swap widget is not limited to that one asset. If another live Zenze token uses the same quote, the widget routes sell A → quote → buy B. A published token that has a Uniswap v4 ETH pool, such as USDG or a Robinhood stock, can also pay an ETH curve: it is sold for ETH first, and 2% of that ETH stays with Zenzen. On a token page the token itself cannot be replaced. Selling that token pays ETH only. $ZNZF stays on its curve.",
+      text: "The pair is one asset. The swap widget is not limited to that one asset. If another live Zenzen token uses the same quote, the widget routes sell A → quote → buy B. A published token that has a Uniswap v4 ETH pool, such as USDG or a Robinhood stock, can also pay an ETH curve: it is sold for ETH first, and 2% of that ETH stays with Zenzen. On a token page the token itself cannot be replaced. Selling that token pays ETH only. $ZNZF stays on its curve.",
     },
     {
       type: "h2",
@@ -299,7 +299,7 @@ const fees: DocsDoc = {
     },
     {
       type: "p",
-      text: `A listed token swapped from a Zenze page pays the same ${TRADE_FEE_BPS / 100}% in ETH to the fee vault. On a buy, that slice is sent before the rest is swapped. On a sell, that slice of the ETH received is sent to the vault and the rest goes to the wallet. The pool's own Uniswap fee is separate. A swap made directly on Uniswap does not pay Zenzen.`,
+      text: `A listed token swapped from a Zenzen page pays the same ${TRADE_FEE_BPS / 100}% in ETH to the fee vault. On a buy, that slice is sent before the rest is swapped. On a sell, that slice of the ETH received is sent to the vault and the rest goes to the wallet. The pool's own Uniswap fee is separate. A swap made directly on Uniswap does not pay Zenzen.`,
     },
     {
       type: "h2",
@@ -446,7 +446,7 @@ const safety: DocsDoc = {
         "Zenzen does not hold wallets or trading inventory. Factory, curve, token, vault, and the move contract are called by the user.",
         "After migrate(), remaining curve inventory is in the v4 position. There is no unlock() on ZenzeV4Migrator.",
         "Tokens sent to a contract address by mistake are not recoverable from this app.",
-        "A launch whose image was not IPFS-pinned is rejected by the app. On-chain, the factory does not store art — a token without art in the index is hidden or shown with an identicon, never the Zenze mark.",
+        "A launch whose image was not IPFS-pinned is rejected by the app. On-chain, the factory does not store art — a token without art in the index is hidden or shown with an identicon, never the Zenzen mark.",
         "Signers for moves and the treasury are not shipped in the client bundle.",
       ],
     },
@@ -634,7 +634,7 @@ const events: DocsDoc = {
     },
     {
       type: "p",
-      text: "Index TokenLaunched from the factory address published on this site for that chain. Skip a launch that has no IPFS art. The app must not fall back to the Zenze mark.",
+      text: "Index TokenLaunched from the factory address published on this site for that chain. Skip a launch that has no IPFS art. The app must not fall back to the Zenzen mark.",
     },
   ],
 };

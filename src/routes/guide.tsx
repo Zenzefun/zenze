@@ -101,8 +101,8 @@ function Guide() {
         <h2 className="mt-10 text-2xl font-semibold">7. On X</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Share buttons open X with the token in the copy. Follow{" "}
-          <a className="text-foreground underline" href="https://x.com/ZenzeFun" target="_blank" rel="noopener noreferrer">
-            @ZenzeFun
+          <a className="text-foreground underline" href="https://x.com/getzenzen" target="_blank" rel="noopener noreferrer">
+            @getzenzen
           </a>
           .
         </p>

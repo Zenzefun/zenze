@@ -1,18 +1,18 @@
-<p align="center"><img src="https://zenzen.fun/brand/capy-mark-512.png" width="120" alt="Zenze capybara logo"></p>
+<p align="center"><img src="https://zenzen.fun/brand/capy-mark-512.png" width="120" alt="Zenzen capybara logo"></p>
 
-# Zenze
+# Zenzen
 
 **A token launchpad for Arc and Robinhood Chain. Launch a token, then sell it back into the same pool.**
 
-App: https://zenzen.fun (alias https://zenze.fun) · Docs: https://zenzen.fun/docs · X: [@ZenzeFun](https://x.com/ZenzeFun)
+App: https://zenzen.fun (old domain https://zenze.fun redirects here) · Docs: https://zenzen.fun/docs · X: [@getzenzen](https://x.com/getzenzen)
 
 ---
 
 ## Overview
 
-Zenze is a noncustodial token launchpad. A creator names a token, uploads art, picks a pair and signs one transaction. The supply is seeded into a bonding curve, and **the curve is the pool**: buyers buy from it and sellers sell straight back into it. There is no presale and no separate liquidity step.
+Zenzen is a noncustodial token launchpad. A creator names a token, uploads art, picks a pair and signs one transaction. The supply is seeded into a bonding curve, and **the curve is the pool**: buyers buy from it and sellers sell straight back into it. There is no presale and no separate liquidity step.
 
-Zenze targets two chains:
+Zenzen targets two chains:
 
 | | Arc (Circle L1) | Robinhood Chain |
 |---|---|---|

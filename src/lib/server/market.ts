@@ -867,7 +867,7 @@ export const quoteTrade = createServerFn({ method: "POST" }).validator((input) =
 	});
 	if (token.graduated || token.source === "listed") return {
 		ok: false,
-		error: "This token does not trade on a Zenze curve."
+		error: "This token does not trade on a Zenzen curve."
 	};
 	if (!isHexAddress(token.curve_address) && token.id !== "znzf") return {
 		ok: false,
@@ -1748,7 +1748,7 @@ export const launchToken = createServerFn({ method: "POST" }).validator((input) 
 	};
 	if (receipt.to !== factory.toLowerCase()) return {
 		ok: false,
-		error: "Launch must go through the Zenze factory."
+		error: "Launch must go through the Zenzen factory."
 	};
 	const launcher = receipt.from;
 	if (data.wallet && data.wallet.toLowerCase() !== launcher) return {
@@ -1894,7 +1894,7 @@ export const tradeToken = createServerFn({ method: "POST" }).validator((input) =
 	const row = await overlayOnchain(raw);
 	if (row.graduated || row.source === "listed") return {
 		ok: false,
-		error: "This token does not trade on the Zenze curve."
+		error: "This token does not trade on the Zenzen curve."
 	};
 	const curveAddr = row.curve_address?.toLowerCase();
 	if (!curveAddr || !isHexAddress(curveAddr)) return {

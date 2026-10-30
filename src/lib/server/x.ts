@@ -5,7 +5,7 @@ import { tweetText } from "@/lib/server/maya/shape";
 const X_TWEET_URL = "https://api.x.com/2/tweets";
 
 export async function xHandle() {
-  return ((await configValue("x_handle")) ?? "ZenzeFun").replace(/^@/, "");
+  return ((await configValue("x_handle")) ?? "getzenzen").replace(/^@/, "");
 }
 
 export async function xProfileUrl() {

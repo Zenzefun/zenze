@@ -1,3 +1,4 @@
+import { ZENZEN_TELEGRAM_HANDLE, ZENZEN_TELEGRAM_URL } from "@/lib/socials";
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { operatorMiddleware } from "@/lib/operator-middleware";
@@ -31,8 +32,8 @@ async function telegramCall(token: string, method: string, body?: Record<string,
   return json.result ?? {};
 }
 
-export const COMMUNITY_GROUP = "zenzefun";
-export const COMMUNITY_GROUP_URL = "https://t.me/zenzefun";
+export const COMMUNITY_GROUP = ZENZEN_TELEGRAM_HANDLE;
+export const COMMUNITY_GROUP_URL = ZENZEN_TELEGRAM_URL;
 
 export async function publicRoomUrl() {
   const { token, chat } = await telegramCreds();

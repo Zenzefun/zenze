@@ -162,7 +162,7 @@ function statusFromJson(raw: unknown, hasCookies: boolean): XSessionStatus {
     (status === "dead"
       ? "X rejected the cookies. Paste a fresh auth_token and ct0."
       : registered
-        ? `Posting as @${username ?? "ZenzeFun"}.`
+        ? `Posting as @${username ?? "getzenzen"}.`
         : hasCookies
           ? "Cookies are set. Link the session once."
           : "No X session yet.");
@@ -207,7 +207,7 @@ export async function xSessionStatus(): Promise<XSessionStatus> {
       registered: false,
       username: null,
       status: res.status === 404 ? "none" : "error",
-      note: hasCookies ? "Cookies are set. Link the session to publish as @ZenzeFun." : res.error,
+      note: hasCookies ? "Cookies are set. Link the session to publish as @getzenzen." : res.error,
     };
   }
   return statusFromJson(res.json, hasCookies);

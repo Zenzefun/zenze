@@ -36,7 +36,7 @@ function AdminMarketing() {
         toast.error(res.error);
         return;
       }
-      if (res.status === "posted") toast.success(res.publishNote ?? "Live on @ZenzeFun.");
+      if (res.status === "posted") toast.success(res.publishNote ?? "Live on @getzenzen.");
       else if (res.publishNote) toast.message(res.publishNote);
       else toast.success("Draft soaking in the queue.");
       q.refetch();
@@ -54,7 +54,7 @@ function AdminMarketing() {
         toast.error(res.error);
         if (res.intent) window.open(res.intent, "_blank", "noopener,noreferrer");
       } else {
-        toast.success("Posted to @ZenzeFun.");
+        toast.success("Posted to @getzenzen.");
       }
       q.refetch();
     },
@@ -595,7 +595,7 @@ function AdminMarketing() {
             <div className="mt-3 flex flex-wrap gap-2">
               {p.status !== "posted" && (
                 <Button size="sm" variant="gold" disabled={pub.isPending} onClick={() => pub.mutate(p.id)}>
-                  Publish to @ZenzeFun
+                  Publish to @getzenzen
                 </Button>
               )}
               <Button size="sm" variant="outline" disabled={rewrite.isPending || p.status === "posted"} onClick={() => rewrite.mutate(p.id)}>

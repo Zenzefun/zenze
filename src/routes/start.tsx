@@ -61,7 +61,7 @@ function Start() {
             <li>Robinhood Wallet (phone app; supports Robinhood Chain out of the box)</li>
           </ul>
           <p>
-            Your wallet shows you a list of backup words when you set it up. Write them on paper and never share them. <strong className="text-foreground">Nobody from Zenze will ever ask for them.</strong>
+            Your wallet shows you a list of backup words when you set it up. Write them on paper and never share them. <strong className="text-foreground">Nobody from Zenzen will ever ask for them.</strong>
           </p>
         </Step>
 

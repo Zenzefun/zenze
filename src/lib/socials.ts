@@ -45,9 +45,13 @@ export function readSocial(
   return { ok: true, value };
 }
 
+/** Zenzen's Telegram community group handle. Change it here only; every Telegram link reads it. */
+export const ZENZEN_TELEGRAM_HANDLE = "zenzefun";
+export const ZENZEN_TELEGRAM_URL = `https://t.me/${ZENZEN_TELEGRAM_HANDLE}`;
+
 /** Zenzen's own public links. */
 export const ZENZEN_LINKS = {
-  x: "https://x.com/ZenzeFun",
-  telegram: "https://t.me/zenzefun",
+  x: "https://x.com/getzenzen",
+  telegram: ZENZEN_TELEGRAM_URL,
   github: "https://github.com/Zenzefun/zenze",
 } as const;

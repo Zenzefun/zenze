@@ -47,7 +47,7 @@ export const WEEKLY_RIVALS: RivalBeat[] = [
 ];
 
 export const OWN_MISS = {
-  who: "@ZenzeFun",
+  who: "@getzenzen",
   at: "2026-09-30",
   hook: "A pad can be quiet and still honest.",
   likes: 0,

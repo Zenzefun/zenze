@@ -1,4 +1,4 @@
-# Telegram Ads untuk Zenze
+# Telegram Ads untuk Zenzen
 
 Panduan ini untuk iklan berbayar di Telegram. Ini bukan komunitas. Komunitas tetap di grup. Iklan hanya mengajak orang membuka situs, lalu mereka sendiri yang memutuskan untuk meluncurkan atau membeli.
 
@@ -37,8 +37,8 @@ Peninjauan yang dilaporkan pengiklan biasanya 24–72 jam. Itu bukan janji dari 
 
 ## Cara menjalankan
 
-1. Pastikan kanal Zenze sudah punya unggahan baru sebelum iklan dikirim.
-2. Sematkan satu pesan di kanal: orang bisa meluncurkan token atau melihat pool di https://zenze.fun/launch dan https://zenze.fun/explore
+1. Pastikan kanal Zenzen sudah punya unggahan baru sebelum iklan dikirim.
+2. Sematkan satu pesan di kanal: orang bisa meluncurkan token atau melihat pool di https://zenzen.fun/launch dan https://zenzen.fun/explore
 3. Satu kampanye, satu negara, satu bahasa. Jangan dicampur.
 4. Pakai satu naskah di bawah. Ganti naskah hanya setelah ada cukup klik untuk dibandingkan.
 5. Nilai dari orang yang membuka situs lalu meluncurkan atau membeli, bukan dari jumlah tayangan.
@@ -52,21 +52,21 @@ Maksimal 160 karakter, termasuk tautan. Satu tautan. Tanpa baris baru dan tanpa 
 
 Untuk kanal berbahasa Inggris.
 
-1. Launch a token on Zenze. You pick the pair and who receives your fee slice. https://zenze.fun/launch
-2. New tokens trade on a public curve. Open a pool and decide for yourself. https://zenze.fun/explore
-3. Zenze is where you launch a token and trade it. Start at the site. https://zenze.fun/
+1. Launch a token on Zenzen. You pick the pair and who receives your fee slice. https://zenzen.fun/launch
+2. New tokens trade on a public curve. Open a pool and decide for yourself. https://zenzen.fun/explore
+3. Zenzen is where you launch a token and trade it. Start at the site. https://zenzen.fun/
 
 ### Bahasa Indonesia
 
 Hanya untuk kanal berbahasa Indonesia. Jangan dipakai di kanal Inggris.
 
-1. Luncurkan token di Zenze. Kamu pilih pasangan dan siapa yang menerima bagian fee-mu. https://zenze.fun/launch
-2. Token baru diperdagangkan di kurva publik. Buka pool, lalu putuskan sendiri. https://zenze.fun/explore
-3. Zenze tempat meluncurkan token dan memperdagangkannya. Mulai di situs. https://zenze.fun/
+1. Luncurkan token di Zenzen. Kamu pilih pasangan dan siapa yang menerima bagian fee-mu. https://zenzen.fun/launch
+2. Token baru diperdagangkan di kurva publik. Buka pool, lalu putuskan sendiri. https://zenzen.fun/explore
+3. Zenzen tempat meluncurkan token dan memperdagangkannya. Mulai di situs. https://zenzen.fun/
 
 ## Yang tidak ditulis
 
 - “Bukan Robinhood” atau “bukan Circle”. Itu kalimat hukum, bukan iklan.
 - Persentase fee, batas ETH, atau alamat kontrak.
 - “Dijamin”, “untung”, “moon”, “airdrop”.
-- http://Zenze.fun atau huruf besar di domain. Tautan yang dipakai hanya https://zenze.fun/ dan turunannya.
+- http://Zenzen.fun atau huruf besar di domain. Tautan yang dipakai hanya https://zenzen.fun/ dan turunannya.

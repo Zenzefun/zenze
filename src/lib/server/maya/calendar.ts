@@ -30,7 +30,7 @@ export const ARC: ArcDay[] = [
   { day: 9, name: "List", job: "A4", url: "https://zenzen.fun/list", example: "You already have a token.\nYou list the contract you already deployed.\nYou do not deploy a second one.\nList it.", intent: "Sell listing. The last line is that one link." },
   { day: 10, name: "Arc gas", job: "A3", url: "https://zenzen.fun/fund", example: "$ZNZF on Arc needs USDC for gas.\nYou add it to the wallet you connected.\nIt stays in that wallet.\nAdd it.", intent: "Sell the gas top-up. It is not a payment to Zenze. The last line is that one link." },
   { day: 11, name: "Sell back", job: "A7", url: "https://zenzen.fun/guide", example: "You can sell $ZNZF back.\nThe sale goes into the same pool.\nArc is not a second coin.\nSell it back.", intent: "Sell the exit. No fee percent. The last line is that one link." },
-  { day: 12, name: "Quest shoutout", job: "A6", url: "https://zenzen.fun/airdrop", example: "Finish the Creator Quest.\n@ZenzeFun posts your token.\nIt sits in Featured for a week.\nStart it.", intent: "Sell the shoutout. No money, token, or price promise. The last line is that one link." },
+  { day: 12, name: "Quest shoutout", job: "A6", url: "https://zenzen.fun/airdrop", example: "Finish the Creator Quest.\n@getzenzen posts your token.\nIt sits in Featured for a week.\nStart it.", intent: "Sell the shoutout. No money, token, or price promise. The last line is that one link." },
   { day: 13, name: "One product", job: "A4", url: "https://zenzen.fun/launch", example: "One product, a token and its pool.\nYou name it.\nThe pool opens when you launch.\nLaunch it.", intent: "Sell the launch again, in four clean lines. The last line is that one link." },
 ];
 

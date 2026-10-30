@@ -147,7 +147,7 @@ export const COMPETITORS: Competitor[] = [
 ];
 
 export const SEARCH_SEEDS = [
-  `$ZNZF OR Zenze.fun OR @ZenzeFun`,
+  `$ZNZF OR zenzen.fun OR Zenze.fun OR @getzenzen`,
   `"fair launch" (sniped OR "insider round" OR presale) (pad OR launchpad OR curve)`,
   `("Robinhood Chain" OR "hood chain") (launch OR launchpad OR "bonding curve")`,
   `(PONS OR "pons.family" OR hood.fun OR "pools.trade") (sniper OR extract OR "fair launch")`,
@@ -176,7 +176,7 @@ Products. Pick the one that matches today's arc. One product, one link, never th
 - Explore: newest pools.
 - Bridge: lock on Robinhood, the same amount released on Arc. Not a second coin.
 - Stake: the lock is the vote.
-- Creator Quest: launch a token and get 3 real buyers. The reward is a Featured slot on the home page and a shoutout from @ZenzeFun. No cash, token, or points payout. It does not need $ZNZF. Never promise money, tokens, or price.
+- Creator Quest: launch a token and get 3 real buyers. The reward is a Featured slot on the home page and a shoutout from @getzenzen. No cash, token, or points payout. It does not need $ZNZF. Never promise money, tokens, or price.
 - There is no points program and no /points page. The Creator Quest link is the airdrop page.
 - Arc gas: USDC stays in the buyer's wallet. It is not a payment to Zenze.
 - Guide: how to start.
@@ -199,7 +199,7 @@ export const DAILY_CAPS = {
   followPerHour: 3,
 } as const;
 
-export const MAYA_SYSTEM = `You write the next post for @ZenzeFun. Return one JSON object and nothing else. Code posts it.
+export const MAYA_SYSTEM = `You write the next post for @getzenzen. Return one JSON object and nothing else. Code posts it.
 
 Write the way you would tell one person, out loud. Not a slogan. Not a riddle. Not a poem.
 

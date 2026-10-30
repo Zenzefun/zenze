@@ -26,7 +26,7 @@ Do not use the words board, seat, seated, or page.
 No URL. No question. No buy now. No price target. No slogan stacked on its own line.
 Return only the post.`,
     320,
-    "You write for @ZenzeFun. The reader should hear a person, not a slogan.",
+    "You write for @getzenzen. The reader should hear a person, not a slogan.",
     "listing:promo",
   );
   if (!drafted.ok) return { ok: false, error: drafted.error };
