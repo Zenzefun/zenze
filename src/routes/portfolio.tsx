@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { SmartImage, TokenImage } from "@/components/media/smart-image";
 import { HomeButton } from "@/components/site/home-button";
 import { Button } from "@/components/ui/button";
+import { ConnectX } from "@/components/wallet/connect-x";
 import { asNumber, formatCompact, formatEth, formatUsdMaybe } from "@/lib/format";
 import { tokenRouteId } from "@/lib/token-path";
 import { getWalletHoldings, listTokens, protocolStats, walletSeat } from "@/lib/server/market";
@@ -87,6 +88,7 @@ function Portfolio() {
         ) : (
           <>
             <p className="mt-2 font-mono text-xs text-muted-foreground break-all">{wallet.address}</p>
+            <ConnectX wallet={wallet.address!} />
             <Seat wallet={wallet.address} />
             <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="stone-card rounded-xl p-4">
