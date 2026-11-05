@@ -46,7 +46,7 @@ function Start() {
           The 2 minutes is the launch itself. Getting gas the first time can take longer, depending on where your crypto is now.
         </p>
         <Button asChild variant="gold" className="mt-6">
-          <Link to="/launch">Start my token</Link>
+          <Link to="/launch">Continue to launch</Link>
         </Button>
 
         <Step n={1} title="Get a wallet">
@@ -65,12 +65,13 @@ function Start() {
           </p>
         </Step>
 
-        <Step n={2} title="Connect and pick a network">
+        <Step n={2} title="Connect on Robinhood Chain">
           <p>
-            Tap <strong className="text-foreground">Wallet</strong> at the top of this site and approve the connection. Then pick
-            Robinhood Chain or Arc.
+            Tap <strong className="text-foreground">Wallet</strong> at the top of this site and approve the connection. We start you on
+            Robinhood Chain so the first launch stays simple.
           </p>
           <p>You don't need to add the network by hand. If your wallet doesn't have it yet, it will ask you to add it. Just approve.</p>
+          <p className="text-xs">Want Arc instead? Use <strong className="text-foreground">Other chains</strong> in the network menu after you connect.</p>
         </Step>
 
         <Step n={3} title="Get a little gas" id="gas">
@@ -125,7 +126,7 @@ function Start() {
           <p>Skip the Advanced section. The defaults are fine for a first launch.</p>
           <p>When it's live, share it on X so people can find it.</p>
           <Button asChild variant="gold" size="lg" className="mt-2 rounded-full">
-            <Link to="/launch">Start my token</Link>
+            <Link to="/launch">Continue to launch</Link>
           </Button>
         </Step>
 

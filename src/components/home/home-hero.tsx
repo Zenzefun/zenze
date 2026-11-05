@@ -1,4 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useWallet } from "@/lib/wallet";
 import { ArrowRight, GraduationCap, Lock, Rocket, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { tokenBoardKind } from "@/lib/pool";
 import { ZnzfHero } from "@/components/capy/znzf-hero";
@@ -30,7 +31,7 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
   return (
     <section aria-labelledby="home-title" className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-12">
       <div className="min-w-0">
-        <Badge variant="gold">Robinhood Chain · Arc</Badge>
+        <Badge variant="gold">Robinhood Chain</Badge>
         <h1 id="home-title" className="hero-title mt-3 text-3xl font-semibold sm:text-5xl">
           {lead}.
           {rest ? (
@@ -43,13 +44,9 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
         <p className="mt-3 max-w-[680px] text-base text-pretty text-muted-foreground sm:text-lg">
           Your token, live in about two minutes. Anyone can trade it the moment it launches, no listing and no waiting.
         </p>
-        <div className="mt-6">
-          <Button asChild variant="gold" size="lg" className="rounded-full">
-            <Link to="/launch">
-              <Rocket aria-hidden className="size-5" />
-              Launch a token
-            </Link>
-          </Button>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <LaunchCta />
+          <span className="text-xs text-muted-foreground">Robinhood Chain · <OtherChainsHint /></span>
         </div>
         <ul aria-label="Why it is safe to try" className="mt-3 flex max-w-[680px] flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <li className="flex items-center gap-1.5"><Lock className="size-3.5 text-signal" aria-hidden />Non-custodial. Your wallet signs everything</li>
@@ -80,6 +77,39 @@ export function HomeHero({ stats, tokens }: { stats: Stats; tokens: EnrichedToke
         <ZnzfHero />
       </div>
     </section>
+  );
+}
+
+
+/** Primary Launch: /start when gas unknown or empty; /launch when wallet already has gas. No invented RPC. */
+function LaunchCta() {
+  const navigate = useNavigate();
+  const { connected, native, preferredChain } = useWallet();
+  const hasGas = connected && preferredChain === "robinhood" && native > 0;
+  return (
+    <Button
+      type="button"
+      variant="gold"
+      size="lg"
+      className="rounded-full"
+      onClick={() => navigate({ to: hasGas ? "/launch" : "/start" })}
+    >
+      <Rocket aria-hidden className="size-5" />
+      Launch a token
+    </Button>
+  );
+}
+
+function OtherChainsHint() {
+  const { setPreferredChain } = useWallet();
+  return (
+    <button
+      type="button"
+      className="underline-offset-2 hover:underline"
+      onClick={() => setPreferredChain("arc")}
+    >
+      Other chains
+    </button>
   );
 }
 
