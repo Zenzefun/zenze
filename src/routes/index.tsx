@@ -67,7 +67,7 @@ function Home() {
             body="Be the first to open a pool. Name a token and it can trade the moment it launches."
             actions={
               <Button asChild variant="gold">
-                <Link to="/launch">Launch a token</Link>
+                <Link to="/start">Launch a token</Link>
               </Button>
             }
           />
