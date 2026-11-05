@@ -57,8 +57,8 @@ export async function deliverCommunityNote(id: number, replyTo?: number) {
   const { token, chat } = await telegramCreds();
   if (!token || !chat) return { ok: false as const, error: "Add the Telegram bot token and chat id in Settings first." };
   const sql = await ensureCommunityTable();
-  const rows = await sql<{ id: number; content: string; status: string; source_message_id: string | null }>`
-    select id, content, status, source_message_id from community_notes where id = ${id} limit 1
+  const rows = await sql<{ id: number; content: string; status: string; kind: string | null; source_message_id: string | null }>`
+    select id, content, status, kind, source_message_id from community_notes where id = ${id} limit 1
   `;
   const row = rows[0];
   if (!row) return { ok: false as const, error: "That note is gone." };
@@ -66,12 +66,16 @@ export async function deliverCommunityNote(id: number, replyTo?: number) {
   const text = cleanNote(row.content);
   if (!text) return { ok: false as const, error: "That note is not safe to send." };
   const reply = replyTo ?? Number(row.source_message_id);
+  // Replies come from the Community group; telegram_chat_id is the announcement channel.
+  // Sending reply_to_message_id to the channel fails, so replies go to the group only.
+  const isReply = row.kind === "reply";
+  const destination = isReply ? `@${COMMUNITY_GROUP}` : chat;
   try {
     const sent = await telegramCall(token, "sendMessage", {
-      chat_id: chat,
+      chat_id: destination,
       text,
       disable_web_page_preview: false,
-      ...(Number.isFinite(reply) && reply > 0 ? { reply_to_message_id: reply } : {}),
+      ...(isReply && Number.isFinite(reply) && reply > 0 ? { reply_to_message_id: reply } : {}),
     });
     const messageId = sent.message_id ? String(sent.message_id) : sent.id ? String(sent.id) : "";
     await sql`
@@ -79,11 +83,13 @@ export async function deliverCommunityNote(id: number, replyTo?: number) {
          set status = 'sent', telegram_message_id = ${messageId}, sent_at = now(), content = ${text}
        where id = ${row.id}
     `;
-    await telegramCall(token, "sendMessage", {
-      chat_id: `@${COMMUNITY_GROUP}`,
-      text,
-      disable_web_page_preview: false,
-    }).catch(() => null);
+    if (!isReply) {
+      await telegramCall(token, "sendMessage", {
+        chat_id: `@${COMMUNITY_GROUP}`,
+        text,
+        disable_web_page_preview: false,
+      }).catch(() => null);
+    }
     return { ok: true as const, sent: true, id: row.id };
   } catch (err) {
     await sql`update community_notes set status = 'failed' where id = ${row.id}`;
