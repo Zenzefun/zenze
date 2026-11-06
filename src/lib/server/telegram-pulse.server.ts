@@ -95,7 +95,7 @@ export async function runTelegramPulse() {
     const seen = await sql<{ id: number }>`select id from community_notes where source_message_id = ${source} limit 1`;
     if (seen[0]) continue;
     const reply = await capyChat(
-      `${NOTE}\nAnswer this message from the room in one or two sentences. Do not ask a question. Do not repeat their words back as a slogan.\nMessage: ${text.slice(0, 400)}`,
+      `${NOTE}\nAlways reply in English, even if the message is in another language. Answer this message from the room in one or two sentences. Do not ask a question. Do not repeat their words back as a slogan.\nMessage: ${text.slice(0, 400)}`,
       220,
       NOTE,
       "maya:telegram",
