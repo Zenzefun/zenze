@@ -35,7 +35,7 @@ export const Route = createFileRoute("/explore")({
 const FILTERS: { id: "all" | ChainKey; label: string }[] = [
   { id: "all", label: "All chains" },
   { id: "robinhood", label: "Robinhood" },
-  { id: "arc", label: "Arc" },
+  { id: "arc", label: "Arc · factory ready, no community launches yet" },
 ];
 
 function Explore() {

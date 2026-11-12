@@ -65,7 +65,7 @@ export function FeaturedToken({
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
           {fresh
-            ? "No trades yet. The first buyer sets the pace."
+            ? "No trades yet. Be one of the first to trade, or launch your own."
             : "When the curve reaches 100% the pool graduates to Uniswap."}
         </p>
       </div>

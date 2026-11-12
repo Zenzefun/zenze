@@ -150,11 +150,21 @@ export function MobileActionBar() {
               Launch a token
             </Link>
           </Button>
-          <Button asChild variant="outline" className="rounded-full bg-card">
-            <Link to="/token/$id" params={{ id: znzfLaunchpadId() }}>
-              Buy $ZNZF
-            </Link>
-          </Button>
+          {path === "/" ? (
+            <Button asChild variant="outline" className="rounded-full bg-card">
+              <Link to="/start">How to launch</Link>
+            </Button>
+          ) : path === "/znzf" ? (
+            <Button asChild variant="outline" className="rounded-full bg-card">
+              <Link to="/token/$id" params={{ id: znzfLaunchpadId() }}>
+                Buy $ZNZF
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline" className="rounded-full bg-card">
+              <Link to="/start">How to launch</Link>
+            </Button>
+          )}
         </div>
       </div>
     </>

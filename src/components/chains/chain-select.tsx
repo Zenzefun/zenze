@@ -90,7 +90,10 @@ export function ChainSelect({
           return (
             <DropdownMenuItem key={key} onSelect={() => onChange(key)}>
               <ChainMark chain={key} className="size-6" />
-              <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
+              <span className="min-w-0 flex-1 truncate font-medium">
+                {c.name}
+                {key === "arc" && <span className="ml-1 text-xs text-muted-foreground">· factory ready, no community launches yet</span>}
+              </span>
               {key === value && <Check className="size-4 text-moss" />}
             </DropdownMenuItem>
           );

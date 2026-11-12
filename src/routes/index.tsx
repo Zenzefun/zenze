@@ -13,6 +13,7 @@ import { TradeTicker } from "@/components/home/trade-ticker";
 import { EmptyState } from "@/components/site/empty-state";
 import { TrustStrip } from "@/components/site/trust-strip";
 import { pickAboutToGraduate, pickNewestCurve } from "@/lib/token-stage";
+import { isCommunityLaunch } from "@/lib/team-wallets";
 import { listTokens, protocolStats } from "@/lib/server/market";
 import { creatorQuestFeatured } from "@/lib/server/airdrop";
 
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/")({
   head: () =>
     pageHead({
       description:
-        "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
+        "A calm, rules-up-front launchpad for community founders on Robinhood Chain. Fees and several admin powers are frozen at deploy and shown before you sign. Live launches are on Robinhood Chain. An Arc factory is deployed; community Arc launches have not started yet.",
       path: "/",
     }),
 });
@@ -39,10 +40,11 @@ function Home() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => protocolStats(), initialData: initial.stats, refetchInterval: 15_000 });
   const tokens = useQuery({ queryKey: ["tokens"], queryFn: () => listTokens(), initialData: initial.tokens, refetchInterval: 15_000 });
   const board = tokens.data ?? [];
-  // Featured slot: a Creator Quest finisher first, then the pool closest to graduating, then the newest.
-  const questToken = (initial.questIds ?? []).map((id) => board.find((t: { id: unknown }) => String(t.id) === id)).find(Boolean) ?? null;
-  const graduating = questToken ? null : pickAboutToGraduate(board);
-  const featured = questToken ?? graduating ?? pickNewestCurve(board);
+  const community = board.filter(isCommunityLaunch);
+  // Featured slot: prefer community. Creator Quest finisher first, then closest to graduating, then newest.
+  const questToken = (initial.questIds ?? []).map((id) => community.find((t: { id: unknown }) => String(t.id) === id)).find(Boolean) ?? null;
+  const graduating = questToken ? null : pickAboutToGraduate(community);
+  const featured = questToken ?? graduating ?? pickNewestCurve(community);
   const featuredReason = questToken ? "quest" : graduating ? "graduating" : "new";
 
   return (
@@ -61,14 +63,19 @@ function Home() {
         </h2>
         {tokens.isPending && <TokenListSkeleton />}
         <TokenBoard tokens={board} />
-        {!tokens.isPending && board.length === 0 && (
+        {!tokens.isPending && board.filter(isCommunityLaunch).length === 0 && (
           <EmptyState
-            title="No tokens yet"
-            body="Be the first to open a pool. Name a token and it can trade the moment it launches."
+            title="Be one of the first community launches"
+            body="The board may already show $ZNZF or team tokens. Community launches are separate. Name, describe, and deploy — fees and permissions are shown before you sign."
             actions={
-              <Button asChild variant="gold">
-                <Link to="/start">Launch a token</Link>
-              </Button>
+              <>
+                <Button asChild variant="gold">
+                  <Link to="/start">How to launch</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to="/launch">Launch now</Link>
+                </Button>
+              </>
             }
           />
         )}

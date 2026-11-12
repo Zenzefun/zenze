@@ -407,7 +407,7 @@ function RecentTrades({
   return (
     <>
       <ul className="mt-3 divide-y divide-border">
-        {rows.length === 0 && <li className="py-4 text-sm text-muted-foreground">No trades yet</li>}
+        {rows.length === 0 && <li className="py-4 text-sm text-muted-foreground">No trades yet. Be one of the first to trade, or <a href="/launch" className="underline">launch your own</a>.</li>}
         {rows.map((t) => {
           const hash = t.tx_hash && t.tx_hash.startsWith("0x") ? t.tx_hash : "";
           const quoteUsd = token.quote.kind === "stable" || token.quote.key === "usdc" || token.quote.key === "usdg" ? 1 : (token.quoteUsd ?? token.ethUsd);

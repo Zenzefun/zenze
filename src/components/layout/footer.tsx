@@ -19,7 +19,7 @@ export function Footer() {
             <BrandLockup markClassName="size-8" />
           </Link>
           <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-            Launch a token. Trade it back. The pool opens the moment you launch, on Robinhood Chain or Arc.
+            A calm, rules-up-front launchpad for community founders on Robinhood Chain. Live launches are on Robinhood Chain. An Arc factory is deployed; community Arc launches have not started yet.
           </p>
           <SocialLinks className="mt-4" />
           <p className="mt-5 text-sm font-medium text-stone">Contracts</p>

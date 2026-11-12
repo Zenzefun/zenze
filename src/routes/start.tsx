@@ -71,7 +71,7 @@ function Start() {
             Robinhood Chain so the first launch stays simple.
           </p>
           <p>You don't need to add the network by hand. If your wallet doesn't have it yet, it will ask you to add it. Just approve.</p>
-          <p className="text-xs">Want Arc instead? Use <strong className="text-foreground">Other chains</strong> in the network menu after you connect.</p>
+          <p className="text-xs">Live launches are on Robinhood Chain. An Arc factory is deployed; community Arc launches have not started yet. You can still select Arc in the form.</p>
         </Step>
 
         <Step n={3} title="Get a little gas" id="gas">
