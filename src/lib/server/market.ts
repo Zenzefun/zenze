@@ -1850,13 +1850,16 @@ export const launchToken = createServerFn({ method: "POST" }).validator((input) 
         id, name, symbol, description, image_url, creator_wallet, chain, quote_asset,
         virtual_base, virtual_tokens, holders, health_score, rug_probability,
         source, contract_address, curve_address, quote_address, tx_hash, graduated,
-        website, twitter, telegram, creator_tax_bps, holder_sharing
+        website, twitter, telegram, creator_tax_bps, holder_sharing,
+        utm_source, utm_medium, utm_campaign, utm_content, utm_term
       ) values (
         ${id}, ${name}, ${symbol}, ${data.description.trim().slice(0, 280)},
         ${imageUrl}, ${creator}, ${data.chain}, ${quote.key},
         ${quote.virtualBase}, ${quote.virtualTokens}, 1, ${health}, ${rug},
         'launched', ${launched.token}, ${launched.curve}, ${quote.address[data.chain] ?? null}, ${txHash}, false,
-        ${website}, ${twitter}, ${telegram}, ${taxBps}, ${holderSharing}
+        ${website}, ${twitter}, ${telegram}, ${taxBps}, ${holderSharing},
+        ${data.utm_source ?? null}, ${data.utm_medium ?? null}, ${data.utm_campaign ?? null},
+        ${data.utm_content ?? null}, ${data.utm_term ?? null}
       )
     `;
 	dropPublicCaches();

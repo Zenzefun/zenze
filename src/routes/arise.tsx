@@ -38,6 +38,7 @@ const LINKS = [
   { to: "/arise/treasury", label: "Treasury" },
   { to: "/arise/airdrop", label: "Drop" },
   { to: "/arise/marketing", label: "Marketing" },
+  { to: "/arise/funnel", label: "Funnel" },
   { to: "/arise/users", label: "Operators" },
   { to: "/arise/settings", label: "Settings" },
 ] as const;

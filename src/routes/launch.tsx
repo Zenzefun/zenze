@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Fuel, Plus, Sparkles, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { parseUnits } from "viem";
 import { ChainSelect } from "@/components/chains/chain-select";
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CHAINS, DEFAULT_CREATOR_TAX_BPS, TRADE_FEE_BPS, type ChainKey } from "@/lib/chains";
 import { curveBuyCalldata, erc20ApproveCalldata, launchCalldata, setMigratorCalldata } from "@/lib/contracts";
 import { storedRef } from "@/lib/referral";
+import { storedUtm, track } from "@/lib/attribution";
 import { myReferralCode, recordReferral } from "@/lib/server/referral";
 import { draftLaunchDescription, generateLaunchImage } from "@/lib/server/ai";
 import { defaultTokenArt } from "@/lib/default-art";
@@ -102,6 +103,10 @@ function Launch() {
   const [snipeExempt, setSnipeExempt] = useState<string[]>([""]);
   const fees = useQuery({ queryKey: ["fee-quote", chain], queryFn: () => feeQuote({ data: { chain } }) });
   const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  useEffect(() => {
+    track("launch_form_start");
+  }, []);
   const [phase, setPhase] = useState<LaunchPhase>("idle");
   const [launched, setLaunched] = useState<{ id: string; symbol: string; name: string } | null>(null);
   const draft = useMutation({
@@ -248,6 +253,11 @@ function Launch() {
             website: cleanSocial(website, "web"),
             twitter: cleanSocial(twitter, "x"),
             telegram: cleanSocial(telegram, "tg"),
+            utm_source: storedUtm().source,
+            utm_medium: storedUtm().medium,
+            utm_campaign: storedUtm().campaign,
+            utm_content: storedUtm().content,
+            utm_term: storedUtm().term,
             creatorWallet: creatorWallet.trim() || undefined,
             creatorTaxBps: creatorTaxBps(),
             holderSharing,
@@ -305,6 +315,7 @@ function Launch() {
       return token;
     },
     onSuccess: (token) => {
+      track("launch_form_complete");
       const code = storedRef();
       const from = wallet.address;
       if (code && from) void recordReferral({ data: { code, kind: "launch", wallet: from } });
@@ -626,6 +637,15 @@ function Launch() {
                     </Link>
                   </p>
                 )}
+                <div className="rounded-xl border border-gold/40 bg-gold/5 p-4 text-sm">
+                  <p className="font-semibold">Before you sign</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+                    <li>Launch take: {fees.data ? `${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol}` : "the quoted launch fee"} plus network gas.</li>
+                    <li>Traders pay 2% on each buy and sell. The creator keeps {formatFeePct(shareOfFeePct)}% of that 2% fee (not of the trade). This split is set here and frozen.</li>
+                    <li>After deploy the creator cannot mint more tokens, pause trading, blacklist wallets, raise the fee, or change the pair. <Link to="/docs/$slug" params={{ slug: "creator" }} className="underline">Full rules</Link>.</li>
+                    <li>A launch does not promise buyers.</li>
+                  </ul>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {fees.data
                     ? `Deploy sends ${formatAmount(fees.data.launchNative)} ${fees.data.nativeSymbol} with this transaction as the launch fee. A small network fee (gas) is added by your wallet.`

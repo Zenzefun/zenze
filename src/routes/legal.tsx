@@ -39,6 +39,7 @@ function Legal() {
         <h2 className="mt-10 text-2xl font-semibold">Privacy</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Wallet addresses and public on-chain activity are visible by design. We do not sell personal data. Server logs retain IP and user-agent for security. A question you type on Capy AI is sent to the model so it can answer, and the read can be saved on that token.
+          We also record first-party, cookie-less events (path, event name, UTM tags, and a random session id) to understand how people reach the launch form. No IP, user-agent, or wallet is stored in that table. We do not sell this data.
         </p>
 
         <h2 className="mt-10 text-2xl font-semibold">Risk disclosure</h2>

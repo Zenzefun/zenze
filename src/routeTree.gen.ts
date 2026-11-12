@@ -33,11 +33,13 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StakingRouteImport } from './routes/staking'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as ZnzfRouteImport } from './routes/znzf'
+import { Route as ApiEventRouteImport } from './routes/api/event'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiXPulseRouteImport } from './routes/api/x-pulse'
 import { Route as AriseIndexRouteImport } from './routes/arise.index'
 import { Route as AriseAiRouteImport } from './routes/arise.ai'
 import { Route as AriseAirdropRouteImport } from './routes/arise.airdrop'
+import { Route as AriseFunnelRouteImport } from './routes/arise.funnel'
 import { Route as AriseListingsRouteImport } from './routes/arise.listings'
 import { Route as AriseMarketingRouteImport } from './routes/arise.marketing'
 import { Route as AriseSettingsRouteImport } from './routes/arise.settings'
@@ -171,6 +173,11 @@ const ZnzfRoute = ZnzfRouteImport.update({
   path: '/znzf',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEventRoute = ApiEventRouteImport.update({
+  id: '/api/event',
+  path: '/api/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -194,6 +201,11 @@ const AriseAiRoute = AriseAiRouteImport.update({
 const AriseAirdropRoute = AriseAirdropRouteImport.update({
   id: '/airdrop',
   path: '/airdrop',
+  getParentRoute: () => AriseRoute,
+} as any)
+const AriseFunnelRoute = AriseFunnelRouteImport.update({
+  id: '/funnel',
+  path: '/funnel',
   getParentRoute: () => AriseRoute,
 } as any)
 const AriseListingsRoute = AriseListingsRouteImport.update({
@@ -282,10 +294,12 @@ export interface FileRoutesByFullPath {
   '/staking': typeof StakingRoute
   '/start': typeof StartRoute
   '/znzf': typeof ZnzfRoute
+  '/api/event': typeof ApiEventRoute
   '/api/health': typeof ApiHealthRoute
   '/api/x-pulse': typeof ApiXPulseRoute
   '/arise/ai': typeof AriseAiRoute
   '/arise/airdrop': typeof AriseAirdropRoute
+  '/arise/funnel': typeof AriseFunnelRoute
   '/arise/listings': typeof AriseListingsRoute
   '/arise/marketing': typeof AriseMarketingRoute
   '/arise/settings': typeof AriseSettingsRoute
@@ -323,10 +337,12 @@ export interface FileRoutesByTo {
   '/staking': typeof StakingRoute
   '/start': typeof StartRoute
   '/znzf': typeof ZnzfRoute
+  '/api/event': typeof ApiEventRoute
   '/api/health': typeof ApiHealthRoute
   '/api/x-pulse': typeof ApiXPulseRoute
   '/arise/ai': typeof AriseAiRoute
   '/arise/airdrop': typeof AriseAirdropRoute
+  '/arise/funnel': typeof AriseFunnelRoute
   '/arise/listings': typeof AriseListingsRoute
   '/arise/marketing': typeof AriseMarketingRoute
   '/arise/settings': typeof AriseSettingsRoute
@@ -367,10 +383,12 @@ export interface FileRoutesById {
   '/staking': typeof StakingRoute
   '/start': typeof StartRoute
   '/znzf': typeof ZnzfRoute
+  '/api/event': typeof ApiEventRoute
   '/api/health': typeof ApiHealthRoute
   '/api/x-pulse': typeof ApiXPulseRoute
   '/arise/ai': typeof AriseAiRoute
   '/arise/airdrop': typeof AriseAirdropRoute
+  '/arise/funnel': typeof AriseFunnelRoute
   '/arise/listings': typeof AriseListingsRoute
   '/arise/marketing': typeof AriseMarketingRoute
   '/arise/settings': typeof AriseSettingsRoute
@@ -412,10 +430,12 @@ export interface FileRouteTypes {
     | '/staking'
     | '/start'
     | '/znzf'
+    | '/api/event'
     | '/api/health'
     | '/api/x-pulse'
     | '/arise/ai'
     | '/arise/airdrop'
+    | '/arise/funnel'
     | '/arise/listings'
     | '/arise/marketing'
     | '/arise/settings'
@@ -453,10 +473,12 @@ export interface FileRouteTypes {
     | '/staking'
     | '/start'
     | '/znzf'
+    | '/api/event'
     | '/api/health'
     | '/api/x-pulse'
     | '/arise/ai'
     | '/arise/airdrop'
+    | '/arise/funnel'
     | '/arise/listings'
     | '/arise/marketing'
     | '/arise/settings'
@@ -496,10 +518,12 @@ export interface FileRouteTypes {
     | '/staking'
     | '/start'
     | '/znzf'
+    | '/api/event'
     | '/api/health'
     | '/api/x-pulse'
     | '/arise/ai'
     | '/arise/airdrop'
+    | '/arise/funnel'
     | '/arise/listings'
     | '/arise/marketing'
     | '/arise/settings'
@@ -540,6 +564,7 @@ export interface RootRouteChildren {
   StakingRoute: typeof StakingRoute
   StartRoute: typeof StartRoute
   ZnzfRoute: typeof ZnzfRoute
+  ApiEventRoute: typeof ApiEventRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiXPulseRoute: typeof ApiXPulseRoute
   CardsIdRoute: typeof CardsIdRoute
@@ -718,6 +743,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZnzfRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/event': {
+      id: '/api/event'
+      path: '/api/event'
+      fullPath: '/api/event'
+      preLoaderRoute: typeof ApiEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -751,6 +783,13 @@ declare module '@tanstack/react-router' {
       path: '/airdrop'
       fullPath: '/arise/airdrop'
       preLoaderRoute: typeof AriseAirdropRouteImport
+      parentRoute: typeof AriseRoute
+    }
+    '/arise/funnel': {
+      id: '/arise/funnel'
+      path: '/funnel'
+      fullPath: '/arise/funnel'
+      preLoaderRoute: typeof AriseFunnelRouteImport
       parentRoute: typeof AriseRoute
     }
     '/arise/listings': {
@@ -843,6 +882,7 @@ declare module '@tanstack/react-router' {
 interface AriseRouteChildren {
   AriseAiRoute: typeof AriseAiRoute
   AriseAirdropRoute: typeof AriseAirdropRoute
+  AriseFunnelRoute: typeof AriseFunnelRoute
   AriseListingsRoute: typeof AriseListingsRoute
   AriseMarketingRoute: typeof AriseMarketingRoute
   AriseSettingsRoute: typeof AriseSettingsRoute
@@ -855,6 +895,7 @@ interface AriseRouteChildren {
 const AriseRouteChildren: AriseRouteChildren = {
   AriseAiRoute: AriseAiRoute,
   AriseAirdropRoute: AriseAirdropRoute,
+  AriseFunnelRoute: AriseFunnelRoute,
   AriseListingsRoute: AriseListingsRoute,
   AriseMarketingRoute: AriseMarketingRoute,
   AriseSettingsRoute: AriseSettingsRoute,
@@ -903,6 +944,7 @@ const rootRouteChildren: RootRouteChildren = {
   StakingRoute: StakingRoute,
   StartRoute: StartRoute,
   ZnzfRoute: ZnzfRoute,
+  ApiEventRoute: ApiEventRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiXPulseRoute: ApiXPulseRoute,
   CardsIdRoute: CardsIdRoute,

@@ -31,7 +31,7 @@ function Guide() {
 
         <h2 className="mt-10 text-2xl font-semibold">1. Connect</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
-          <li>Tap Wallet. That list is the only way to connect. Then pick Robinhood Chain or Arc.</li>
+          <li>Tap Wallet. That list is the only way to connect. Then pick Robinhood Chain (live launches) or Arc (factory ready, no community launches yet).</li>
         </ol>
 
         <h2 className="mt-10 text-2xl font-semibold">2. Launch or list</h2>

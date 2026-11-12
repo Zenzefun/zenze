@@ -3,6 +3,6 @@
   "type": "website",
   "card": "custom",
   "color": "E8B04A",
-  "description": "Launch a token on Robinhood Chain or Arc. Its pool opens at launch, anyone can buy it or sell it back, and it graduates to Uniswap when the curve fills.",
+  "description": "A calm, rules-up-front launchpad for community founders on Robinhood Chain. Fees and several admin powers are frozen at deploy and shown before you sign. Live launches are on Robinhood Chain. An Arc factory is deployed; community Arc launches have not started yet.",
   "image": "/og.jpg"
 }

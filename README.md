@@ -2,7 +2,7 @@
 
 # Zenzen
 
-**A token launchpad for Arc and Robinhood Chain. Launch a token, then sell it back into the same pool.**
+**A calm, rules-up-front launchpad for community founders on Robinhood Chain. Live launches are on Robinhood Chain. An Arc factory is deployed; community Arc launches have not started yet.**
 
 App: https://zenzen.fun (old domain https://zenze.fun redirects here) · Docs: https://zenzen.fun/docs · X: [@getzenzen](https://x.com/getzenzen)
 

@@ -3,6 +3,7 @@ import { TokenImage } from "@/components/media/smart-image";
 import { tokenRouteId } from "@/lib/token-path";
 import { cn } from "@/lib/utils";
 import type { EnrichedToken } from "@/lib/server/market";
+import { isCommunityLaunch } from "@/lib/team-wallets";
 
 function ago(iso: string) {
   const m = Math.max(0, Math.floor((Date.now() - +new Date(iso)) / 60_000));
@@ -14,12 +15,15 @@ function ago(iso: string) {
 
 /** Calm card grid of the newest launches, fed by the existing token list. */
 export function FreshLaunchesFeed({ tokens, className, limit = 6 }: { tokens: EnrichedToken[]; className?: string; limit?: number }) {
-  const fresh = [...tokens].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, limit);
+  const community = tokens.filter(isCommunityLaunch);
+  const team = tokens.filter((tok) => !isCommunityLaunch(tok));
+  const fresh = [...(community.length ? community : team)].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, limit);
   if (fresh.length === 0) return null;
+  const heading = community.length ? "Fresh launches 🌿" : "Team and protocol";
   return (
     <section className={cn("mx-auto max-w-6xl px-4 py-6", className)} aria-labelledby="fresh-title">
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 id="fresh-title" className="text-2xl font-semibold">Fresh launches 🌿</h2>
+        <h2 id="fresh-title" className="text-2xl font-semibold">{heading}</h2>
         <Link to="/explore" className="text-sm text-muted-foreground hover:text-foreground">See all</Link>
       </div>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
